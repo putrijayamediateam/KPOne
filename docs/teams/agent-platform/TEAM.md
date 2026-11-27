@@ -162,6 +162,24 @@ All in the contract; the main ones:
 - Migration range: the Agent platform team uses `2026_11_11_000100` onward (B.E.R.N.I.S.S, 2026-11-06); AG-7's
   `2026_11_05_700000` stays as it is.
 
+## Handoff for a fresh session (27 Nov 2026)
+
+The owner retired the long Irfan session on 27 Nov (one slice per fresh session). Everything a new session needs:
+
+**Merged since the last history rows (all green CI, merged by the coordinator):** CHAT-1 Director chatbox (#1087, `5a4644a`), CHAT-2a backend of "Ask through Claude" (#1088, `30bf35e`), CHAT-2b panel (#1089, `40d0081`), REL-AG release note (#1106) and its wording follow-up (#1128), CI action pins (#1098), DEPS-3b dev tooling lockfiles (#1103), DEPS-1d passkey-stack lockfile update (#1114, `ba1eaf4`). The only open dependency advisory is the low `laravel/framework` Concurrency one (the app never uses `Concurrency`; the fix needs Laravel 13.40+ and a large transitive upgrade; a separate decision).
+
+**Open work, in order:**
+1. **Clean Look restyle, Stage 2 (owner decision 25 Nov, deadline Sun 29 Nov 18:00 MYT):** restyle the agents pages, Insights and the Ask KPOne drawer and panels in place with the shared components (`resources/js/components/ui/*`, AppShell, tokens in `resources/css/app.css`); spec `docs/design/CLEAN-LOOK-SPEC.md`. No duplicate pages or components, no switch. Same safety rules; Daniel's OK plus the Reviewer's OK, then the coordinator merges.
+2. **Backend gap list** (asked by the coordinator for Thu 26 Nov 12:00): every button or screen in the Clean Look clickable demo that has no working backend in main, for the agents, Insights and Ask KPOne areas. **Not sent from this session; send it first.**
+3. **kpjaya.com connector OFF** (owner, 25 Nov): the AI connector stays OFF there for the Puchong test from 30 Nov (the clinic's real inventory and prices, fictional patients). The person who manages the server does it with the owner on Sun 29 Nov evening; nobody here changes the server. Exact steps (already sent to the coordinator; `CONNECTOR-TRIAL-CHECKLIST.md` steps 13 and 14): set `AGENTS_CONNECTOR_ENABLED=false` (and keep `AGENTS_ASK_CLAUDE_ENABLED=false`, `AGENTS_CHAT_ENABLED=false`, `AI_CHAT_API_KEY` empty) in the Forge environment, reload the configuration (`php artisan config:clear`, then `php artisan config:cache` if the site caches it), run `php artisan agents:connector-revoke` to end every existing connection, and check that `https://kpjaya.com/mcp` and `/.well-known/oauth-authorization-server` answer "not found". The rule-based agents (Hana, Rizal, Lina, Faris, the daily summary) stay ON; they call no AI service.
+4. **Optional later:** "Open the report" link in the Ask panel; a connected-apps follow-up; confirm in the live trial that real Claude names branches by label (from `list_branches`) and that the real connector app requests the `mcp:answer` scope (`AGENTS_ASK_CLAUDE_REQUIRE_SCOPE=false` is the fallback). The shared drawer Close "X" is 16 px (Daniel's DD-119, handled outside this team).
+
+**Owner decisions not recorded elsewhere:** PDPA and lawyer review approved, verbal, 25 Nov 2026 (the owner keeps the written copy; the coordinator records it in BASELINE); the connector needs a separate written OK at switch-on on a real-data server, naming the server and the date; the connector stays off on kpjaya.com; the rule-based agents stay on.
+
+**Branches (nothing is lost; none needs a PR):** local-only or diverged branches were pushed as backups on 27 Nov: `backup/irfan-chat1-preview` (`2b158f703`), `backup/irfan-pr279` (`50b1e7390`), `backup/irfan-pr644` (`8848dc302`), `backup/irfan-feature-ag-11-menu-links` (`743909372`), `backup/irfan-feature-ag-4-data-sources` (`39cd0db20`), `backup/irfan-feature-cn-4-connected-apps` (`85f3565cc`) and `backup/irfan-run-phpunit-helper` (`d917c8e94`, one untracked local test-runner helper). There were no stashes. Evidence branches `validation/chat-1-shots` and `validation/chat-2b-shots` hold screenshots only and are never merged.
+
+**Environment tips for a cloud session:** `kphp` always mounts the main checkout, not a worktree; for a worktree run docker with `-v <worktree>:/app` and install packages with `.claude/hooks/session-start.sh` copied under another name (it overwrites `/usr/local/bin/kphp`). The disk allowance fills up: delete your own scratch before large runs. Run PostgreSQL contention tests serially (`phpunit --testsuite Contention`), not in `artisan test --parallel`. Never use a command that loads the real `.env`.
+
 ## Open items
 
 1. **Team names:** Lead Irfan and Reviewer Shalini (owner decision 2026-11-05, recorded in AG-4).
