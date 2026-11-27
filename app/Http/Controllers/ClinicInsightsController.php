@@ -27,7 +27,7 @@ class ClinicInsightsController extends Controller
         $filters = $request->validate([
             'branch' => ['sometimes', 'string', 'max:40'],
         ]);
-        // INS-BM-1: a branch-only account (the Branch Manager) sees its active branch only.
+        // INS-BM-1: a branch-only account (for example the Branch Manager or a CA) sees its active branch only.
         $branch = $scope->resolve($actor, $filters['branch'] ?? null);
 
         return Inertia::render('Insights/Today', [
@@ -72,7 +72,7 @@ class ClinicInsightsController extends Controller
         if ($to < $from) {
             throw ValidationException::withMessages(['to' => 'The end date must be on or after the start date.']);
         }
-        // INS-BM-1: a branch-only account (the Branch Manager) sees its active branch only, and its download links follow.
+        // INS-BM-1: a branch-only account (for example the Branch Manager or a CA) sees its active branch only, and its download links follow.
         $branch = $scope->resolve($actor, $filters['branch'] ?? null);
 
         return Inertia::render('Insights/Report', [

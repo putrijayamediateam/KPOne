@@ -31,7 +31,7 @@ const props = defineProps<{
     canOverview?: boolean;
     branch: string;
     branches: { code: string; name: string }[];
-    // INS-BM-1: false for a branch-only account (the Branch Manager), which sees its own branch only.
+    // INS-BM-1: false for a branch-only account (for example a Branch Manager or CA), which sees its own branch only.
     canSeeAllBranches?: boolean;
     report: TodayInsightsReport;
 }>();

@@ -7,10 +7,11 @@ use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 
 /**
- * INS-BM-1 (owner decision 21 Nov 2026, confirmed 27 Nov): Insights pages are opened with the organisation-level
- * `insights.view.organisation`, which every role holds, and take a branch code or "all". An account that cannot switch
- * across the organisation (the Branch Manager) sees only its active branch: the page defaults to that branch, offers
- * no other branch and no "All branches", and refuses any other value. The same rule guards the CSV exports
+ * INS-BM-1 (owner decision 27 Nov 2026, option A): Insights pages are opened with the organisation-level
+ * `insights.view.organisation`, which every role holds, and take a branch code or "all". A branch-only account (one
+ * without `branch_context.switch.organisation`: today the Branch Manager, CA, CA Supervisor, Resident Doctor and
+ * Medical Assistant) sees only its active branch: the page defaults to that branch, offers no other branch and no
+ * "All branches", and refuses any other value. The same rule guards the CSV exports
  * (BranchOnlyExportScope), so a page and its download links always agree.
  */
 final class InsightsBranchScope

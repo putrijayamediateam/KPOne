@@ -5,6 +5,7 @@ namespace Tests\Feature\Insights;
 use App\Domain\Organisation\Models\Branch;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Clinical\ClinicalTestCase;
+use Tests\Support\StaffBranchAssignmentBootstrapper;
 
 /**
  * INS-BM-1 (owner decision 21 Nov 2026, confirmed 27 Nov): the Branch Manager sees Insights for its own branch only.
@@ -78,6 +79,47 @@ final class BranchManagerInsightsScopeTest extends ClinicalTestCase
         // A download link with no branch also falls back to the manager's own branch rather than "all".
         $this->actingAs($manager)->get(route('insights.sales-summary.download', $range))->assertOk();
         $this->actingAs($manager)->get(route('insights.daily-receipts.download', $range))->assertOk();
+        $this->actingAs($manager)->get(route('insights.daily-sales.download', $range))->assertOk();
+    }
+
+    public function test_other_branch_roles_are_kept_to_their_own_branch_too(): void
+    {
+        $other = $this->otherBranch()->code;
+        foreach (['resident_doctor', 'ca_supervisor', 'medical_assistant'] as $role) {
+            $user = $this->actor($role);
+            $this->selectBranch($user);
+            $this->actingAs($user)->get(route('insights.today', ['branch' => $other]))->assertForbidden();
+            $this->actingAs($user)->get(route('insights.report', ['section' => 'sales', 'branch' => 'all']))->assertForbidden();
+            $this->actingAs($user)->get(route('insights.report', ['section' => 'sales']))->assertOk()
+                ->assertInertia(fn (Assert $page) => $page->where('filters.branch', $this->branch->code)->where('canSeeAllBranches', false));
+        }
+    }
+
+    public function test_a_multi_branch_account_follows_its_selected_branch(): void
+    {
+        $other = $this->otherBranch();
+        $ca = $this->actor('ca');
+        $profile = $ca->staffProfile;
+        StaffBranchAssignmentBootstrapper::create($profile, $other, [
+            'is_primary' => false,
+            'assignment_type' => 'permanent',
+            'valid_from' => now()->subDay()->toDateString(),
+            'valid_until' => null,
+        ]);
+
+        $this->selectBranch($ca, $other);
+        $this->actingAs($ca)->get(route('insights.today'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('branch', $other->code)
+                ->where('branches', fn ($branches): bool => collect($branches)->pluck('code')->all() === [$other->code]));
+        $this->actingAs($ca)->get(route('insights.today', ['branch' => $this->branch->code]))->assertForbidden();
+    }
+
+    public function test_a_branch_only_account_with_no_branch_in_effect_is_refused(): void
+    {
+        $ca = $this->actor('ca');
+        $ca->staffProfile->branchAssignments()->update(['valid_until' => now()->subDays(1)->toDateString(), 'valid_from' => now()->subDays(5)->toDateString()]);
+        $this->actingAs($ca)->get(route('insights.today'))->assertForbidden();
+        $this->actingAs($ca)->get(route('insights.report', ['section' => 'sales']))->assertForbidden();
     }
 
     public function test_the_director_still_sees_all_branches_and_any_branch(): void
