@@ -130,6 +130,7 @@ const props = defineProps<{
         branchId: number;
         branchName: string;
         q: string;
+        show: 'all' | 'open' | 'done';
         canRequest: boolean;
         canApprove: boolean;
         reasons: string[];
@@ -203,11 +204,13 @@ function search(
     lots = 1,
     groups = 1,
     delivery = selectedDelivery.value,
+    show = props.returns.show,
 ) {
     router.get(
         '/inventory/supplier-returns',
         {
             q: q.value,
+            show,
             page,
             lots_page: lots,
             groups_page: groups,
@@ -216,6 +219,19 @@ function search(
         { preserveScroll: true },
     );
 }
+
+const changeShow = (event: Event) => {
+    const select = event.target as HTMLSelectElement;
+    const next = select.value as 'all' | 'open' | 'done';
+    // Keep loaded rows and the displayed filter consistent until the server responds.
+    select.value = props.returns.show;
+
+    if (form.processing || groupForm.processing) {
+        return;
+    }
+
+    search(1, props.returns.lots.page, 1, selectedDelivery.value, next);
+};
 
 // STK-17: several lots from one delivery, sent for approval together.
 const selectedDelivery = ref<number | ''>(props.returns.delivery ?? '');
@@ -439,6 +455,38 @@ watch(
             refocus-key="supplier-returns"
             @found="scanned"
         />
+        <section
+            class="space-y-2 rounded-xl border border-border bg-card p-4"
+            aria-labelledby="return-show-label"
+        >
+            <div class="grid max-w-sm gap-1 text-sm">
+                <label id="return-show-label" for="return-show"
+                    >Show returns</label
+                >
+                <select
+                    id="return-show"
+                    :value="returns.show"
+                    :disabled="form.processing || groupForm.processing"
+                    class="min-h-11 rounded-md border border-input bg-background px-3 lg:min-h-9"
+                    @change="changeShow"
+                >
+                    <option value="all">All returns</option>
+                    <option value="open">Open</option>
+                    <option value="done">Done</option>
+                </select>
+            </div>
+            <p class="text-sm text-muted-foreground">
+                Applies to individual returns and grouped requests. Open
+                includes dispatched returns waiting for a credit note. Done
+                means credited, rejected or cancelled; it does not mean a refund
+                or payment was made.
+            </p>
+            <p class="text-xs text-muted-foreground">
+                Each list shows its own filtered total. Search below applies
+                only to individual returns.
+            </p>
+        </section>
+
         <form class="flex flex-wrap items-end gap-2" @submit.prevent="search()">
             <label class="min-w-[min(100%,18rem)] flex-1 basis-72"
                 >Search SKU, batch, supplier, return or delivery reference<input
