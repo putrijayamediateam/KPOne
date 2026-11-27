@@ -337,11 +337,11 @@ const reverse = (receipt: Receipt) =>
     </main>
     <main
         v-else
-        class="billing-workspace flex w-full flex-1 flex-col bg-muted/40 text-[13px]"
+        class="billing-workspace flex w-full flex-1 flex-col text-sm"
         data-testid="active-billing"
     >
         <header
-            class="flex flex-wrap items-center gap-2 border-b bg-card px-4 py-3"
+            class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-5 pb-2 sm:px-6 lg:px-8"
         >
             <ActionLink v-if="manage" :href="base" variant="outline"
                 ><ArrowLeft class="size-3.5" />Billing</ActionLink
@@ -353,7 +353,9 @@ const reverse = (receipt: Receipt) =>
             >
                 <ArrowLeft class="size-3.5" />{{ billing.backLink.label }}
             </ActionLink>
-            <h1 class="text-base font-semibold">
+            <h1
+                class="w-full text-[26px] leading-tight font-semibold tracking-[-0.02em] sm:w-auto"
+            >
                 {{
                     manage
                         ? 'Payments'
@@ -362,7 +364,7 @@ const reverse = (receipt: Receipt) =>
                           : 'Patient Billing'
                 }}
             </h1>
-            <span v-if="manage" class="text-xs text-muted-foreground">{{
+            <span v-if="manage" class="text-[13px] text-muted-foreground">{{
                 billing.invoice?.number ?? 'No invoice'
             }}</span>
             <StatusBadge :status="billing.visit.status" />
@@ -378,10 +380,10 @@ const reverse = (receipt: Receipt) =>
                 data-testid="panel-claim-link"
                 >{{ billing.panelClaim.label }}</ActionLink
             >
-            <span v-if="isCompleted" class="text-xs text-muted-foreground"
+            <span v-if="isCompleted" class="text-[13px] text-muted-foreground"
                 >Read-only Visit record</span
             >
-            <span class="ml-auto text-xs text-muted-foreground"
+            <span class="text-[13px] text-muted-foreground sm:ml-auto"
                 >{{ billing.branch }} · {{ billing.visit.visitNumber }}</span
             >
             <ActionLink v-if="manage" :href="base" variant="outline"
@@ -391,18 +393,18 @@ const reverse = (receipt: Receipt) =>
         <p
             v-if="error"
             role="alert"
-            class="m-3 rounded border border-destructive/30 bg-destructive/5 p-3 text-destructive"
+            class="mx-4 mt-3 rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-destructive sm:mx-6 lg:mx-8"
         >
             {{ error }}
         </p>
         <!-- BIL-32 (Daniel): the day-close state sits at the top, above the columns, so nobody hunts for a missing button. -->
         <div
             v-if="billing.dayClose"
-            class="mx-3 mt-3 flex items-start gap-2 rounded-xl border p-3 text-sm"
+            class="mx-4 mt-3 flex items-start gap-2 rounded-xl border p-3 text-sm sm:mx-6 lg:mx-8"
             :class="
                 billing.dayClose.paused
-                    ? 'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100'
-                    : 'border-border bg-muted/40'
+                    ? 'border-warning/25 bg-warning-wash text-warning-strong'
+                    : 'border-border bg-card-quiet'
             "
             role="status"
             data-testid="day-close-banner"
@@ -419,8 +421,8 @@ const reverse = (receipt: Receipt) =>
         <div
             :class="
                 manage
-                    ? 'mx-auto grid w-full max-w-[1440px] gap-3 p-4'
-                    : 'grid min-w-0 items-start gap-3 p-3 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.3fr)_minmax(0,.8fr)]'
+                    ? 'mx-auto grid w-full max-w-[1440px] gap-4 px-4 py-4 sm:px-6 lg:px-8'
+                    : 'grid min-w-0 items-start gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.3fr)_minmax(0,.8fr)] lg:px-8'
             "
             data-testid="billing-columns"
         >
@@ -519,7 +521,7 @@ const reverse = (receipt: Receipt) =>
                     <div
                         v-for="voided in billing.voidedInvoices"
                         :key="voided.number"
-                        class="mt-2 rounded-md bg-muted/40 p-2"
+                        class="mt-2 rounded-[10px] bg-card-quiet p-2"
                     >
                         <p class="text-sm tabular-nums">
                             <span class="font-medium">{{ voided.number }}</span>
@@ -727,7 +729,19 @@ const reverse = (receipt: Receipt) =>
                     </dl>
                 </div>
                 <template v-if="billing.invoice"
-                    ><div class="flex items-start justify-between gap-3">
+                    ><div
+                        v-if="!manage"
+                        class="border-b pb-3"
+                        data-testid="billing-due-now-hero"
+                    >
+                        <p class="text-[13px] text-muted-foreground">Due now</p>
+                        <p
+                            class="text-[34px] leading-tight font-bold tracking-[-0.035em] whitespace-nowrap tabular-nums"
+                        >
+                            {{ myr(billing.invoice.state.due_now) }}
+                        </p>
+                    </div>
+                    <div class="flex items-start justify-between gap-3">
                         <div>
                             <p class="text-xs text-muted-foreground">
                                 Financial summary
@@ -847,7 +861,7 @@ const reverse = (receipt: Receipt) =>
                         </summary>
                         <p
                             v-if="billing.can.pay || billing.can.panelPropose"
-                            class="mt-3 rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground"
+                            class="mt-3 rounded-[10px] bg-card-quiet p-3 text-xs text-muted-foreground"
                             data-testid="billing-howto"
                         >
                             <span class="font-semibold text-foreground"
@@ -872,7 +886,7 @@ const reverse = (receipt: Receipt) =>
                     data-testid="billing-payments"
                 >
                     <header
-                        class="flex items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2"
+                        class="flex items-center justify-between gap-2 border-b bg-card-quiet px-3 py-2"
                     >
                         <h3 class="font-medium">Payments</h3>
                         <div class="flex gap-2">
@@ -925,7 +939,7 @@ const reverse = (receipt: Receipt) =>
                     >
                         <table class="w-full text-left text-xs">
                             <thead
-                                class="border-b bg-muted/20 text-xs text-muted-foreground"
+                                class="border-b bg-card-quiet text-xs text-muted-foreground"
                             >
                                 <tr>
                                     <th class="p-3">Receipt / method</th>
@@ -1222,7 +1236,7 @@ const reverse = (receipt: Receipt) =>
                     v-if="billing.panelVisitLimit?.over"
                     role="note"
                     data-testid="panel-visit-limit"
-                    class="rounded-lg border border-warning/25 bg-warning/10 p-3 text-xs text-warning-strong"
+                    class="rounded-xl border border-warning/25 bg-warning-wash p-3 text-xs text-warning-strong"
                 >
                     <p class="flex items-center gap-2 font-semibold">
                         <span
@@ -1243,7 +1257,7 @@ const reverse = (receipt: Receipt) =>
                     v-if="billing.panelShortfall"
                     role="note"
                     data-testid="panel-shortfall"
-                    class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+                    class="rounded-xl border border-warning/25 bg-warning-wash p-3 text-xs text-warning-strong"
                 >
                     <p class="font-semibold">
                         Panel shortfall:
@@ -1342,7 +1356,7 @@ const reverse = (receipt: Receipt) =>
                     >
                     <dl
                         v-if="billing.invoice"
-                        class="grid grid-cols-2 gap-2 rounded-lg border bg-muted/20 p-3 text-xs"
+                        class="grid grid-cols-2 gap-2 rounded-[10px] border bg-card-quiet p-3 text-xs"
                     >
                         <dt>Invoice Total</dt>
                         <dd class="text-right">
@@ -1690,10 +1704,10 @@ const reverse = (receipt: Receipt) =>
 .billing-entry :deep(button),
 .billing-workspace :deep(button),
 .billing-workspace :deep(a[data-slot='button']) {
-    min-height: 28px;
-    height: 30px;
-    padding-inline: 10px;
-    font-size: 12px;
+    min-height: 36px;
+    height: 36px;
+    padding-inline: 14px;
+    font-size: 13px;
 }
 /* Phone touch targets (GUIDE: 44 px): buttons marked data-touch-target escape the compact height above. */
 @media (max-width: 639.98px) {
@@ -1704,7 +1718,7 @@ const reverse = (receipt: Receipt) =>
     }
 }
 /* DD-29 (owner's design clean-up): below 1024 px every Billing button reaches 44 px, as on the Dispensary pages
-   (DD-24). The compact 30 px height stays on wide screens. */
+   (DD-24). Wide screens use 36 px (Clean Look spec, owner-approved 27 Nov). */
 @media (max-width: 1023.98px) {
     .billing-entry :deep(button),
     .billing-workspace :deep(button),
