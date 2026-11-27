@@ -144,6 +144,16 @@ const renderBoard = async (rows) => {
         {},
         { get: (_, key) => (key === '__esModule' ? true : passthrough) },
     );
+    const treatmentHelper = {};
+    Function(
+        'exports',
+        ts.transpileModule(read('resources/js/lib/treatment-progress.ts'), {
+            compilerOptions: {
+                target: ts.ScriptTarget.ES2022,
+                module: ts.ModuleKind.CommonJS,
+            },
+        }).outputText,
+    )(treatmentHelper);
     const requireMap = {
         vue: Vue,
         '@inertiajs/vue3': { Link: passthrough, router: {} },
@@ -157,6 +167,7 @@ const renderBoard = async (rows) => {
         '@/components/ui/dropdown-menu': stubs,
         '@/components/ui/tooltip': stubs,
         '@/lib/waiting-time': helper,
+        '@/lib/treatment-progress': treatmentHelper,
     };
     const statusScript = compileScript(
         parse(

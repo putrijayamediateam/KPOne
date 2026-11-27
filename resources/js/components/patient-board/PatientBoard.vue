@@ -10,6 +10,7 @@ import {
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
+import TreatmentProgressBadge from '@/components/queue/TreatmentProgressBadge.vue';
 import { Button } from '@/components/ui/button';
 import { DisclosureText } from '@/components/ui/disclosure';
 import {
@@ -25,6 +26,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { treatmentBadgeText } from '@/lib/treatment-progress';
 import { waitingTone, waitingToneDescription } from '@/lib/waiting-time';
 import type { WaitingTone } from '@/lib/waiting-time';
 import type { PatientBoardRow } from '@/types';
@@ -35,7 +37,7 @@ const props = defineProps<{
     branchId?: number;
     from?: 'registration' | 'queue';
     queueLayout?: 'own' | 'branch';
-    queueTask?: 'waiting' | 'seeing';
+    queueTask?: 'waiting' | 'seeing' | 'held';
     busyKey?: string | null;
     emptyMessage?: string;
 }>();
@@ -139,7 +141,11 @@ const triageTextClass = (zone: TriageZone | null) =>
                         <th class="w-56 px-3 py-2">Patient</th>
                         <th v-if="ownTask" class="w-28 px-3 py-2">Zone</th>
                         <th v-if="queueLayout === 'own'" class="w-40 px-3 py-2">
-                            Reason
+                            {{
+                                queueTask === 'held'
+                                    ? 'Treatment step'
+                                    : 'Reason'
+                            }}
                         </th>
                         <th
                             v-if="queueLayout === 'branch'"
@@ -150,9 +156,11 @@ const triageTextClass = (zone: TriageZone | null) =>
                         <th class="w-40 px-3 py-2">
                             {{
                                 ownTask
-                                    ? queueTask === 'waiting'
-                                        ? 'Waiting'
-                                        : 'Since'
+                                    ? queueTask === 'held'
+                                        ? 'Held'
+                                        : queueTask === 'waiting'
+                                          ? 'Waiting'
+                                          : 'Since'
                                     : 'Waiting / since'
                             }}
                         </th>
@@ -241,6 +249,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                         </div>
                         <PatientBoardStatus
                             v-if="ownTask"
+                            :show-treatment-badge="queueTask !== 'held'"
                             class="mt-2"
                             :row="row"
                             :branch-id="branchId"
@@ -301,9 +310,30 @@ const triageTextClass = (zone: TriageZone | null) =>
                     <td
                         class="px-3 py-2.5 align-middle"
                         v-if="queueLayout !== 'branch'"
-                        :data-label="ownTask ? 'Reason' : 'Visit notes'"
+                        :data-label="
+                            ownTask
+                                ? queueTask === 'held'
+                                    ? 'Treatment step'
+                                    : 'Reason'
+                                : 'Visit notes'
+                        "
                     >
-                        <div class="text-xs leading-5">
+                        <template v-if="ownTask && queueTask === 'held'">
+                            <TreatmentProgressBadge
+                                v-if="
+                                    treatmentBadgeText(
+                                        row.treatmentProgress,
+                                        row.treatmentMinutes ?? null,
+                                    )
+                                "
+                                :progress="row.treatmentProgress"
+                                :minutes="row.treatmentMinutes"
+                            />
+                            <span v-else class="text-xs text-muted-foreground"
+                                >Not available</span
+                            >
+                        </template>
+                        <div v-else class="text-xs leading-5">
                             <DisclosureText
                                 :text="row.visitNotes"
                                 variant="clamp-2"
@@ -424,9 +454,11 @@ const triageTextClass = (zone: TriageZone | null) =>
                         class="px-3 py-2.5 align-middle"
                         :data-label="
                             ownTask
-                                ? queueTask === 'waiting'
-                                    ? 'Waiting'
-                                    : 'Since'
+                                ? queueTask === 'held'
+                                    ? 'Held'
+                                    : queueTask === 'waiting'
+                                      ? 'Waiting'
+                                      : 'Since'
                                 : 'Duration'
                         "
                     >
@@ -763,6 +795,7 @@ const triageTextClass = (zone: TriageZone | null) =>
     .patient-board td[data-label='Patient'],
     .patient-board td[data-label='Visit notes'],
     .patient-board td[data-label='Reason'],
+    .patient-board td[data-label='Treatment step'],
     .patient-board td[data-label='Payment'] {
         grid-column: 1 / -1;
     }
