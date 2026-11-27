@@ -30,6 +30,8 @@ const props = defineProps<{
     dailyDownloadUrl: string | null;
     filters: InsightsRangeFilters;
     branches: { code: string; name: string }[];
+    // INS-BM-1: false for a branch-only account (the Branch Manager), which sees its own branch only.
+    canSeeAllBranches?: boolean;
     doctors: { id: number; name: string; branch: string }[];
     data: {
         section: string;
@@ -69,7 +71,9 @@ const searches = ref<Record<string, string>>({});
 const section = computed(() => props.filters.section);
 const report = computed(() => props.data.report);
 const branchOptions = computed(() => [
-    { value: 'all', label: 'All branches' },
+    ...(props.canSeeAllBranches === false
+        ? []
+        : [{ value: 'all', label: 'All branches' }]),
     ...props.branches.map((branch) => ({
         value: branch.code,
         label: branch.name,
