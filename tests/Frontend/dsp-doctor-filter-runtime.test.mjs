@@ -56,7 +56,11 @@ function mount(canViewReturns = true, selected = 'all') {
                 };
             }
 
-            if (name.startsWith('@/components/') || name === '@lucide/vue') {
+            if (
+                name.startsWith('@/components/') ||
+                name === '@lucide/vue' ||
+                name === './partials/DispensaryRowContext.vue'
+            ) {
                 return new Proxy(
                     {},
                     {

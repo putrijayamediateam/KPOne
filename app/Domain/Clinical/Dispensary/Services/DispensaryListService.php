@@ -10,6 +10,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
+use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -54,6 +55,10 @@ final class DispensaryListService
         $query = $this->tabQuery($actor, $branch, $tab, $from, $to, $caseType, $selection['value'], $selection['id']);
         $this->search($query, $search);
         $query->with(['visit.patient:id,patient_number,full_name', 'visit.assignedDoctor:id,name', 'handoffs' => fn ($q) => $q->reorder('attempt_number', 'desc')->withCount(['items as given_count' => fn ($i) => $i->where('status', '!=', DispensaryItem::STATUS_NOT_DISPENSED)])]);
+        $showContext = $tab !== self::TAB_DONE;
+        if ($showContext) {
+            $query->with('visit.reasonAssignments.reason:id,public_id,name');
+        }
         $tab === self::TAB_DONE ? $query->orderByDesc('completed_at')->orderByDesc('id') : $query->orderBy('received_at')->orderBy('id');
         // A refresh can move cases between tabs; a page past the end falls back to the last page.
         $lastPage = max(1, (int) ceil((clone $query)->count() / self::PER_PAGE));
@@ -76,7 +81,7 @@ final class DispensaryListService
             'doctorFilterReset' => $selection['reset'],
             'counts' => $counts,
             'canPrintLabels' => $mayPrint,
-            'rows' => $cases->map(function (DispensaryCase $case) use ($numbers, $branch, $mayPrint, $mayPreview, $now): array {
+            'rows' => $cases->map(function (DispensaryCase $case) use ($numbers, $branch, $mayPrint, $mayPreview, $now, $showContext): array {
                 $handoff = $case->handoffs->first();
                 $received = CarbonImmutable::parse($case->received_at);
                 $completed = $case->completed_at === null ? null : CarbonImmutable::parse($case->completed_at);
@@ -91,6 +96,10 @@ final class DispensaryListService
                     'caseType' => $case->case_type,
                     'status' => $case->status,
                     'doctorName' => $case->visit->assignedDoctor?->name,
+                    ...($showContext ? ['context' => [
+                        'visitReasonExcerpt' => ($summary = app(VisitReasonService::class)->summary($case->visit)) ? Str::limit($summary, 80) : null,
+                        'coverageLabel' => $case->visit->coverage_type === 'panel' ? $case->visit->coverage_panel_name_snapshot : 'Self-pay',
+                    ]] : []),
                     'medicineCount' => (int) ($handoff?->getAttribute('given_count') ?? 0),
                     'receivedAt' => $received->setTimezone($branch->timezone)->format('g:i A'),
                     'waitingMinutes' => $completed === null ? max(0, (int) $received->diffInMinutes($now)) : null,
