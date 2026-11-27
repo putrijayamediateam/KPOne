@@ -18,6 +18,6 @@ test('whoever raised or submitted an order is not offered Approve', () => {
     );
     assert.match(
         panel,
-        /You raised or submitted this order, so a different\s+Finance Officer or Director must approve it\./,
+        /You raised or submitted this order, so a\s+different Finance Officer or Director must\s+approve it\./,
     );
 });

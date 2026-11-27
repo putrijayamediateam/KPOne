@@ -21,7 +21,7 @@ test('only an approver may close the rest of a partly received order', () => {
     );
     assert.match(
         panel,
-        /Finance Officer or Director must close the rest of\s+it\./,
+        /Finance Officer or Director must close\s+the rest of it\./,
     );
     assert.match(panel, />Close the rest<\/Button/);
 });

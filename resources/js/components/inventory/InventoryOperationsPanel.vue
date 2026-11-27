@@ -14,6 +14,7 @@ import type { Ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import ReceivingReviews from '@/components/inventory/ReceivingReviews.vue';
+import StockPurchaseOrderList from '@/components/inventory/StockPurchaseOrderList.vue';
 import StockTransferList from '@/components/inventory/StockTransferList.vue';
 import TransferDifferences from '@/components/inventory/TransferDifferences.vue';
 import TransferReceiptForm from '@/components/inventory/TransferReceiptForm.vue';
@@ -60,6 +61,35 @@ const props = defineProps<{
 }>();
 const deliveryReferences = reactive<Record<string, string>>({});
 const busy = ref(false);
+const receivingInFlight = reactive(
+    new Map<symbol, { orderId: string; branchId: number }>(),
+);
+const receivingProcessingChanged = (state: {
+    token: symbol;
+    orderId: string;
+    branchId: number;
+    processing: boolean;
+}) => {
+    if (state.processing) {
+        receivingInFlight.set(state.token, {
+            orderId: state.orderId,
+            branchId: state.branchId,
+        });
+    } else {
+        receivingInFlight.delete(state.token);
+    }
+};
+const purchaseOrderBusy = computed(
+    () =>
+        busy.value ||
+        Array.from(receivingInFlight.values()).some(
+            (state) =>
+                state.branchId === props.operations.expectedBranchId &&
+                props.operations.purchaseOrders.some(
+                    (row) => row.publicId === state.orderId,
+                ),
+        ),
+);
 const operationError = ref<string | null>(null);
 const operationErrorContext = ref('Inventory operation');
 const rmToSen = (value: string): number | null => {
@@ -971,203 +1001,46 @@ const saveReorder = () =>
         </div>
 
         <div class="grid gap-4 xl:grid-cols-2">
-            <section class="space-y-3 rounded-xl border bg-card p-4">
-                <h3 class="font-semibold">Purchase Orders & Receiving</h3>
-                <form
+            <section
+                class="space-y-3 rounded-xl border bg-card p-4 xl:col-span-2 [&_button]:min-h-11 lg:[&_button]:min-h-9 [&_input:not([type=checkbox]):not([type=radio])]:min-h-11 lg:[&_input:not([type=checkbox]):not([type=radio])]:min-h-9 [&_select]:min-h-11 lg:[&_select]:min-h-9"
+            >
+                <h3 class="font-semibold">Purchase orders</h3>
+                <p class="text-sm text-muted-foreground">
+                    Open an order for its saved details, receiving and available
+                    actions. The person who raised or submitted an order cannot
+                    approve it.
+                </p>
+                <details
                     v-if="operations.permissions.createPurchaseOrders"
-                    class="grid gap-2 sm:grid-cols-2"
-                    @submit.prevent="createPurchaseOrder"
+                    class="rounded-xl border border-border p-3"
                 >
-                    <InventorySearchSelect
-                        v-model="purchaseOrder.supplier"
-                        label="Supplier"
-                        :options="supplierOptions"
-                        kind="suppliers"
-                        context="operations"
-                        :expected-branch-id="operations.expectedBranchId"
-                    />
-                    <InventorySearchSelect
-                        v-model="purchaseOrder.destination"
-                        label="Destination"
-                        :options="locationOptions"
-                        kind="locations"
-                        context="operations"
-                        :expected-branch-id="operations.expectedBranchId"
-                    />
-                    <label class="grid gap-1 text-sm">
-                        <span>Expected delivery date (optional)</span>
-                        <DateField
-                            v-model="purchaseOrder.expectedDeliveryDate"
-                            aria-label="Expected delivery date (optional)"
-                            class="[&_button]:min-h-11 lg:[&_button]:min-h-9 [&_input]:min-h-11 lg:[&_input]:min-h-9"
-                        />
-                    </label>
-                    <label class="grid gap-1 text-sm">
-                        <span>Supplier reference (optional)</span>
-                        <Input
-                            v-model="purchaseOrder.supplierReference"
-                            aria-label="Supplier reference (optional)"
-                            maxlength="120"
-                            class="min-h-11 lg:min-h-9"
-                        />
-                    </label>
-                    <p
-                        id="po-estimate-help"
-                        class="text-xs text-muted-foreground sm:col-span-2"
+                    <summary
+                        class="min-h-11 cursor-pointer py-2 text-sm font-medium lg:min-h-9"
+                        :aria-disabled="purchaseOrderBusy"
+                        @click="purchaseOrderBusy && $event.preventDefault()"
                     >
-                        Estimated cost is for one stock unit (for example one
-                        tablet), not one box.
+                        Create purchase order
+                    </summary>
+                    <p class="my-3 text-sm text-muted-foreground">
+                        Save the draft first, then open the order to review it
+                        and submit for approval.
                     </p>
-                    <fieldset
-                        v-for="(line, index) in purchaseOrder.lines"
-                        :key="line.key"
-                        class="grid gap-2 rounded-lg border p-2 sm:col-span-2 sm:grid-cols-[1fr_1fr_1fr_auto]"
-                    >
-                        <legend class="px-1 text-xs font-medium">
-                            Order line {{ index + 1 }}
-                        </legend>
-                        <InventorySearchSelect
-                            v-model="line.sku"
-                            :label="`SKU ${index + 1}`"
-                            :options="skuOptions"
-                            kind="skus"
-                            context="operations"
-                            :expected-branch-id="operations.expectedBranchId"
-                        />
-                        <Input
-                            v-model="line.quantity"
-                            :aria-label="`Ordered quantity ${index + 1}`"
-                            placeholder="Quantity"
-                            inputmode="decimal"
-                            required
-                        />
-                        <Input
-                            v-model="line.estimatedUnitCostRm"
-                            :aria-label="`Estimated cost per stock unit RM ${index + 1}`"
-                            aria-describedby="po-estimate-help"
-                            placeholder="Estimated cost per stock unit (RM)"
-                            type="number"
-                            inputmode="decimal"
-                            min="0"
-                            step="0.01"
-                        />
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            :disabled="purchaseOrder.lines.length === 1"
-                            @click="removePurchaseOrderLine(index)"
-                            >Remove</Button
-                        >
-                    </fieldset>
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        :disabled="busy"
-                        @click="addPurchaseOrderLine"
-                        >Add PO line</Button
-                    >
-                    <Button type="submit" :disabled="busy" class="sm:col-span-2"
-                        >Create PO draft</Button
-                    >
-                </form>
-                <article
-                    v-for="row in operations.purchaseOrders"
-                    :key="row.publicId"
-                    class="space-y-2 rounded-lg border p-3"
-                >
-                    <div class="flex items-center justify-between gap-2">
-                        <span class="font-mono text-sm">{{ row.number }}</span
-                        ><StatusBadge
-                            :status="row.status"
-                            :label="purchaseOrderStatusLabel(row)"
-                        />
-                    </div>
-                    <p class="text-sm">
-                        {{ row.supplier }} → {{ row.destination }}
-                    </p>
-                    <dl
-                        class="grid gap-2 text-sm sm:grid-cols-2"
-                        data-testid="po-delivery-metadata"
-                    >
-                        <div>
-                            <dt class="text-muted-foreground">
-                                Expected delivery date
-                            </dt>
-                            <dd>
-                                {{
-                                    row.expectedDeliveryDate
-                                        ? formatDate(row.expectedDeliveryDate)
-                                        : 'Not specified'
-                                }}
-                            </dd>
-                        </div>
-                        <div>
-                            <dt class="text-muted-foreground">
-                                Supplier reference
-                            </dt>
-                            <dd class="break-words">
-                                {{ row.supplierReference ?? 'Not specified' }}
-                            </dd>
-                        </div>
-                    </dl>
-                    <p
-                        v-if="row.fromRequest"
-                        class="text-sm text-muted-foreground"
-                        data-testid="po-from-request"
-                    >
-                        From purchase request {{ row.fromRequest }}
-                    </p>
-                    <p
-                        v-for="line in row.lines"
-                        :key="line.publicId"
-                        class="text-xs text-muted-foreground"
-                        data-testid="po-line-progress"
-                    >
-                        <span class="text-foreground">{{
-                            line.item ?? line.sku
-                        }}</span>
-                        <template v-if="line.item"> · {{ line.sku }}</template>
-                        · {{ lineProgress(row, line) }}
-                    </p>
-                    <div
-                        v-if="row.closeKind === 'short'"
-                        class="text-sm"
-                        data-testid="po-short-closed"
-                    >
-                        <p>
-                            Closed short:
-                            {{ shortCloseReasonLabel(row.shortCloseReason)
-                            }}<template v-if="row.shortCloseNote">
-                                · {{ row.shortCloseNote }}</template
-                            >
-                        </p>
-                        <p class="text-xs text-muted-foreground">
-                            Closed short by {{ row.closedBy }} on
-                            {{ row.closedOn }}
-                        </p>
-                    </div>
                     <form
-                        v-if="
-                            row.status === 'draft' &&
-                            operations.permissions.createPurchaseOrders
-                        "
-                        class="grid gap-2 rounded-lg bg-muted/40 p-2 sm:grid-cols-2"
-                        @submit.prevent="updatePurchaseOrder(row)"
+                        v-if="operations.permissions.createPurchaseOrders"
+                        class="grid gap-2 sm:grid-cols-2"
+                        @submit.prevent="createPurchaseOrder"
                     >
                         <InventorySearchSelect
-                            v-model="purchaseOrderEdits[row.publicId].supplier"
-                            label="Draft supplier"
+                            v-model="purchaseOrder.supplier"
+                            label="Supplier"
                             :options="supplierOptions"
                             kind="suppliers"
                             context="operations"
                             :expected-branch-id="operations.expectedBranchId"
                         />
                         <InventorySearchSelect
-                            v-model="
-                                purchaseOrderEdits[row.publicId].destination
-                            "
-                            label="Draft destination"
+                            v-model="purchaseOrder.destination"
+                            label="Destination"
                             :options="locationOptions"
                             kind="locations"
                             context="operations"
@@ -1176,229 +1049,449 @@ const saveReorder = () =>
                         <label class="grid gap-1 text-sm">
                             <span>Expected delivery date (optional)</span>
                             <DateField
-                                v-model="
-                                    purchaseOrderEdits[row.publicId]
-                                        .expectedDeliveryDate
-                                "
-                                :aria-label="`Expected delivery date for ${row.number} (optional)`"
+                                v-model="purchaseOrder.expectedDeliveryDate"
+                                aria-label="Expected delivery date (optional)"
                                 class="[&_button]:min-h-11 lg:[&_button]:min-h-9 [&_input]:min-h-11 lg:[&_input]:min-h-9"
                             />
                         </label>
                         <label class="grid gap-1 text-sm">
                             <span>Supplier reference (optional)</span>
                             <Input
-                                v-model="
-                                    purchaseOrderEdits[row.publicId]
-                                        .supplierReference
-                                "
-                                :aria-label="`Supplier reference for ${row.number} (optional)`"
+                                v-model="purchaseOrder.supplierReference"
+                                aria-label="Supplier reference (optional)"
                                 maxlength="120"
                                 class="min-h-11 lg:min-h-9"
                             />
                         </label>
-                        <label
-                            v-for="line in row.lines"
-                            :key="`edit-${line.publicId}`"
-                            class="grid gap-1 text-xs"
+                        <p
+                            id="po-estimate-help"
+                            class="text-xs text-muted-foreground sm:col-span-2"
                         >
-                            <span>{{ line.sku }} quantity</span>
-                            <Input
-                                v-model="
-                                    purchaseOrderEdits[row.publicId].quantities[
-                                        line.publicId
-                                    ]
+                            Estimated cost is for one stock unit (for example
+                            one tablet), not one box.
+                        </p>
+                        <fieldset
+                            v-for="(line, index) in purchaseOrder.lines"
+                            :key="line.key"
+                            class="grid gap-2 rounded-lg border p-2 sm:col-span-2 sm:grid-cols-[1fr_1fr_1fr_auto]"
+                        >
+                            <legend class="px-1 text-xs font-medium">
+                                Order line {{ index + 1 }}
+                            </legend>
+                            <InventorySearchSelect
+                                v-model="line.sku"
+                                :label="`SKU ${index + 1}`"
+                                :options="skuOptions"
+                                kind="skus"
+                                context="operations"
+                                :expected-branch-id="
+                                    operations.expectedBranchId
                                 "
-                                :aria-label="`${line.sku} ordered quantity`"
+                            />
+                            <Input
+                                v-model="line.quantity"
+                                :aria-label="`Ordered quantity ${index + 1}`"
+                                placeholder="Quantity"
                                 inputmode="decimal"
                                 required
                             />
-                        </label>
+                            <Input
+                                v-model="line.estimatedUnitCostRm"
+                                :aria-label="`Estimated cost per stock unit RM ${index + 1}`"
+                                aria-describedby="po-estimate-help"
+                                placeholder="Estimated cost per stock unit (RM)"
+                                type="number"
+                                inputmode="decimal"
+                                min="0"
+                                step="0.01"
+                            />
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                :disabled="purchaseOrder.lines.length === 1"
+                                @click="removePurchaseOrderLine(index)"
+                                >Remove</Button
+                            >
+                        </fieldset>
                         <Button
-                            type="submit"
-                            size="sm"
+                            type="button"
                             variant="secondary"
                             :disabled="busy"
-                            >Update draft</Button
+                            @click="addPurchaseOrderLine"
+                            >Add PO line</Button
+                        >
+                        <Button
+                            type="submit"
+                            :disabled="busy"
+                            class="sm:col-span-2"
+                            >Create PO draft</Button
                         >
                     </form>
-                    <div class="flex flex-wrap gap-2">
-                        <Button
-                            v-if="canPurchase(row, 'submit')"
-                            size="sm"
-                            @click="transitionPurchaseOrder(row, 'submit')"
-                            >Submit</Button
-                        >
-                        <Button
-                            v-if="canPurchase(row, 'approve')"
-                            size="sm"
-                            @click="
-                                confirmPurchaseOrderTransition(row, 'approve')
-                            "
-                            >Approve</Button
-                        >
-                        <Button
-                            v-if="canPurchase(row, 'cancel')"
-                            size="sm"
-                            variant="secondary"
-                            @click="
-                                confirmPurchaseOrderTransition(row, 'cancel')
-                            "
-                            >Cancel</Button
-                        >
-                        <a
-                            v-if="
-                                operations.permissions.createPurchaseOrders ||
-                                operations.permissions.approvePurchaseOrders
-                            "
-                            :href="`/inventory/purchase-orders/${row.publicId}/print`"
-                            class="inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium lg:min-h-9"
-                            :aria-label="`Print purchase order ${row.number}`"
-                            >Print PO</a
-                        >
-                        <p
-                            v-if="
-                                needsAnotherApprover(row, 'approve') &&
-                                purchaseOrderActionAllowed(
-                                    row.status,
-                                    'approve',
-                                    operations.permissions,
-                                )
-                            "
-                            class="w-full text-sm text-muted-foreground"
-                        >
-                            You raised or submitted this order, so a different
-                            Finance Officer or Director must approve it.
-                        </p>
-                        <p
-                            v-if="
-                                needsAnotherApprover(row, 'cancel') &&
-                                purchaseOrderActionAllowed(
-                                    row.status,
-                                    'cancel',
-                                    operations.permissions,
-                                )
-                            "
-                            class="w-full text-sm text-muted-foreground"
-                        >
-                            You raised or submitted this order, so a different
-                            Finance Officer or Director must cancel it now that
-                            it is approved.
-                        </p>
-                        <Button
-                            v-if="canPurchase(row, 'short_close')"
-                            size="sm"
-                            variant="secondary"
-                            class="min-h-11 lg:min-h-9"
-                            @click="openShortClose(row)"
-                            >Close the rest</Button
-                        >
-                        <p
-                            v-if="
-                                needsAnotherApprover(row, 'short_close') &&
-                                purchaseOrderActionAllowed(
-                                    row.status,
-                                    'short_close',
-                                    operations.permissions,
-                                )
-                            "
-                            class="w-full text-sm text-muted-foreground"
-                        >
-                            You raised or submitted this order, so a different
-                            Finance Officer or Director must close the rest of
-                            it.
-                        </p>
-                        <Button
-                            v-if="canPurchase(row, 'close')"
-                            size="sm"
-                            @click="
-                                confirmPurchaseOrderTransition(row, 'close')
-                            "
-                            >Close</Button
-                        >
-                    </div>
-                    <form
-                        v-if="canPurchase(row, 'receive')"
-                        class="space-y-2"
-                        @submit.prevent="confirmPurchaseOrderReceipt(row)"
-                    >
-                        <label class="grid gap-1 text-sm"
-                            >Delivery note or supplier invoice reference
-                            (required)
-                            <Input
-                                v-model="deliveryReferences[row.publicId]"
-                                required
-                                maxlength="120"
-                                class="min-h-11"
-                                :aria-label="`${row.number} delivery reference`"
+                </details>
+                <StockPurchaseOrderList
+                    :rows="operations.purchaseOrders"
+                    :branch-id="operations.expectedBranchId"
+                    :busy="purchaseOrderBusy"
+                    :status-label="purchaseOrderStatusLabel"
+                >
+                    <template #default="{ row }">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-mono text-sm">{{
+                                row.number
+                            }}</span
+                            ><StatusBadge
+                                :status="row.status"
+                                :label="purchaseOrderStatusLabel(row)"
                             />
-                        </label>
-                        <fieldset
+                        </div>
+                        <p class="text-sm">
+                            {{ row.supplier }} → {{ row.destination }}
+                        </p>
+                        <dl
+                            class="grid gap-2 text-sm sm:grid-cols-2"
+                            data-testid="po-delivery-metadata"
+                        >
+                            <div>
+                                <dt class="text-muted-foreground">
+                                    Expected delivery date
+                                </dt>
+                                <dd>
+                                    {{
+                                        row.expectedDeliveryDate
+                                            ? formatDate(
+                                                  row.expectedDeliveryDate,
+                                              )
+                                            : 'Not specified'
+                                    }}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-muted-foreground">
+                                    Supplier reference
+                                </dt>
+                                <dd class="break-words">
+                                    {{
+                                        row.supplierReference ?? 'Not specified'
+                                    }}
+                                </dd>
+                            </div>
+                        </dl>
+                        <p
+                            v-if="row.fromRequest"
+                            class="text-sm text-muted-foreground"
+                            data-testid="po-from-request"
+                        >
+                            From purchase request {{ row.fromRequest }}
+                        </p>
+                        <p
                             v-for="line in row.lines"
                             :key="line.publicId"
-                            class="grid items-start gap-2 rounded-lg border p-2 sm:grid-cols-2"
+                            class="text-xs text-muted-foreground"
+                            data-testid="po-line-progress"
                         >
-                            <legend class="px-1 text-xs font-medium">
-                                {{ line.sku }} · {{ line.receivedQuantity }}/{{
-                                    line.orderedQuantity
-                                }}
-                                · Base stock unit: {{ line.stockUnit }}
-                            </legend>
-                            <label class="grid min-w-0 gap-1 text-xs"
-                                >Batch number (required)
-                                <Input
-                                    v-model="receipt[line.publicId].batchNumber"
-                                    :aria-label="`${line.sku} received batch number`"
-                            /></label>
-                            <label class="grid min-w-0 gap-1 text-xs"
-                                >Expiry date (required)
+                            <span class="text-foreground">{{
+                                line.item ?? line.sku
+                            }}</span>
+                            <template v-if="line.item">
+                                · {{ line.sku }}</template
+                            >
+                            · {{ lineProgress(row, line) }}
+                        </p>
+                        <div
+                            v-if="row.closeKind === 'short'"
+                            class="text-sm"
+                            data-testid="po-short-closed"
+                        >
+                            <p>
+                                Closed short:
+                                {{ shortCloseReasonLabel(row.shortCloseReason)
+                                }}<template v-if="row.shortCloseNote">
+                                    · {{ row.shortCloseNote }}</template
+                                >
+                            </p>
+                            <p class="text-xs text-muted-foreground">
+                                Closed short by {{ row.closedBy }} on
+                                {{ row.closedOn }}
+                            </p>
+                        </div>
+                        <form
+                            v-if="
+                                row.status === 'draft' &&
+                                operations.permissions.createPurchaseOrders
+                            "
+                            class="grid gap-2 rounded-lg bg-muted/40 p-2 sm:grid-cols-2"
+                            @submit.prevent="updatePurchaseOrder(row)"
+                        >
+                            <InventorySearchSelect
+                                v-model="
+                                    purchaseOrderEdits[row.publicId].supplier
+                                "
+                                label="Draft supplier"
+                                :options="supplierOptions"
+                                kind="suppliers"
+                                context="operations"
+                                :expected-branch-id="
+                                    operations.expectedBranchId
+                                "
+                            />
+                            <InventorySearchSelect
+                                v-model="
+                                    purchaseOrderEdits[row.publicId].destination
+                                "
+                                label="Draft destination"
+                                :options="locationOptions"
+                                kind="locations"
+                                context="operations"
+                                :expected-branch-id="
+                                    operations.expectedBranchId
+                                "
+                            />
+                            <label class="grid gap-1 text-sm">
+                                <span>Expected delivery date (optional)</span>
                                 <DateField
-                                    v-model="receipt[line.publicId].expiryDate"
-                                    :aria-label="`${line.sku} expiry date`"
-                                    :echo="false"
-                            /></label>
-                            <label class="grid min-w-0 gap-1 text-xs"
-                                >Quantity this receipt ({{ line.stockUnit }},
-                                required)
+                                    v-model="
+                                        purchaseOrderEdits[row.publicId]
+                                            .expectedDeliveryDate
+                                    "
+                                    :aria-label="`Expected delivery date for ${row.number} (optional)`"
+                                    class="[&_button]:min-h-11 lg:[&_button]:min-h-9 [&_input]:min-h-11 lg:[&_input]:min-h-9"
+                                />
+                            </label>
+                            <label class="grid gap-1 text-sm">
+                                <span>Supplier reference (optional)</span>
                                 <Input
-                                    v-model="receipt[line.publicId].quantity"
-                                    :aria-label="`${line.sku} quantity this receipt`"
+                                    v-model="
+                                        purchaseOrderEdits[row.publicId]
+                                            .supplierReference
+                                    "
+                                    :aria-label="`Supplier reference for ${row.number} (optional)`"
+                                    maxlength="120"
+                                    class="min-h-11 lg:min-h-9"
+                                />
+                            </label>
+                            <label
+                                v-for="line in row.lines"
+                                :key="`edit-${line.publicId}`"
+                                class="grid gap-1 text-xs"
+                            >
+                                <span>{{ line.sku }} quantity</span>
+                                <Input
+                                    v-model="
+                                        purchaseOrderEdits[row.publicId]
+                                            .quantities[line.publicId]
+                                    "
+                                    :aria-label="`${line.sku} ordered quantity`"
                                     inputmode="decimal"
-                            /></label>
-                            <div class="grid min-w-0 gap-1">
+                                    required
+                                />
+                            </label>
+                            <Button
+                                type="submit"
+                                size="sm"
+                                variant="secondary"
+                                :disabled="busy"
+                                >Update draft</Button
+                            >
+                        </form>
+                        <div class="flex flex-wrap gap-2">
+                            <Button
+                                v-if="canPurchase(row, 'submit')"
+                                size="sm"
+                                @click="transitionPurchaseOrder(row, 'submit')"
+                                >Submit</Button
+                            >
+                            <Button
+                                v-if="canPurchase(row, 'approve')"
+                                size="sm"
+                                @click="
+                                    confirmPurchaseOrderTransition(
+                                        row,
+                                        'approve',
+                                    )
+                                "
+                                >Approve</Button
+                            >
+                            <Button
+                                v-if="canPurchase(row, 'cancel')"
+                                size="sm"
+                                variant="secondary"
+                                @click="
+                                    confirmPurchaseOrderTransition(
+                                        row,
+                                        'cancel',
+                                    )
+                                "
+                                >Cancel</Button
+                            >
+                            <a
+                                v-if="
+                                    operations.permissions
+                                        .createPurchaseOrders ||
+                                    operations.permissions.approvePurchaseOrders
+                                "
+                                :href="`/inventory/purchase-orders/${row.publicId}/print`"
+                                class="inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium lg:min-h-9"
+                                :aria-label="`Print purchase order ${row.number}`"
+                                >Print PO</a
+                            >
+                            <p
+                                v-if="
+                                    needsAnotherApprover(row, 'approve') &&
+                                    purchaseOrderActionAllowed(
+                                        row.status,
+                                        'approve',
+                                        operations.permissions,
+                                    )
+                                "
+                                class="w-full text-sm text-muted-foreground"
+                            >
+                                You raised or submitted this order, so a
+                                different Finance Officer or Director must
+                                approve it.
+                            </p>
+                            <p
+                                v-if="
+                                    needsAnotherApprover(row, 'cancel') &&
+                                    purchaseOrderActionAllowed(
+                                        row.status,
+                                        'cancel',
+                                        operations.permissions,
+                                    )
+                                "
+                                class="w-full text-sm text-muted-foreground"
+                            >
+                                You raised or submitted this order, so a
+                                different Finance Officer or Director must
+                                cancel it now that it is approved.
+                            </p>
+                            <Button
+                                v-if="canPurchase(row, 'short_close')"
+                                size="sm"
+                                variant="secondary"
+                                class="min-h-11 lg:min-h-9"
+                                @click="openShortClose(row)"
+                                >Close the rest</Button
+                            >
+                            <p
+                                v-if="
+                                    needsAnotherApprover(row, 'short_close') &&
+                                    purchaseOrderActionAllowed(
+                                        row.status,
+                                        'short_close',
+                                        operations.permissions,
+                                    )
+                                "
+                                class="w-full text-sm text-muted-foreground"
+                            >
+                                You raised or submitted this order, so a
+                                different Finance Officer or Director must close
+                                the rest of it.
+                            </p>
+                            <Button
+                                v-if="canPurchase(row, 'close')"
+                                size="sm"
+                                @click="
+                                    confirmPurchaseOrderTransition(row, 'close')
+                                "
+                                >Close</Button
+                            >
+                        </div>
+                        <form
+                            v-if="canPurchase(row, 'receive')"
+                            class="space-y-2"
+                            @submit.prevent="confirmPurchaseOrderReceipt(row)"
+                        >
+                            <label class="grid gap-1 text-sm"
+                                >Delivery note or supplier invoice reference
+                                (required)
+                                <Input
+                                    v-model="deliveryReferences[row.publicId]"
+                                    required
+                                    maxlength="120"
+                                    class="min-h-11"
+                                    :aria-label="`${row.number} delivery reference`"
+                                />
+                            </label>
+                            <fieldset
+                                v-for="line in row.lines"
+                                :key="line.publicId"
+                                class="grid items-start gap-2 rounded-lg border p-2 sm:grid-cols-2"
+                            >
+                                <legend class="px-1 text-xs font-medium">
+                                    {{ line.sku }} ·
+                                    {{ line.receivedQuantity }}/{{
+                                        line.orderedQuantity
+                                    }}
+                                    · Base stock unit: {{ line.stockUnit }}
+                                </legend>
                                 <label class="grid min-w-0 gap-1 text-xs"
-                                    >Total paid for this batch (RM, optional)
+                                    >Batch number (required)
                                     <Input
                                         v-model="
-                                            receipt[line.publicId].costTotalRm
+                                            receipt[line.publicId].batchNumber
                                         "
-                                        :aria-label="`${line.sku} total paid for this batch RM`"
-                                        :aria-describedby="`${line.publicId}-cost-help`"
-                                        placeholder="0.00"
-                                        type="number"
-                                        inputmode="decimal"
-                                        min="0"
-                                        step="0.01"
+                                        :aria-label="`${line.sku} received batch number`"
                                 /></label>
-                                <p
-                                    :id="`${line.publicId}-cost-help`"
-                                    class="text-xs text-muted-foreground"
-                                >
-                                    From the supplier invoice. Leave blank to
-                                    use the order's estimate.
-                                </p>
-                            </div>
-                        </fieldset>
-                        <Button type="submit" :disabled="busy"
-                            >Post receipt</Button
-                        >
-                    </form>
-                    <VerifiedReceivingForm
-                        v-if="canPurchase(row, 'receive')"
-                        :row="row"
-                        :branch-id="operations.expectedBranchId"
-                        :nonce="receiptMemoryContext.sessionNonce"
-                    />
-                </article>
+                                <label class="grid min-w-0 gap-1 text-xs"
+                                    >Expiry date (required)
+                                    <DateField
+                                        v-model="
+                                            receipt[line.publicId].expiryDate
+                                        "
+                                        :aria-label="`${line.sku} expiry date`"
+                                        :echo="false"
+                                /></label>
+                                <label class="grid min-w-0 gap-1 text-xs"
+                                    >Quantity this receipt ({{
+                                        line.stockUnit
+                                    }}, required)
+                                    <Input
+                                        v-model="
+                                            receipt[line.publicId].quantity
+                                        "
+                                        :aria-label="`${line.sku} quantity this receipt`"
+                                        inputmode="decimal"
+                                /></label>
+                                <div class="grid min-w-0 gap-1">
+                                    <label class="grid min-w-0 gap-1 text-xs"
+                                        >Total paid for this batch (RM,
+                                        optional)
+                                        <Input
+                                            v-model="
+                                                receipt[line.publicId]
+                                                    .costTotalRm
+                                            "
+                                            :aria-label="`${line.sku} total paid for this batch RM`"
+                                            :aria-describedby="`${line.publicId}-cost-help`"
+                                            placeholder="0.00"
+                                            type="number"
+                                            inputmode="decimal"
+                                            min="0"
+                                            step="0.01"
+                                    /></label>
+                                    <p
+                                        :id="`${line.publicId}-cost-help`"
+                                        class="text-xs text-muted-foreground"
+                                    >
+                                        From the supplier invoice. Leave blank
+                                        to use the order's estimate.
+                                    </p>
+                                </div>
+                            </fieldset>
+                            <Button type="submit" :disabled="busy"
+                                >Post receipt</Button
+                            >
+                        </form>
+                        <VerifiedReceivingForm
+                            @processing-change="receivingProcessingChanged"
+                            v-if="canPurchase(row, 'receive')"
+                            :row="row"
+                            :branch-id="operations.expectedBranchId"
+                            :nonce="receiptMemoryContext.sessionNonce"
+                        />
+                    </template>
+                </StockPurchaseOrderList>
                 <ReceivingReviews
                     :branch-id="operations.expectedBranchId"
                     :nonce="receiptMemoryContext.sessionNonce"

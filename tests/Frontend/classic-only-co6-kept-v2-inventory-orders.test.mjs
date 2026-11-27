@@ -30,7 +30,7 @@ test('2a: the Classic panel always shows suppliers and purchase orders', () => {
     );
     assert.match(
         classicPanel,
-        /<section class="space-y-3 rounded-xl border bg-card p-4">\s*<h3 class="font-semibold">Purchase Orders & Receiving<\/h3>/,
+        /<section\s+class="[^"]*\bxl:col-span-2[^"]*"\s*>\s*<h3 class="font-semibold">Purchase orders<\/h3>/,
     );
     assert.ok(
         !read('resources/js/pages/Inventory/Index.vue').includes('hide-orders'),
