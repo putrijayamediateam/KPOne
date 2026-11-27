@@ -478,6 +478,7 @@ const submit = () => {
                     >
                         Yellow signs
                     </legend>
+                    <div class="clear-left" aria-hidden="true" />
                     <label
                         v-for="sign in guideline.yellowSigns"
                         :key="sign.code"
