@@ -701,6 +701,7 @@ test('own Done shows consultation checkout time without changing default or bran
         absent.indexOf('data-label="Actions"'),
     );
     assert.match(timeCell, /Not available/);
+
     for (const props of [
         { queueLayout: 'branch', queueTask: 'completed' },
         {},
@@ -763,6 +764,7 @@ test('actual Queue mapper formats checkout in current branch timezone and never 
         toBoardRow({ ...input, removedAt: null }).completionLabel,
         null,
     );
-    const { removedAt: _unused, ...withoutTimestamp } = input;
+    const withoutTimestamp = { ...input };
+    delete withoutTimestamp.removedAt;
     assert.equal(toBoardRow(withoutTimestamp).completionLabel, null);
 });
