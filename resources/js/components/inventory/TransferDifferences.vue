@@ -2,6 +2,7 @@
 import { reactive, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { StatusBadge } from '@/components/ui/status';
 import {
     transferDifferenceKindLabels,
     transferOutcomeLabels,
@@ -71,7 +72,7 @@ const submit = (difference: InventoryTransferDifference) => {
 <template>
     <section
         v-if="differences.length > 0"
-        class="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-2 dark:border-amber-700 dark:bg-amber-950/40"
+        class="space-y-2 rounded-xl bg-warning-wash p-2"
         :aria-label="`Transfer differences for ${number}`"
     >
         <h4 class="text-sm font-semibold">Transfer differences</h4>
@@ -86,17 +87,11 @@ const submit = (difference: InventoryTransferDifference) => {
                     {{ difference.quantity }} {{ difference.unit }} ·
                     {{ difference.sku }} · {{ difference.batch }}</span
                 >
-                <span
-                    class="rounded-full px-2 py-0.5 text-xs font-medium"
-                    :class="
-                        difference.status === 'open'
-                            ? 'bg-amber-200 text-amber-950 dark:bg-amber-800 dark:text-amber-50'
-                            : 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-50'
-                    "
-                    >{{
-                        difference.status === 'open' ? 'Open' : 'Resolved'
-                    }}</span
-                >
+                <StatusBadge
+                    :status="difference.status"
+                    :tone="difference.status === 'open' ? 'warning' : 'success'"
+                    :label="difference.status === 'open' ? 'Open' : 'Resolved'"
+                />
             </div>
             <p
                 v-if="difference.status === 'resolved'"

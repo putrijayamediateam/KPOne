@@ -261,7 +261,7 @@ watch(
                 </dl>
                 <p
                     v-if="row.stock_unit !== row.dispensing_unit"
-                    class="text-sm text-amber-700 dark:text-amber-300"
+                    class="text-sm text-warning"
                 >
                     Dispensing uses a different unit. Conversion is unsupported;
                     review the references before dispensing.
