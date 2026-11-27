@@ -1847,7 +1847,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         </div>
                         <div
                             v-if="dispensary.can.update && forms[item.publicId]"
-                            class="grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
+                            class="grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4 [&_input]:font-normal [&_label:not(:has(input[type=checkbox],input[type=radio]))]:font-semibold [&_select]:font-normal [&_textarea]:font-normal"
                         >
                             <p class="text-muted-foreground sm:col-span-full">
                                 Label limits (characters; saved clinical text is
@@ -2096,7 +2096,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         </div>
                         <dl
                             v-else
-                            class="grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
+                            class="grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4 [&_input]:font-normal [&_label:not(:has(input[type=checkbox],input[type=radio]))]:font-semibold [&_select]:font-normal [&_textarea]:font-normal"
                         >
                             <p>
                                 <span class="text-muted-foreground"
@@ -2320,7 +2320,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     </p>
                     <div
                         v-if="chosen"
-                        class="mt-3 grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
+                        class="mt-3 grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4 [&_input]:font-normal [&_label:not(:has(input[type=checkbox],input[type=radio]))]:font-semibold [&_select]:font-normal [&_textarea]:font-normal"
                     >
                         <p class="text-sm font-medium sm:col-span-full">
                             {{ chosen.name }}
@@ -2597,7 +2597,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     dispensary.can.update &&
                                     serviceForms[line.publicId]
                                 "
-                                class="grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
+                                class="grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4 [&_input]:font-normal [&_label:not(:has(input[type=checkbox],input[type=radio]))]:font-semibold [&_select]:font-normal [&_textarea]:font-normal"
                             >
                                 <label
                                     >Performed ({{ line.unit }})<input
@@ -2738,7 +2738,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         </ul>
                         <div
                             v-if="chosenService"
-                            class="mt-3 grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
+                            class="mt-3 grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4 [&_input]:font-normal [&_label:not(:has(input[type=checkbox],input[type=radio]))]:font-semibold [&_select]:font-normal [&_textarea]:font-normal"
                         >
                             <p class="text-sm font-medium sm:col-span-full">
                                 {{ chosenService.name }}
