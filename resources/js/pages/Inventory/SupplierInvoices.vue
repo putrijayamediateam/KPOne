@@ -3,6 +3,7 @@ import { Head, router, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import StockSupplierInvoiceList from '@/components/inventory/StockSupplierInvoiceList.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
@@ -599,6 +600,7 @@ const decisionError = computed(() =>
                 <Button
                     v-for="tab in tabs"
                     :key="tab.value"
+                    :disabled="busy"
                     :variant="
                         tab.value === invoices.tab ? 'default' : 'outline'
                     "
@@ -618,161 +620,169 @@ const decisionError = computed(() =>
                 Invoice amounts are shown only to a Director or Finance Officer.
             </p>
 
-            <p
-                v-if="invoices.invoices.rows.length === 0"
-                class="text-sm text-muted-foreground"
+            <StockSupplierInvoiceList
+                :rows="invoices.invoices.rows"
+                :branch-id="invoices.expectedBranchId"
+                :context-key="`${invoices.tab}:${invoices.invoices.page}`"
+                :busy="busy"
+                :show-amounts="invoices.showAmounts"
+                :money="money"
+                :status-label="(status) => statusLabel[status as Tab]"
+                :status-tone="(status) => statusTone[status as Tab]"
             >
-                No invoices here.
-            </p>
-            <ul v-else class="space-y-3" aria-label="Supplier invoices">
-                <li
-                    v-for="invoice in invoices.invoices.rows"
-                    :key="invoice.publicId"
-                    class="space-y-3 rounded-lg border bg-card p-4"
-                    :data-testid="`invoice-${invoice.number}`"
-                >
+                <template #default="{ row: invoice }">
                     <div
-                        class="flex flex-wrap items-start justify-between gap-2"
+                        class="space-y-3"
+                        :data-testid="`invoice-${invoice.number}`"
                     >
-                        <div class="min-w-0">
-                            <p class="font-medium break-words">
-                                Invoice {{ invoice.number }} ·
-                                {{ invoice.supplier }}
-                            </p>
-                            <p class="text-sm text-muted-foreground">
-                                {{ invoice.invoiceDate }} · Order
-                                {{ invoice.orderNumber }}
-                                <template v-if="invoices.showAmounts">
-                                    · {{ money(invoice.totalSen) }}</template
-                                >
-                            </p>
-                        </div>
-                        <StatusBadge
-                            :status="invoice.status"
-                            :label="statusLabel[invoice.status]"
-                            :tone="statusTone[invoice.status]"
-                        />
-                    </div>
-                    <ul
-                        class="space-y-2"
-                        :aria-label="`Lines of invoice ${invoice.number}`"
-                    >
-                        <li
-                            v-for="(line, index) in invoice.lines"
-                            :key="index"
-                            class="rounded-md border p-2 text-sm"
+                        <div
+                            class="flex flex-wrap items-start justify-between gap-2"
                         >
-                            <div
-                                class="flex flex-wrap items-center justify-between gap-2"
-                            >
-                                <p class="min-w-0">
-                                    <span class="font-medium">{{
-                                        line.item
-                                    }}</span>
-                                    <span class="text-muted-foreground">
-                                        · {{ line.sku }}</span
+                            <div class="min-w-0">
+                                <p class="font-medium break-words">
+                                    Invoice {{ invoice.number }} ·
+                                    {{ invoice.supplier }}
+                                </p>
+                                <p class="text-sm text-muted-foreground">
+                                    {{ invoice.invoiceDate }} · Order
+                                    {{ invoice.orderNumber }}
+                                    <template v-if="invoices.showAmounts">
+                                        ·
+                                        {{ money(invoice.totalSen) }}</template
                                     >
                                 </p>
-                                <StatusBadge
-                                    v-if="line.result"
-                                    :status="line.result"
-                                    :label="resultLabel[line.result]"
-                                    :tone="
-                                        line.result === 'matches'
-                                            ? 'success'
-                                            : 'warning'
-                                    "
-                                />
-                                <StatusBadge
-                                    v-else
-                                    status="quantity"
-                                    :label="
-                                        line.quantityMatches
-                                            ? 'Quantity matches'
-                                            : 'Quantity differs'
-                                    "
-                                    :tone="
-                                        line.quantityMatches
-                                            ? 'success'
-                                            : 'warning'
-                                    "
-                                />
                             </div>
-                            <p class="text-xs text-muted-foreground">
-                                Ordered
-                                {{
-                                    quantity(
-                                        line.orderedQuantity,
-                                        line.stockUnit,
-                                    )
-                                }}
-                                · Received
-                                {{
-                                    quantity(
-                                        line.receivedQuantity,
-                                        line.stockUnit,
-                                    )
-                                }}
-                                · Invoiced
-                                {{
-                                    quantity(
-                                        line.invoicedQuantity,
-                                        line.stockUnit,
-                                    )
-                                }}
-                            </p>
-                            <p
-                                v-if="invoices.showAmounts"
-                                class="text-xs text-muted-foreground"
-                            >
-                                Invoiced {{ money(line.invoicedSen) }} ·
-                                Expected {{ money(line.expectedSen) }} ({{
-                                    basisLabel[line.priceBasis ?? 'none']
-                                }})<template v-if="difference(line)">
-                                    · {{ difference(line) }}</template
-                                >
-                            </p>
-                        </li>
-                    </ul>
-                    <p class="text-xs text-muted-foreground">
-                        Recorded by {{ invoice.recordedBy }} on
-                        {{ invoice.recordedOn }}
-                        <template v-if="invoice.decidedBy">
-                            · {{ statusLabel[invoice.status] }} by
-                            {{ invoice.decidedBy }} on {{ invoice.decidedOn }}:
-                            {{ reasonLabel(invoice.decisionReason)
-                            }}<template v-if="invoice.decisionNote">
-                                · {{ invoice.decisionNote }}</template
-                            ></template
+                            <StatusBadge
+                                :status="invoice.status"
+                                :label="statusLabel[invoice.status]"
+                                :tone="statusTone[invoice.status]"
+                            />
+                        </div>
+                        <ul
+                            class="space-y-2"
+                            :aria-label="`Lines of invoice ${invoice.number}`"
                         >
-                    </p>
-                    <div
-                        v-if="
-                            invoice.status === 'waiting' && invoices.can.approve
-                        "
-                        class="flex flex-wrap gap-2"
-                    >
-                        <template v-if="!invoice.recordedByYou">
-                            <Button
-                                class="min-h-11 lg:min-h-9"
-                                @click="openDecision(invoice, 'accepted')"
-                                >Accept</Button
+                            <li
+                                v-for="(line, index) in invoice.lines"
+                                :key="index"
+                                class="rounded-md border p-2 text-sm"
                             >
-                            <Button
-                                variant="outline"
-                                class="min-h-11 lg:min-h-9"
-                                @click="openDecision(invoice, 'rejected')"
-                                >Reject</Button
+                                <div
+                                    class="flex flex-wrap items-center justify-between gap-2"
+                                >
+                                    <p class="min-w-0">
+                                        <span class="font-medium">{{
+                                            line.item
+                                        }}</span>
+                                        <span class="text-muted-foreground">
+                                            · {{ line.sku }}</span
+                                        >
+                                    </p>
+                                    <StatusBadge
+                                        v-if="line.result"
+                                        :status="line.result"
+                                        :label="resultLabel[line.result]"
+                                        :tone="
+                                            line.result === 'matches'
+                                                ? 'success'
+                                                : 'warning'
+                                        "
+                                    />
+                                    <StatusBadge
+                                        v-else
+                                        status="quantity"
+                                        :label="
+                                            line.quantityMatches
+                                                ? 'Quantity matches'
+                                                : 'Quantity differs'
+                                        "
+                                        :tone="
+                                            line.quantityMatches
+                                                ? 'success'
+                                                : 'warning'
+                                        "
+                                    />
+                                </div>
+                                <p class="text-xs text-muted-foreground">
+                                    Ordered
+                                    {{
+                                        quantity(
+                                            line.orderedQuantity,
+                                            line.stockUnit,
+                                        )
+                                    }}
+                                    · Received
+                                    {{
+                                        quantity(
+                                            line.receivedQuantity,
+                                            line.stockUnit,
+                                        )
+                                    }}
+                                    · Invoiced
+                                    {{
+                                        quantity(
+                                            line.invoicedQuantity,
+                                            line.stockUnit,
+                                        )
+                                    }}
+                                </p>
+                                <p
+                                    v-if="invoices.showAmounts"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    Invoiced {{ money(line.invoicedSen) }} ·
+                                    Expected {{ money(line.expectedSen) }} ({{
+                                        basisLabel[line.priceBasis ?? 'none']
+                                    }})<template v-if="difference(line)">
+                                        · {{ difference(line) }}</template
+                                    >
+                                </p>
+                            </li>
+                        </ul>
+                        <p class="text-xs text-muted-foreground">
+                            Recorded by {{ invoice.recordedBy }} on
+                            {{ invoice.recordedOn }}
+                            <template v-if="invoice.decidedBy">
+                                · {{ statusLabel[invoice.status] }} by
+                                {{ invoice.decidedBy }} on
+                                {{ invoice.decidedOn }}:
+                                {{ reasonLabel(invoice.decisionReason)
+                                }}<template v-if="invoice.decisionNote">
+                                    · {{ invoice.decisionNote }}</template
+                                ></template
                             >
-                        </template>
-                        <p v-else class="text-sm text-muted-foreground">
-                            You recorded this invoice, so a different Finance
-                            Officer or Director must decide it.
                         </p>
+                        <div
+                            v-if="
+                                invoice.status === 'waiting' &&
+                                invoices.can.approve
+                            "
+                            class="flex flex-wrap gap-2"
+                        >
+                            <template v-if="!invoice.recordedByYou">
+                                <Button
+                                    class="min-h-11 lg:min-h-9"
+                                    @click="openDecision(invoice, 'accepted')"
+                                    >Accept</Button
+                                >
+                                <Button
+                                    variant="outline"
+                                    class="min-h-11 lg:min-h-9"
+                                    @click="openDecision(invoice, 'rejected')"
+                                    >Reject</Button
+                                >
+                            </template>
+                            <p v-else class="text-sm text-muted-foreground">
+                                You recorded this invoice, so a different
+                                Finance Officer or Director must decide it.
+                            </p>
+                        </div>
                     </div>
-                </li>
-            </ul>
+                </template>
+            </StockSupplierInvoiceList>
             <CompactPagination
+                :disabled="busy"
+                class="[&_button]:min-h-11 lg:[&_button]:min-h-9"
                 v-if="invoices.invoices.total > 0"
                 :current-page="invoices.invoices.page"
                 :last-page="invoices.invoices.lastPage"
