@@ -99,6 +99,30 @@ usability aid only and must follow the permission the backend already enforces.
 
 **Classic only: done (2026-11-22).** Every slice of `docs/design/CLASSIC-ONLY-PLAN.md` is merged (its section 8 lists them). Each slice listed its changed or deleted test assertions and had the owner's approval before the commit that changed them. Owner, 22 Nov 2026: keep the unused `user_space_preferences` table (plan Q4), so there is no CO-11. The Classic leave warning (section 7, item 17) remains its own later slice.
 
+**Classic-only handover (2026-11-27, session retired because Clean Look replaces Classic).** For a fresh session:
+- **Open work:** none. Every slice is merged (CO-1 to CO-10c, PRs #1000 to #1059). The record PR #1060 (TEAM.md and
+  `docs/design/CLASSIC-ONLY-PLAN.md` on main) is merged too. There is no open PR from this work.
+- **Owner decisions:** all are recorded. The latest is to keep `user_space_preferences` (22 Nov), so there is no
+  CO-11. BASELINE section 6, item 31 still says the plan is on a branch and lists that question as open; the
+  coordinator records BASELINE.
+- **Not built:** the Classic leave warning for long forms (section 7, item 17). Whether it still applies under Clean
+  Look is for the owner.
+- **Branches:** all pushed and merged, so there is nothing to recover.
+  - `feature/classic-only-plan`, last commit `d178a9f2c`, holds the plan's history. Its content is on main, so the
+    branch can be deleted once the owner agrees.
+  - The merged feature branches are `feature/classic-only-1-switch-off` and `-3-shared-to-classic` through
+    `-10c-leftovers`, plus `docs/classic-only-complete`.
+  - A local scratch branch, `plan/co10-scratch` (the CO-10 survey diff, marked "not for push"), was never pushed;
+    CO-10b superseded it.
+- **For Clean Look work:** the `tests/Frontend/classic-only-co*-kept*.test.mjs` files and
+  `tests/Feature/ClassicOnlyTest.php` pin the Classic markup and behaviour that the V2 removal kept. They are existing
+  assertions, so changing or deleting one needs the owner's approval, listed before any edit.
+- **Gate tips for this cloud container:**
+  - The GD image tests (about 139 Unit and Feature, 11 Contention) cannot run here; CI runs them.
+  - Laravel Passport (CN-1) is not in an old shared `vendor`. Give each worktree its own `vendor`, then run
+    `php artisan package:discover`, or ConnectorTest fails with "Auth driver [passport] is not defined".
+  - Check `db:show` before each run. The task Postgres container can stop when the Docker daemon restarts.
+
 ## 6. Owner decisions already made (never ask again)
 
 1. Registration and Patient screens use English labels; "Panggil semula" stays (2026-11-05). Staff UI text is
