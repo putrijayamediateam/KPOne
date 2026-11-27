@@ -33,6 +33,7 @@ import {
     packsOnHand,
     packsToBase,
     parsePacks,
+    sameQuantity,
     usablePackConversion,
 } from '@/lib/dispensary-packs';
 import type { PackConversion } from '@/lib/dispensary-packs';
@@ -292,7 +293,13 @@ const isDirty = (item: Item): boolean => {
                 'fefoReason',
                 'availabilityIndex',
             ] as const
-        ).some((key) => form[key] !== saved[key])
+        ).some((key) =>
+            // QA (27 Nov): "12" and the saved "12.000" are the same quantity. Comparing them as text kept the line
+            // "unsaved", so Save all lines sent it again and again.
+            key === 'quantity'
+                ? !sameQuantity(form.quantity, saved.quantity)
+                : form[key] !== saved[key],
+        )
     );
 };
 // Adopt the server's version of a line when it changes, but never overwrite what the CA is typing.
@@ -673,6 +680,8 @@ const markScanned = (sku: ScannedSku, gs1: Gs1Read | null = null) => {
         );
 
         if (line) {
+            // QA: a card a scan opened stays open after the batch is picked, until the CA presses Done editing.
+            openCards[line.publicId] = true;
             void pointAtBatch(line.publicId);
         }
     }
