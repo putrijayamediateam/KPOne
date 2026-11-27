@@ -179,6 +179,8 @@ export type DoctorDispensaryCheck = {
             expiryDate: string | null;
             quantity: string;
         }>;
+        // DSP-29: allergen names this line may match (the CA warning's rule); empty for none or a removed line.
+        allergyMatches?: string[];
     }>;
     reasons: string[];
     verifyUrl: string;
