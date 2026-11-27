@@ -101,11 +101,23 @@ class QueueDirectoryService
             : $checks;
         $eligibleDoctorIds = $this->doctors->eligibleDoctorIds($branch, $now->setTimezone($branch->timezone)->toDateString());
         $hints = [];
+        $rows = $this->rows($actor, $entries, $branch, $now, $eligibleDoctorIds, $hints, $removedHints, $checks);
+        if ($section === 'completed') {
+            // Same authorized, loaded entry as the row; this is checkout/handoff time, not downstream completion.
+            $completionTimes = $entries->mapWithKeys(fn (QueueEntry $entry): array => [
+                $entry->visit->visit_number => $entry->removed_at?->toIso8601String(),
+            ]);
+            $rows = $rows->map(function (array $row) use ($completionTimes): array {
+                $row['removedAt'] = $completionTimes->get($row['visitNumber']);
+
+                return $row;
+            });
+        }
 
         return [
             'branchId' => $branch->id, 'scope' => $actor->can('queue.view.branch') ? 'branch' : 'own',
             'section' => $section, 'counts' => $counts, 'serverNow' => $now->toIso8601String(),
-            'data' => $this->rows($actor, $entries, $branch, $now, $eligibleDoctorIds, $hints, $removedHints, $checks),
+            'data' => $rows,
             'total' => $total, 'currentPage' => $page, 'lastPage' => $lastPage, 'perPage' => 25,
         ];
     }

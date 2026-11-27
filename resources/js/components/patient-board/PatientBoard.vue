@@ -38,7 +38,7 @@ const props = defineProps<{
     branchId?: number;
     from?: 'registration' | 'queue';
     queueLayout?: 'own' | 'branch';
-    queueTask?: 'waiting' | 'seeing' | 'held' | 'treatment';
+    queueTask?: 'waiting' | 'seeing' | 'held' | 'treatment' | 'completed';
     busyKey?: string | null;
     emptyMessage?: string;
 }>();
@@ -143,11 +143,13 @@ const triageTextClass = (zone: TriageZone | null) =>
                         <th v-if="ownTask" class="w-28 px-3 py-2">Zone</th>
                         <th v-if="queueLayout === 'own'" class="w-40 px-3 py-2">
                             {{
-                                queueTask === 'held'
-                                    ? 'Treatment step'
-                                    : queueTask === 'treatment'
-                                      ? 'Treatment'
-                                      : 'Reason'
+                                queueTask === 'completed'
+                                    ? 'Seen for'
+                                    : queueTask === 'held'
+                                      ? 'Treatment step'
+                                      : queueTask === 'treatment'
+                                        ? 'Treatment'
+                                        : 'Reason'
                             }}
                         </th>
                         <th
@@ -159,13 +161,15 @@ const triageTextClass = (zone: TriageZone | null) =>
                         <th class="w-40 px-3 py-2">
                             {{
                                 ownTask
-                                    ? queueTask === 'treatment'
-                                        ? 'Result'
-                                        : queueTask === 'held'
-                                          ? 'Held'
-                                          : queueTask === 'waiting'
-                                            ? 'Waiting'
-                                            : 'Since'
+                                    ? queueTask === 'completed'
+                                        ? 'Completed (consultation)'
+                                        : queueTask === 'treatment'
+                                          ? 'Result'
+                                          : queueTask === 'held'
+                                            ? 'Held'
+                                            : queueTask === 'waiting'
+                                              ? 'Waiting'
+                                              : 'Since'
                                     : 'Waiting / since'
                             }}
                         </th>
@@ -320,11 +324,13 @@ const triageTextClass = (zone: TriageZone | null) =>
                         v-if="queueLayout !== 'branch'"
                         :data-label="
                             ownTask
-                                ? queueTask === 'held'
-                                    ? 'Treatment step'
-                                    : queueTask === 'treatment'
-                                      ? 'Treatment'
-                                      : 'Reason'
+                                ? queueTask === 'completed'
+                                    ? 'Seen for'
+                                    : queueTask === 'held'
+                                      ? 'Treatment step'
+                                      : queueTask === 'treatment'
+                                        ? 'Treatment'
+                                        : 'Reason'
                                 : 'Visit notes'
                         "
                     >
@@ -481,15 +487,23 @@ const triageTextClass = (zone: TriageZone | null) =>
                         class="px-3 py-2.5 align-middle"
                         :data-label="
                             ownTask
-                                ? queueTask === 'held'
-                                    ? 'Held'
-                                    : queueTask === 'waiting'
-                                      ? 'Waiting'
-                                      : 'Since'
+                                ? queueTask === 'completed'
+                                    ? 'Completed (consultation)'
+                                    : queueTask === 'held'
+                                      ? 'Held'
+                                      : queueTask === 'waiting'
+                                        ? 'Waiting'
+                                        : 'Since'
                                 : 'Duration'
                         "
                     >
                         <span
+                            v-if="ownTask && queueTask === 'completed'"
+                            class="text-xs tabular-nums"
+                            >{{ row.completionLabel ?? 'Not available' }}</span
+                        >
+                        <span
+                            v-else
                             class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 tabular-nums"
                             :class="durationClass(rowWaitingTone(row))"
                             :data-waiting-tone="rowWaitingTone(row)"
@@ -822,6 +836,7 @@ const triageTextClass = (zone: TriageZone | null) =>
     .patient-board td[data-label='Patient'],
     .patient-board td[data-label='Visit notes'],
     .patient-board td[data-label='Reason'],
+    .patient-board td[data-label='Seen for'],
     .patient-board td[data-label='Treatment step'],
     .patient-board td[data-label='Treatment'],
     .patient-board td[data-label='Result'],

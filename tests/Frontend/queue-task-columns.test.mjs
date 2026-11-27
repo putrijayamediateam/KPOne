@@ -679,3 +679,92 @@ test('badge outcome opt-out preserves default visible and accessible outcome evi
         assert.match(html, /text-warning-strong/);
     }
 });
+
+test('own Done shows consultation checkout time without changing default or branch columns', async () => {
+    const own = await render(
+        { queueLayout: 'own', queueTask: 'completed' },
+        { completionLabel: '26 Nov 2026, 12:01 AM' },
+    );
+    assert.deepEqual(headers(own), [
+        'No.',
+        'Patient',
+        'Zone',
+        'Seen for',
+        'Completed (consultation)',
+        'Actions',
+    ]);
+    assert.match(own, /data-label="Completed \(consultation\)"/);
+    assert.match(own, /26 Nov 2026, 12:01 AM/);
+    const absent = await render({ queueLayout: 'own', queueTask: 'completed' });
+    const timeCell = absent.slice(
+        absent.indexOf('data-label="Completed (consultation)"'),
+        absent.indexOf('data-label="Actions"'),
+    );
+    assert.match(timeCell, /Not available/);
+
+    for (const props of [
+        { queueLayout: 'branch', queueTask: 'completed' },
+        {},
+    ]) {
+        const html = await render(props, {
+            completionLabel: 'CHECKOUT_ONLY_MARKER',
+        });
+        assert.doesNotMatch(
+            html,
+            /CHECKOUT_ONLY_MARKER|Completed \(consultation\)/,
+        );
+        assert.match(html, /data-label="Status"/);
+    }
+});
+
+test('actual Queue mapper formats checkout in current branch timezone and never substitutes another timestamp', () => {
+    const source = readFileSync('resources/js/pages/Queue/Index.vue', 'utf8');
+    const mapper = source.slice(
+        source.indexOf('const toBoardRow ='),
+        source.indexOf('const boardRows ='),
+    );
+    const presentation = load('resources/js/lib/presentation.ts');
+    const live = {
+        value: {
+            branch: { timezone: 'Asia/Kuala_Lumpur' },
+            operationalDate: '2026-11-26',
+        },
+    };
+    const toBoardRow = runInNewContext(
+        ts.transpileModule(mapper + '\ntoBoardRow;', {
+            compilerOptions: { target: ts.ScriptTarget.ES2022 },
+        }).outputText,
+        {
+            ...presentation,
+            live,
+            props: {},
+            treatmentMinutes: () => null,
+            effectiveNowMs: () => 0,
+            compactTime: (value) => value,
+            queuePresentationLabel: () => 'Done',
+        },
+    );
+    const input = {
+        operationalDate: '2026-11-26',
+        queueNumber: 1,
+        status: 'removed',
+        can: {},
+        queuedTime: '09:00',
+        removedAt: '2026-11-25T16:01:00+00:00',
+    };
+    const local = toBoardRow(input).completionLabel;
+    assert.equal(
+        local,
+        presentation.formatDateTime(input.removedAt, 'Asia/Kuala_Lumpur'),
+    );
+    assert.match(local, /26 Nov 2026/);
+    live.value.branch.timezone = 'UTC';
+    assert.notEqual(toBoardRow(input).completionLabel, local);
+    assert.equal(
+        toBoardRow({ ...input, removedAt: null }).completionLabel,
+        null,
+    );
+    const withoutTimestamp = { ...input };
+    delete withoutTimestamp.removedAt;
+    assert.equal(toBoardRow(withoutTimestamp).completionLabel, null);
+});
