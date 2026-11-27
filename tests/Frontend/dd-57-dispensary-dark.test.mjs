@@ -21,17 +21,17 @@ for (const path of [
     });
 }
 
-test('the warnings keep their light-mode colours', () => {
+test('case warnings use semantic surfaces while the attention panel retains its current colours', () => {
     const panel = read(
         'resources/js/pages/Clinical/Partials/DispensaryAttentionPanel.vue',
     );
     const show = read('resources/js/pages/Dispensary/Show.vue');
-    assert.ok(panel.includes('border-amber-200 bg-amber-50/40 dark:'));
-    assert.ok(show.includes("'border-amber-300 bg-amber-50/70 dark:"));
+    assert.ok(panel.includes('border-warning/25 bg-warning-wash'));
+    assert.ok(show.includes("'border-warning/25 bg-warning-wash'"));
     assert.ok(
         show.includes(
-            'border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:',
+            'border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive',
         ),
     );
-    assert.ok(show.includes('border-pink-300 bg-pink-50/60 p-3 text-sm dark:'));
+    assert.ok(show.includes('border-info/25 bg-info-wash p-4 text-sm'));
 });
