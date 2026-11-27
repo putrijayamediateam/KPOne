@@ -360,9 +360,8 @@ onBeforeUnmount(() => {
         lang="ms"
     >
         <section
-            class="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-xl shadow-zinc-950/5 dark:border-zinc-800 dark:bg-zinc-900"
+            class="overflow-hidden rounded-[14px] border bg-card shadow-card"
         >
-            <div class="h-1.5 bg-pink-600" aria-hidden="true"></div>
             <div class="space-y-6 p-5 sm:p-8">
                 <header class="flex items-center gap-3">
                     <img
@@ -371,7 +370,7 @@ onBeforeUnmount(() => {
                         class="size-11 object-contain"
                     />
                     <div class="min-w-0">
-                        <p class="text-sm font-semibold text-pink-700">
+                        <p class="text-sm font-semibold text-foreground">
                             KPOne · Klinik Putrijaya
                         </p>
                         <p
@@ -404,7 +403,7 @@ onBeforeUnmount(() => {
                 <template v-if="step === 0">
                     <div class="space-y-4">
                         <div
-                            class="grid size-12 place-items-center rounded-2xl bg-pink-50 text-pink-700"
+                            class="grid size-12 place-items-center rounded-2xl bg-muted text-primary"
                         >
                             <Building2 class="size-6" aria-hidden="true" />
                         </div>
@@ -427,10 +426,10 @@ onBeforeUnmount(() => {
                         </div>
                     </div>
                     <div
-                        class="flex items-start gap-3 rounded-2xl border bg-zinc-50 p-4 text-sm text-zinc-700 dark:bg-zinc-800"
+                        class="flex items-start gap-3 rounded-[14px] border bg-card-quiet p-4 text-sm text-zinc-700"
                     >
                         <ShieldCheck
-                            class="mt-0.5 size-5 shrink-0 text-pink-700"
+                            class="mt-0.5 size-5 shrink-0 text-primary"
                         />
                         <p>
                             Maklumat disimpan secara terlindung selama 30 hari.
@@ -448,7 +447,7 @@ onBeforeUnmount(() => {
                     </p>
                     <button
                         type="button"
-                        class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 py-3 font-semibold text-white focus-visible:ring-4 focus-visible:ring-pink-200 disabled:opacity-60"
+                        class="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 font-semibold text-primary-foreground focus-visible:ring-4 focus-visible:ring-ring/40 disabled:opacity-60"
                         :disabled="loading"
                         @click="begin"
                     >
@@ -460,7 +459,7 @@ onBeforeUnmount(() => {
                     </button>
                     <div
                         id="privacy"
-                        class="rounded-2xl bg-zinc-50 p-4 text-xs leading-5 text-zinc-600 dark:bg-zinc-800"
+                        class="rounded-[14px] bg-card-quiet p-4 text-xs leading-5 text-zinc-600"
                     >
                         <p class="font-semibold">Notis privasi — draf UAT</p>
                         <p class="mt-1">
@@ -518,7 +517,7 @@ onBeforeUnmount(() => {
                     </p>
                     <div class="h-2 overflow-hidden rounded-full bg-zinc-100">
                         <div
-                            class="h-full rounded-full bg-pink-600 transition-all"
+                            class="h-full rounded-full bg-primary transition-all"
                             :style="{ width: `${step * 20}%` }"
                         ></div></div
                 ></template>
@@ -537,15 +536,15 @@ onBeforeUnmount(() => {
                         <button
                             type="button"
                             :aria-pressed="form.submission_type === 'patient'"
-                            class="flex min-h-20 items-center gap-4 rounded-2xl border p-4 text-left focus-visible:ring-4 focus-visible:ring-pink-200"
+                            class="flex min-h-20 items-center gap-4 rounded-2xl border p-4 text-left focus-visible:ring-4 focus-visible:ring-ring/40"
                             :class="
                                 form.submission_type === 'patient'
-                                    ? 'border-pink-600 bg-pink-50'
+                                    ? 'border-primary bg-primary/10'
                                     : ''
                             "
                             @click="form.submission_type = 'patient'"
                         >
-                            <UserRound class="size-7 text-pink-700" /><span
+                            <UserRound class="size-7 text-primary" /><span
                                 ><strong>Saya pesakit</strong><br /><span
                                     class="text-sm text-zinc-600"
                                     >Saya mengisi maklumat sendiri</span
@@ -555,15 +554,15 @@ onBeforeUnmount(() => {
                         <button
                             type="button"
                             :aria-pressed="form.submission_type === 'guardian'"
-                            class="flex min-h-20 items-center gap-4 rounded-2xl border p-4 text-left focus-visible:ring-4 focus-visible:ring-pink-200"
+                            class="flex min-h-20 items-center gap-4 rounded-2xl border p-4 text-left focus-visible:ring-4 focus-visible:ring-ring/40"
                             :class="
                                 form.submission_type === 'guardian'
-                                    ? 'border-pink-600 bg-pink-50'
+                                    ? 'border-primary bg-primary/10'
                                     : ''
                             "
                             @click="form.submission_type = 'guardian'"
                         >
-                            <UsersRound class="size-7 text-pink-700" /><span
+                            <UsersRound class="size-7 text-primary" /><span
                                 ><strong>Saya penjaga</strong><br /><span
                                     class="text-sm text-zinc-600"
                                     >Saya diberi kuasa untuk membantu
@@ -581,7 +580,7 @@ onBeforeUnmount(() => {
                     </p>
                     <button
                         type="button"
-                        class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 font-semibold text-white"
+                        class="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 font-semibold text-primary-foreground"
                         @click="next"
                     >
                         Seterusnya <ArrowRight class="size-5" />
@@ -849,7 +848,7 @@ onBeforeUnmount(() => {
                             /></button
                         ><button
                             type="button"
-                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 font-semibold text-white disabled:opacity-60"
+                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-primary px-5 font-semibold text-primary-foreground disabled:opacity-60"
                             @click="next"
                         >
                             Seterusnya <ArrowRight class="size-5" />
@@ -975,7 +974,7 @@ onBeforeUnmount(() => {
                             /></button
                         ><button
                             type="button"
-                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 font-semibold text-white"
+                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-primary px-5 font-semibold text-primary-foreground"
                             @click="next"
                         >
                             Seterusnya <ArrowRight class="size-5" />
@@ -1081,7 +1080,7 @@ onBeforeUnmount(() => {
                             /></button
                         ><button
                             type="button"
-                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 font-semibold text-white disabled:opacity-60"
+                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-primary px-5 font-semibold text-primary-foreground disabled:opacity-60"
                             :disabled="
                                 !form.coverage_type ||
                                 (form.coverage_type === 'panel' &&
@@ -1134,7 +1133,7 @@ onBeforeUnmount(() => {
                                 </div>
                                 <button
                                     type="button"
-                                    class="flex min-h-10 shrink-0 items-center gap-1 rounded-lg px-2 text-pink-700 focus-visible:ring-4 focus-visible:ring-pink-200"
+                                    class="flex min-h-10 shrink-0 items-center gap-1 rounded-lg px-2 text-primary focus-visible:ring-4 focus-visible:ring-ring/40"
                                     :aria-label="`Ubah ${row.label}`"
                                     @click="goTo(row.step)"
                                 >
@@ -1147,7 +1146,7 @@ onBeforeUnmount(() => {
                         </dl>
                     </section>
                     <div
-                        class="rounded-2xl border bg-zinc-50 p-4 text-sm leading-6 dark:bg-zinc-800"
+                        class="rounded-[14px] border bg-card-quiet p-4 text-sm leading-6"
                     >
                         <p class="font-semibold">Notis privasi — draf UAT</p>
                         <p>
@@ -1193,7 +1192,7 @@ onBeforeUnmount(() => {
                             /></button
                         ><button
                             type="submit"
-                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 font-semibold text-white disabled:opacity-60"
+                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-primary px-5 font-semibold text-primary-foreground disabled:opacity-60"
                             :disabled="submitting"
                         >
                             <LoaderCircle
