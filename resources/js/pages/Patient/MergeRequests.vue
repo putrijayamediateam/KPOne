@@ -189,6 +189,7 @@ const decide = (
                     <span class="font-medium">{{
                         request.kind === 'merge' ? 'Merge' : 'Unmerge'
                     }}</span>
+                    {{ ' ' }}
                     <span class="font-mono">
                         {{ request.mergedPatientNumber }}</span
                     >
