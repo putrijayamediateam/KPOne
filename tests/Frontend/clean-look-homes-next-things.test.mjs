@@ -32,3 +32,45 @@ test('the next things card uses tokens only, with no hard-coded colours', () => 
 test('an urgent patient is badged Urgent, not Overdue', () => {
     assert.match(next, /startsWith\('Urgent'\)/);
 });
+
+const css = readFileSync('resources/css/space-shell-layout.css', 'utf8');
+const read = (p) => readFileSync(p, 'utf8');
+
+test('Daniel 27 Nov: the branch shows once, in the date line', () => {
+    assert.match(
+        read('resources/js/components/ui/page-header/PageHeader.vue'),
+        /showBranchLine/,
+    );
+    assert.match(day, /hide-branch/);
+});
+
+test('Daniel 27 Nov: Clock in is the one filled blue pill, Add is an outline pill', () => {
+    assert.match(
+        css,
+        /\.me-compact-button \{[^}]*background: var\(--primary\);[^}]*color: var\(--primary-foreground\)/s,
+    );
+    assert.match(css, /\.me-compact-button\.is-secondary/);
+    const routine = read('resources/js/components/MyRoutine.vue');
+    assert.match(routine, /variant="outline"\s+class="rounded-full/);
+    assert.match(routine, /newTitle\.trim\(\) === ''/);
+});
+
+test('Daniel 27 Nov: the leave, claims, roster and attendance tiles are plain card tiles', () => {
+    assert.doesNotMatch(css, /\.me-tile\.is-(leave|claims|roster|attendance)/);
+    assert.match(css, /\.me-tile \{[^}]*background: var\(--space-surface\)/s);
+    assert.match(
+        read('resources/js/components/spaces/MeHome.vue'),
+        /Open attendance/,
+    );
+});
+
+test('Daniel 27 Nov: This week is 15/600 and stacks at 390', () => {
+    assert.match(
+        css,
+        /\.me-week-head h2 \{[^}]*font-size: 15px;[^}]*font-weight: 600/s,
+    );
+    assert.match(
+        css,
+        /max-width: 479px\) \{\s*\.space-shell \.me-week-head \{\s*flex-direction: column/,
+    );
+});

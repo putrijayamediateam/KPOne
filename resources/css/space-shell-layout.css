@@ -786,7 +786,14 @@
 }
 .space-shell .me-week-head h2 {
     margin: 0;
-    font-size: 17px;
+    font-size: 15px;
+    font-weight: 600;
+}
+@media (max-width: 479px) {
+    .space-shell .me-week-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 .space-shell .me-week-summary {
     color: var(--space-me-muted);
@@ -850,21 +857,12 @@
     min-height: 84px;
     height: 100%;
     padding: 14px;
+    border: 1px solid var(--space-line);
     border-radius: var(--space-radius-card);
+    background: var(--space-surface);
+    box-shadow: var(--shadow-card);
     color: var(--space-fg);
     text-decoration: none;
-}
-.space-shell .me-tile.is-leave {
-    background: var(--space-t1);
-}
-.space-shell .me-tile.is-claims {
-    background: var(--space-t2);
-}
-.space-shell .me-tile.is-roster {
-    background: var(--space-t3);
-}
-.space-shell .me-tile.is-attendance {
-    background: var(--space-t4);
 }
 .space-shell .me-tile-icon {
     display: grid;
@@ -873,7 +871,8 @@
     width: 40px;
     height: 40px;
     border-radius: 12px;
-    background: var(--space-surface);
+    background: var(--card-quiet);
+    color: var(--muted-foreground);
 }
 .space-shell .me-tile-icon svg {
     width: 22px;
@@ -1073,13 +1072,18 @@
     gap: 8px;
     min-height: 44px;
     padding: 0 24px;
-    border: 2px solid var(--space-brand);
+    border: 2px solid var(--primary);
     border-radius: 999px;
-    background: transparent;
-    color: var(--space-brand);
+    background: var(--primary);
+    color: var(--primary-foreground);
     font: inherit;
     font-weight: 650;
     cursor: pointer;
+}
+/* Clock in is the one filled blue pill; Clock out stays an outline. */
+.space-shell .me-compact-button.is-secondary {
+    background: transparent;
+    color: var(--primary);
 }
 .space-shell .me-compact-button:focus-visible {
     outline: 3px solid var(--space-accent);

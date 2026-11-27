@@ -166,6 +166,7 @@ const redZone = computed(() => {
                 v-if="today.branchName"
                 :branch-name="today.branchName"
                 :as-of="today.asOf"
+                hide-branch
                 only="today"
             />
 
