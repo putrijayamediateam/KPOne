@@ -688,16 +688,15 @@ const visitTypeLabel = (value: string) =>
             {{ error }}
         </p>
 
-        <div class="grid gap-4 lg:grid-cols-2">
-            <section
-                class="rounded-xl border bg-card p-5"
-                aria-label="Submissions"
-            >
-                <h2 class="mb-3 text-base font-semibold">Submissions</h2>
-                <dl class="divide-y text-sm">
-                    <div class="flex items-center justify-between py-2">
-                        <dt>Pending</dt>
-                        <dd class="font-medium tabular-nums">
+        <!-- Clean Look: the figures sit in one strip of tiles (the demo's figures strip); same data and labels. -->
+        <div class="grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,4fr)]">
+            <section class="grid grid-cols-2 gap-3" aria-label="Submissions">
+                <dl class="contents">
+                    <div class="rounded-xl border bg-card px-4 py-3">
+                        <dt class="text-[13px] text-muted-foreground">
+                            Pending
+                        </dt>
+                        <dd class="text-lg font-semibold tabular-nums">
                             {{
                                 countLabel(
                                     work.summary.pending.count,
@@ -706,9 +705,13 @@ const visitTypeLabel = (value: string) =>
                             }}
                         </dd>
                     </div>
-                    <div class="flex items-center justify-between py-2">
-                        <dt>Overdue</dt>
-                        <dd class="font-medium text-destructive tabular-nums">
+                    <div class="rounded-xl border bg-card px-4 py-3">
+                        <dt class="text-[13px] text-muted-foreground">
+                            Overdue
+                        </dt>
+                        <dd
+                            class="text-lg font-semibold text-destructive tabular-nums"
+                        >
                             {{
                                 countLabel(work.summary.overdue.count, 'claim')
                             }}
@@ -716,9 +719,11 @@ const visitTypeLabel = (value: string) =>
                     </div>
                 </dl>
             </section>
-            <section class="rounded-xl border bg-card p-5" aria-label="Payouts">
-                <h2 class="mb-3 text-base font-semibold">Payouts</h2>
-                <dl class="grid gap-x-8 text-sm sm:grid-cols-2">
+            <section
+                class="grid grid-cols-2 gap-3 sm:grid-cols-4"
+                aria-label="Payouts"
+            >
+                <dl class="contents">
                     <div
                         v-for="[key, label] in [
                             ['approved', 'Approved'],
@@ -727,16 +732,20 @@ const visitTypeLabel = (value: string) =>
                             ['outstanding', 'Outstanding'],
                         ] as const"
                         :key="key"
-                        class="flex items-center justify-between gap-3 border-b py-2"
+                        class="rounded-xl border bg-card px-4 py-3"
                     >
-                        <dt>{{ label }}</dt>
-                        <dd class="text-right tabular-nums">
-                            <span class="text-muted-foreground">{{
-                                countLabel(work.summary[key].count, 'claim')
-                            }}</span>
-                            <span class="ml-3 font-medium">{{
-                                myr(work.summary[key].amountSen)
-                            }}</span>
+                        <dt class="text-[13px] text-muted-foreground">
+                            {{ label }}
+                        </dt>
+                        <dd
+                            class="text-lg font-semibold whitespace-nowrap tabular-nums"
+                        >
+                            {{ myr(work.summary[key].amountSen) }}
+                        </dd>
+                        <dd
+                            class="text-[12.5px] text-muted-foreground tabular-nums"
+                        >
+                            {{ countLabel(work.summary[key].count, 'claim') }}
                         </dd>
                     </div>
                 </dl>
