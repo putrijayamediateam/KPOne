@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { usePage, Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, UserPlus } from '@lucide/vue';
+import { ArrowLeft } from '@lucide/vue';
 import InputError from '@/components/InputError.vue';
 import PatientFormFields from '@/components/patient/PatientFormFields.vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import { knownMinor } from '@/lib/guardian-contact';
 import {
@@ -128,20 +129,10 @@ const submit = () => {
 <template>
     <Head title="Create patient" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
-        <div class="flex items-start gap-3">
-            <div class="rounded-xl bg-brand/10 p-2.5 text-brand-strong">
-                <UserPlus class="size-5" />
-            </div>
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight">
-                    Create patient
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                    Add a patient to the clinic's patient list. This does not
-                    register a visit.
-                </p>
-            </div>
-        </div>
+        <PageHeader
+            title="Create patient"
+            description="Add a patient to the clinic's patient list. This does not register a visit."
+        />
         <form class="space-y-5" novalidate @submit.prevent="submit">
             <PatientFormFields
                 :model="form"

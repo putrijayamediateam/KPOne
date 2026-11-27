@@ -17,6 +17,15 @@ const branchName = computed(
 const description = computed(() =>
     props.description === branchName.value ? undefined : props.description,
 );
+// A description that already names the branch (for example "Fri 27 Nov 2026 · Puchong") shows it once: no separate subline.
+const showBranchLine = computed(
+    () =>
+        branchName.value !== null &&
+        !(
+            props.description !== branchName.value &&
+            props.description?.includes(branchName.value)
+        ),
+);
 </script>
 
 <template>
@@ -54,7 +63,7 @@ const description = computed(() =>
                 <slot name="description">{{ description }}</slot>
             </p>
             <p
-                v-if="branchName"
+                v-if="showBranchLine"
                 class="text-[12.5px] text-muted-foreground"
                 data-test="page-branch"
             >
