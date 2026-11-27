@@ -260,7 +260,7 @@ const submit = () => {
                     </p>
                     <div
                         v-if="above"
-                        class="space-y-2 rounded-lg border border-amber-500/60 bg-amber-50 p-3 text-xs dark:bg-amber-950/30"
+                        class="space-y-2 rounded-xl border border-warning/25 bg-warning-wash p-3 text-xs"
                         role="status"
                     >
                         <p class="font-semibold">
