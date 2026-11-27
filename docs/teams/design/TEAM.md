@@ -110,3 +110,43 @@ pharmacist decisions).
    in the PR body), and keep a short "design debt" list of screens that break the guide, for the Staff Experience
    team and the owning teams.
    The loop is written in `docs/design/REVIEW.md` and the list in `docs/design/DEBT.md`.
+
+## 8. Handover to a fresh session (27 Nov 2026)
+
+Owner decision 27 Nov (relayed by B.E.R.N.I.S.S): every team gets a fresh session on a new model, one slice per session.
+This section is what the next Daniel needs.
+
+**Current assignment: Clean Look replaces Classic** (owner, 25 Nov). Restyle every page in place with the shared
+components (`resources/js/components/ui/*`, AppShell, AppSidebar, AppHeader, `resources/css/app.css`); no V2-style switch,
+no duplicate pages. Deadline Mon 30 Nov 08:30 MYT (live test at Puchong). Stage 0 (spec, tokens, shell) Thu 26 Nov;
+Stage 1 (Puchong CA flow) Sat 28 Nov; Stage 2 (everything else, the "Sunday sweep") Sun 29 Nov 18:00. Process: Daniel's OK
+plus the Reviewer's OK, green CI, then B.E.R.N.I.S.S merges; the owner gives one ship-it per group.
+
+**Spec:** `docs/design/CLEAN-LOOK-SPEC.md` is on `main` (reconciled 26 Nov by the coordinator; my original draft is
+branch `docs/clean-look-spec`, pushed, no PR, superseded by the reconciled version on main). Owner answers recorded in it:
+accent blue #007aff for non-text interactive graphics, #006ae0 for text and fills (contrast 5.07:1); KPOne pink on the
+logo only; TV stays English; Queue board details panel as the canvas shows it; every canvas feature built, including the
+red zone alert, zone ordering and bulk selection (selection only, the canvas defines no bulk action).
+
+**Canvas:** `https://claude.ai/artifact/Jyr8UV231y4roWRyyqxxRJ` (about 180 boards, light only). The "Viewing as <role>"
+switcher and Proposal / Being built tags are demo only and are not built.
+
+**Reviews given in the last stretch (all verdicts sent; owner ship-its still needed):** DSP-27, DSP-28 (Checked tab
+re-shots OK, `validation/dsp-28-shots`), Q-16 (OK; note the panel is modal where the canvas panel sits beside the list),
+HR-22e/22f, STK-46/47-60/48/49/61 design notes, REL-STK shots. STK-47/60: I accepted "No use in 30 days" instead of
+"No dispensing data"; shots at 1440 and 390 (light and dark) from Zulkifli are still to review.
+
+**Pending follow-ups from Leads:** Nurul AUTO-1c re-shot at 1440 light with shorter chip labels; Syafiq PNL-25 identity
+line; Irfan CHAT-2b padding re-shot; Kavitha APPR-1a/DAY-1 and the closed-rail re-shot; Farah BIL-37 duplicate-line fix;
+Aisyah DSP-27 minor icon parity at 390; Zulkifli STK-46/48/49/47-60/61 shots when built.
+
+**Debt rows to write (not yet in `DEBT.md`, last row is DD-118), on a `docs/...` branch for B.E.R.N.I.S.S to open:**
+DD-119 the shared Sheet Close X is 16 px (needs 44 px below 1024 px); a row for shared select option and Register Visit
+button heights (36/32/40 px below 1024 px); optional: the Director seeing Edit and Cancel Visit on the board, and the
+"N to check" count on the Removed tab.
+
+**Next slice:** review Stage 1 and Stage 2 page PRs against `CLEAN-LOOK-SPEC.md` section 10 (per-PR checklist), update the
+spec's board table if a Lead's gap list corrects a row, then write the debt rows above.
+
+**Rules that still bind:** one filled button per view; status as dot plus word; reasons start empty; 44 px targets below
+1024 px; text 12 px minimum; read-only pages render no controls; never open a PR unless the owner types it; never merge.
