@@ -106,6 +106,11 @@ type Props = {
                 receivedSen: number;
                 outstandingSen: number;
             };
+            submissionDue?: {
+                dueLabel: string;
+                ruleLabel: string;
+                overdue: boolean;
+            } | null;
             status: string;
             overdue: boolean;
             createdAt: string | null;
@@ -134,6 +139,7 @@ const rangeOptions = [
 const tabLabels: [string, string][] = [
     ['all', 'All'],
     ['pending', 'Pending'],
+    ['not_submitted', 'Not yet submitted'],
     ['overdue', 'Overdue'],
     ['submitted', 'Submitted'],
     ['approved', 'Approved'],
@@ -820,6 +826,17 @@ const visitTypeLabel = (value: string) =>
             >
                 Claims with a recorded Panel query. Open a claim to review its
                 recorded history and update it.
+            </p>
+
+            <p
+                v-if="work.filters.tab === 'not_submitted'"
+                class="text-sm text-muted-foreground"
+            >
+                Prepared claims with no recorded submission. Due dates use the
+                Panel's current submission rule; the date range uses claim
+                creation. Open a claim to review its current details and record
+                the submission. Approved invoices with no claim remain on
+                Pending.
             </p>
 
             <section
@@ -1596,9 +1613,11 @@ const visitTypeLabel = (value: string) =>
                             : 'No claims match'
                     "
                     :description="
-                        work.filters.tab === 'waiting_payment'
-                            ? 'No accepted claims with an unpaid balance match these filters.'
-                            : 'Create a claim from the Pending tab, or change the tab, date range or filters.'
+                        work.filters.tab === 'not_submitted'
+                            ? 'No Prepared claims awaiting their first recorded submission match these filters.'
+                            : work.filters.tab === 'waiting_payment'
+                              ? 'No accepted claims with an unpaid balance match these filters.'
+                              : 'Create a claim from the Pending tab, or change the tab, date range or filters.'
                     "
                 />
                 <div
@@ -1755,6 +1774,23 @@ const visitTypeLabel = (value: string) =>
                                     :dot="row.status === 'Prepared'"
                                 />
                             </div>
+                            <div
+                                v-if="work.filters.tab === 'not_submitted'"
+                                class="space-y-1 text-xs"
+                            >
+                                <template v-if="row.submissionDue">
+                                    <p class="font-medium">
+                                        Due {{ row.submissionDue.dueLabel }}
+                                    </p>
+                                    <p class="text-muted-foreground">
+                                        {{ row.submissionDue.ruleLabel }}
+                                    </p>
+                                </template>
+                                <p v-else class="text-muted-foreground">
+                                    Submission deadline unavailable. Open the
+                                    claim to review its details.
+                                </p>
+                            </div>
                             <p class="wrap-anywhere text-muted-foreground">
                                 {{ row.panelName }}
                             </p>
@@ -1772,7 +1808,14 @@ const visitTypeLabel = (value: string) =>
                             <div
                                 class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
                             >
-                                <span>{{ row.createdAt }}</span>
+                                <span
+                                    ><span
+                                        v-if="
+                                            work.filters.tab === 'not_submitted'
+                                        "
+                                        >Created </span
+                                    >{{ row.createdAt }}</span
+                                >
                             </div>
                             <p
                                 v-if="row.updatedBy"
@@ -1833,7 +1876,13 @@ const visitTypeLabel = (value: string) =>
                             <th v-if="visibleColumns.status" scope="col">
                                 Status
                             </th>
-                            <th v-if="visibleColumns.date" scope="col">Date</th>
+                            <th v-if="visibleColumns.date" scope="col">
+                                {{
+                                    work.filters.tab === 'not_submitted'
+                                        ? 'Created / due'
+                                        : 'Date'
+                                }}
+                            </th>
                             <th v-if="visibleColumns.updatedBy" scope="col">
                                 Updated by
                             </th>
@@ -1959,6 +2008,23 @@ const visitTypeLabel = (value: string) =>
                                 class="whitespace-nowrap"
                             >
                                 {{ row.createdAt }}
+                                <div
+                                    v-if="work.filters.tab === 'not_submitted'"
+                                    class="mt-2 max-w-64 text-xs whitespace-normal"
+                                >
+                                    <template v-if="row.submissionDue">
+                                        <p class="font-medium">
+                                            Due {{ row.submissionDue.dueLabel }}
+                                        </p>
+                                        <p class="text-muted-foreground">
+                                            {{ row.submissionDue.ruleLabel }}
+                                        </p>
+                                    </template>
+                                    <p v-else class="text-muted-foreground">
+                                        Submission deadline unavailable. Open
+                                        the claim to review its details.
+                                    </p>
+                                </div>
                             </td>
                             <td v-if="visibleColumns.updatedBy">
                                 {{ row.updatedBy }}
