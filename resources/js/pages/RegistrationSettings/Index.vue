@@ -99,171 +99,375 @@ const submit = () => {
 
 <template>
     <Head title="Registration settings" />
-    <main class="flex flex-1 flex-col p-4 pb-8 md:px-8 md:pt-6">
-        <nav
-            aria-label="Breadcrumb"
-            class="mb-4 flex flex-wrap gap-2 text-xs text-muted-foreground"
-        >
-            <Link
-                href="/clinic-management"
-                class="rounded hover:underline focus-visible:outline-2"
-                >Clinic management</Link
-            ><span aria-hidden="true">/</span><span>Registration settings</span>
-        </nav>
-        <h1 class="border-b pb-3 text-xl font-semibold">
-            Registration settings
-        </h1>
+    <main
+        class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-5 pb-8 sm:px-6 lg:px-8"
+    >
+        <header class="space-y-3">
+            <nav
+                aria-label="Breadcrumb"
+                class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+            >
+                <Link
+                    href="/clinic-management"
+                    class="inline-flex min-h-11 items-center rounded-md px-1 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
+                    >Clinic management</Link
+                ><span aria-hidden="true">/</span
+                ><span>Registration settings</span>
+            </nav>
+            <div>
+                <h1 class="text-2xl font-semibold tracking-tight">
+                    Registration settings
+                </h1>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    New-patient requirements for the organisation. Existing
+                    patients and visits are unchanged.
+                </p>
+            </div>
+        </header>
         <form
             id="registration-settings-form"
-            class="mt-5 max-w-3xl space-y-5 rounded-lg border bg-card p-4 md:p-5"
+            class="space-y-5"
             novalidate
             @submit.prevent="submit"
         >
-            <div>
-                <h2 class="text-sm font-medium">
-                    Configure required patient details
-                </h2>
-                <p class="mt-1 text-xs text-muted-foreground">
-                    These settings apply to new patient registration across the
-                    organisation. Existing patient records and visits are
-                    unchanged.
-                </p>
-            </div>
-            <fieldset class="space-y-4">
-                <legend class="mb-4 text-sm font-medium">
-                    Choose which details are required in patient registration
-                </legend>
-                <label
-                    v-for="label in ['Name', 'Phone number', 'NRIC/Passport']"
-                    :key="label"
-                    class="flex items-center gap-3 text-sm"
-                    ><input
-                        type="checkbox"
-                        checked
-                        disabled
-                        class="size-4 accent-primary"
-                    /><span>{{ label }}</span
-                    ><span class="text-xs text-muted-foreground"
-                        >Required by system</span
-                    ></label
+            <section
+                aria-labelledby="system-requirements-heading"
+                class="rounded-xl border bg-card p-4 shadow-card md:p-6"
+            >
+                <h2
+                    id="system-requirements-heading"
+                    class="text-base font-semibold"
                 >
-                <div>
-                    <label class="flex items-center gap-3 text-sm"
+                    System requirements
+                </h2>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    These rules are set by KPOne.
+                </p>
+                <div class="mt-4 divide-y divide-border/60">
+                    <label
+                        v-for="label in [
+                            'Name',
+                            'Phone number',
+                            'NRIC/Passport',
+                        ]"
+                        :key="label"
+                        class="flex min-h-11 flex-wrap items-center gap-3 py-3 text-sm"
+                    >
+                        <input
+                            type="checkbox"
+                            checked
+                            disabled
+                            class="size-4 accent-primary"
+                        /><span class="flex-1">{{ label }}</span
+                        ><span
+                            class="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"
+                            >Required by system</span
+                        >
+                    </label>
+                    <label
+                        class="flex min-h-11 flex-wrap items-center gap-3 py-3 text-sm"
                         ><input
+                            type="checkbox"
+                            checked
+                            disabled
+                            class="size-4 accent-primary"
+                        /><span class="flex-1">Gender</span
+                        ><span
+                            class="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"
+                            >Required; Unknown allowed</span
+                        ></label
+                    >
+                </div>
+                <p class="mt-3 text-xs leading-relaxed text-muted-foreground">
+                    Phone is optional for a known minor; guardian contact is
+                    required.
+                </p>
+            </section>
+            <fieldset class="rounded-xl border bg-card p-2 shadow-card md:p-3">
+                <legend class="mx-2 px-2 text-base font-semibold">
+                    New-patient details
+                </legend>
+                <p class="px-4 pt-2 pb-3 text-sm text-muted-foreground">
+                    Choose which details are required. Press Save required
+                    details to apply changes.
+                </p>
+                <div class="divide-y divide-border/60">
+                    <label
+                        for="require-date-of-birth"
+                        class="flex min-h-11 cursor-pointer items-center gap-4 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-ring lg:min-h-9"
+                    >
+                        <input
+                            id="require-date-of-birth"
                             v-model="form.require_date_of_birth"
                             type="checkbox"
-                            class="size-4 accent-primary"
+                            role="switch"
+                            aria-label="Date of birth required"
                             aria-describedby="dob-help"
-                        /><span>Date of birth</span></label
+                            class="peer sr-only"
+                        />
+                        <span class="min-w-0 flex-1">
+                            <span class="flex flex-wrap items-center gap-2"
+                                ><span class="text-sm font-medium"
+                                    >Date of birth</span
+                                ><span
+                                    class="rounded-full px-2 py-0.5 text-xs"
+                                    :class="
+                                        form.require_date_of_birth
+                                            ? 'bg-success-wash text-success'
+                                            : 'bg-muted text-muted-foreground'
+                                    "
+                                    >{{
+                                        form.require_date_of_birth
+                                            ? 'Required'
+                                            : 'Optional'
+                                    }}</span
+                                ></span
+                            >
+                            <span
+                                id="dob-help"
+                                class="mt-1 block text-xs leading-relaxed text-muted-foreground"
+                                >Required for new staff-created patients when
+                                selected. Public QR always requires date of
+                                birth for the minor and guardian check.</span
+                            >
+                        </span>
+                        <span
+                            aria-hidden="true"
+                            class="relative h-[26px] w-11 shrink-0 rounded-full bg-muted-foreground/30 transition-colors peer-checked:bg-success motion-reduce:transition-none"
+                            ><span
+                                class="absolute top-px left-px size-[22px] rounded-full bg-background shadow-sm transition-transform motion-reduce:transition-none"
+                                :class="
+                                    form.require_date_of_birth
+                                        ? 'translate-x-5'
+                                        : 'translate-x-0'
+                                "
+                            ></span
+                        ></span>
+                    </label>
+                    <label
+                        for="require-nationality"
+                        class="flex min-h-11 cursor-pointer items-center gap-4 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-ring lg:min-h-9"
                     >
-                    <p
-                        id="dob-help"
-                        class="mt-1 ml-7 text-xs text-muted-foreground"
-                    >
-                        Required for new staff-created patients when selected.
-                        Public QR always requires date of birth for the minor
-                        and guardian check.
-                    </p>
-                </div>
-                <div>
-                    <label class="flex items-center gap-3 text-sm"
-                        ><input
+                        <input
+                            id="require-nationality"
                             v-model="form.require_nationality"
                             type="checkbox"
-                            class="size-4 accent-primary"
+                            role="switch"
+                            aria-label="Nationality required"
                             aria-describedby="nationality-help"
-                        /><span>Nationality</span></label
+                            class="peer sr-only"
+                        />
+                        <span class="min-w-0 flex-1">
+                            <span class="flex flex-wrap items-center gap-2"
+                                ><span class="text-sm font-medium"
+                                    >Nationality</span
+                                ><span
+                                    class="rounded-full px-2 py-0.5 text-xs"
+                                    :class="
+                                        form.require_nationality
+                                            ? 'bg-success-wash text-success'
+                                            : 'bg-muted text-muted-foreground'
+                                    "
+                                    >{{
+                                        form.require_nationality
+                                            ? 'Required'
+                                            : 'Optional'
+                                    }}</span
+                                ></span
+                            >
+                            <span
+                                id="nationality-help"
+                                class="mt-1 block text-xs leading-relaxed text-muted-foreground"
+                                >Applies to new Patient creation, Quick create
+                                and public QR intake.</span
+                            >
+                        </span>
+                        <span
+                            aria-hidden="true"
+                            class="relative h-[26px] w-11 shrink-0 rounded-full bg-muted-foreground/30 transition-colors peer-checked:bg-success motion-reduce:transition-none"
+                            ><span
+                                class="absolute top-px left-px size-[22px] rounded-full bg-background shadow-sm transition-transform motion-reduce:transition-none"
+                                :class="
+                                    form.require_nationality
+                                        ? 'translate-x-5'
+                                        : 'translate-x-0'
+                                "
+                            ></span
+                        ></span>
+                    </label>
+                    <label
+                        for="require-email"
+                        class="flex min-h-11 cursor-pointer items-center gap-4 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-ring lg:min-h-9"
                     >
-                    <p
-                        id="nationality-help"
-                        class="mt-1 ml-7 text-xs text-muted-foreground"
-                    >
-                        Applies to new Patient creation, Quick create and public
-                        QR intake.
-                    </p>
-                </div>
-                <div>
-                    <label class="flex items-center gap-3 text-sm"
-                        ><input
+                        <input
+                            id="require-email"
                             v-model="form.require_email"
                             type="checkbox"
-                            class="size-4 accent-primary"
+                            role="switch"
+                            aria-label="Email required"
                             aria-describedby="email-help"
-                        /><span>Email</span></label
+                            class="peer sr-only"
+                        />
+                        <span class="min-w-0 flex-1">
+                            <span class="flex flex-wrap items-center gap-2"
+                                ><span class="text-sm font-medium">Email</span
+                                ><span
+                                    class="rounded-full px-2 py-0.5 text-xs"
+                                    :class="
+                                        form.require_email
+                                            ? 'bg-success-wash text-success'
+                                            : 'bg-muted text-muted-foreground'
+                                    "
+                                    >{{
+                                        form.require_email
+                                            ? 'Required'
+                                            : 'Optional'
+                                    }}</span
+                                ></span
+                            >
+                            <span
+                                id="email-help"
+                                class="mt-1 block text-xs leading-relaxed text-muted-foreground"
+                                >Applies to new Patient creation, Quick create
+                                and public QR intake.</span
+                            >
+                        </span>
+                        <span
+                            aria-hidden="true"
+                            class="relative h-[26px] w-11 shrink-0 rounded-full bg-muted-foreground/30 transition-colors peer-checked:bg-success motion-reduce:transition-none"
+                            ><span
+                                class="absolute top-px left-px size-[22px] rounded-full bg-background shadow-sm transition-transform motion-reduce:transition-none"
+                                :class="
+                                    form.require_email
+                                        ? 'translate-x-5'
+                                        : 'translate-x-0'
+                                "
+                            ></span
+                        ></span>
+                    </label>
+                    <label
+                        for="require-address"
+                        class="flex min-h-11 cursor-pointer items-center gap-4 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-ring lg:min-h-9"
                     >
-                    <p
-                        id="email-help"
-                        class="mt-1 ml-7 text-xs text-muted-foreground"
-                    >
-                        Applies to new Patient creation, Quick create and public
-                        QR intake.
-                    </p>
-                </div>
-                <div>
-                    <label class="flex items-center gap-3 text-sm"
-                        ><input
+                        <input
+                            id="require-address"
                             v-model="form.require_address"
                             type="checkbox"
-                            class="size-4 accent-primary"
+                            role="switch"
+                            aria-label="Address required"
                             aria-describedby="address-help"
-                        /><span>Address</span></label
-                    >
-                    <p
-                        id="address-help"
-                        class="mt-1 ml-7 text-xs text-muted-foreground"
-                    >
-                        Requires line 1, city, state, postcode and country. Line
-                        2 stays optional.
-                    </p>
+                            class="peer sr-only"
+                        />
+                        <span class="min-w-0 flex-1">
+                            <span class="flex flex-wrap items-center gap-2"
+                                ><span class="text-sm font-medium">Address</span
+                                ><span
+                                    class="rounded-full px-2 py-0.5 text-xs"
+                                    :class="
+                                        form.require_address
+                                            ? 'bg-success-wash text-success'
+                                            : 'bg-muted text-muted-foreground'
+                                    "
+                                    >{{
+                                        form.require_address
+                                            ? 'Required'
+                                            : 'Optional'
+                                    }}</span
+                                ></span
+                            >
+                            <span
+                                id="address-help"
+                                class="mt-1 block text-xs leading-relaxed text-muted-foreground"
+                                >Requires line 1, city, state, postcode and
+                                country. Line 2 stays optional.</span
+                            >
+                        </span>
+                        <span
+                            aria-hidden="true"
+                            class="relative h-[26px] w-11 shrink-0 rounded-full bg-muted-foreground/30 transition-colors peer-checked:bg-success motion-reduce:transition-none"
+                            ><span
+                                class="absolute top-px left-px size-[22px] rounded-full bg-background shadow-sm transition-transform motion-reduce:transition-none"
+                                :class="
+                                    form.require_address
+                                        ? 'translate-x-5'
+                                        : 'translate-x-0'
+                                "
+                            ></span
+                        ></span>
+                    </label>
                 </div>
-                <label class="flex items-center gap-3 text-sm"
-                    ><input
-                        type="checkbox"
-                        checked
-                        disabled
-                        class="size-4 accent-primary"
-                    /><span>Gender</span
-                    ><span class="text-xs text-muted-foreground"
-                        >Required; Unknown allowed</span
-                    ></label
-                >
             </fieldset>
-            <InputError
-                :message="
-                    form.errors.lock_version ||
-                    errorFor('settings') ||
-                    form.errors.expected_branch_id ||
-                    form.errors.idempotency_key ||
-                    form.errors.require_date_of_birth ||
-                    form.errors.require_nationality ||
-                    form.errors.require_email ||
-                    form.errors.require_address
-                "
-            />
-            <Button
-                v-if="
-                    form.errors.lock_version || form.errors.expected_branch_id
-                "
-                type="button"
-                variant="outline"
-                size="sm"
-                @click="reloadLatest"
-                >Reload latest settings</Button
+            <section
+                aria-labelledby="requirements-apply-heading"
+                class="rounded-xl border bg-card p-4 shadow-card md:p-6"
             >
-            <p v-if="saved" role="status" class="text-sm">
-                Registration settings saved.
-            </p>
-            <Button
-                type="submit"
-                class="min-h-11"
-                :disabled="form.processing"
-                >{{ form.processing ? 'Saving…' : 'Save' }}</Button
-            >
+                <h2
+                    id="requirements-apply-heading"
+                    class="text-base font-semibold"
+                >
+                    Where these apply
+                </h2>
+                <dl class="mt-3 divide-y divide-border/60 text-sm">
+                    <div class="flex flex-wrap justify-between gap-2 py-3">
+                        <dt>Patients · Create patient</dt>
+                        <dd class="text-muted-foreground">New patients only</dd>
+                    </div>
+                    <div class="flex flex-wrap justify-between gap-2 py-3">
+                        <dt>Registration · Quick create</dt>
+                        <dd class="text-muted-foreground">New patients only</dd>
+                    </div>
+                    <div class="flex flex-wrap justify-between gap-2 py-3">
+                        <dt>Public QR check-in</dt>
+                        <dd class="text-muted-foreground">New submissions</dd>
+                    </div>
+                </dl>
+                <p class="mt-3 text-xs leading-relaxed text-muted-foreground">
+                    QR forms already in progress keep the registration
+                    requirements captured when they started.
+                </p>
+            </section>
+            <div class="space-y-3 rounded-xl border bg-card p-4 md:p-6">
+                <InputError
+                    :message="
+                        form.errors.lock_version ||
+                        errorFor('settings') ||
+                        form.errors.expected_branch_id ||
+                        form.errors.idempotency_key ||
+                        form.errors.require_date_of_birth ||
+                        form.errors.require_nationality ||
+                        form.errors.require_email ||
+                        form.errors.require_address
+                    "
+                />
+                <Button
+                    v-if="
+                        form.errors.lock_version ||
+                        form.errors.expected_branch_id
+                    "
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    class="min-h-11 lg:min-h-9"
+                    @click="reloadLatest"
+                    >Reload latest settings</Button
+                >
+                <p v-if="saved" role="status" class="text-sm">
+                    Registration settings saved.
+                </p>
+                <Button
+                    type="submit"
+                    class="min-h-11 lg:min-h-9"
+                    :disabled="form.processing"
+                    >{{
+                        form.processing ? 'Saving…' : 'Save required details'
+                    }}</Button
+                >
+            </div>
         </form>
         <section
             v-if="autoAssign?.canManage"
             aria-labelledby="auto-assign-heading"
-            class="mt-6 max-w-3xl space-y-3 rounded-lg border bg-card p-4 md:p-5"
+            class="space-y-4 rounded-xl border bg-card p-4 shadow-card md:p-6"
         >
             <h2 id="auto-assign-heading" class="text-sm font-medium">
                 Assign the doctor automatically
@@ -295,8 +499,8 @@ const submit = () => {
                 <Button
                     type="submit"
                     :disabled="autoForm.processing"
-                    class="min-h-11"
-                    >Save</Button
+                    class="min-h-11 lg:min-h-9"
+                    >Save doctor assignment</Button
                 >
             </form>
         </section>

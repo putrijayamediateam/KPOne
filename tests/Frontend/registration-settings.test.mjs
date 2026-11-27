@@ -11,7 +11,7 @@ test('SET-04 checkbox screen compiles with four configurable requirements and fi
     assert.deepEqual(compileTemplate({ id: 'set04', source: parse(source).descriptor.template.content, filename: 'Index.vue' }).errors, []);
 
     for (const label of ['Name', 'Phone number', 'NRIC/Passport', 'Required by system', 'Gender', 'Unknown allowed', 'Public QR always requires date of birth']) {
-assert.ok(source.includes(label));
+assert.ok(source.replace(/\s+/g, ' ').includes(label));
 }
 
     assert.match(source, /v-model="form.require_date_of_birth"/);
