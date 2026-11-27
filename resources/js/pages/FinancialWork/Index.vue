@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
+import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/state';
@@ -20,7 +21,9 @@ type FinancialState = {
 const props = defineProps<{
     work: {
         mode: 'panel' | 'finance';
+        filters?: { q: string };
         branch: string;
+        branchId?: number;
         data: Array<{
             invoiceNumber: string;
             visitNumber: string;
@@ -48,10 +51,27 @@ const description = computed(() =>
         : 'Current finalized invoices',
 );
 const columnCount = computed(() => (panel.value ? 7 : 11));
-const turnPage = (page: number) =>
-    router.get(panel.value ? '/panel-responsibility' : '/financial-work', {
-        page,
-    });
+const appliedQuery = computed(() => props.work.filters?.q ?? '');
+const query = ref(appliedQuery.value);
+watch(
+    [
+        () => props.work.branchId ?? props.work.branch,
+        () => props.work.mode,
+        appliedQuery,
+    ] as const,
+    ([, , value]) => {
+        query.value = value;
+    },
+);
+const navigate = (page: number, q: string) =>
+    router.get(
+        panel.value ? '/panel-responsibility' : '/financial-work',
+        { page, q: q || undefined },
+        { preserveState: true, preserveScroll: true, replace: true },
+    );
+const search = () => navigate(1, query.value);
+const clearSearch = () => navigate(1, '');
+const turnPage = (page: number) => navigate(page, appliedQuery.value);
 </script>
 
 <template>
@@ -77,10 +97,63 @@ const turnPage = (page: number) =>
             available in this workspace.
         </p>
 
+        <form
+            class="space-y-2 rounded-xl border bg-card p-4"
+            aria-label="Search current work"
+            @submit.prevent="search"
+        >
+            <div class="flex flex-wrap items-end gap-3">
+                <div class="min-w-0 flex-1 basis-full space-y-1 sm:basis-auto">
+                    <label for="work-search" class="block text-sm font-medium"
+                        >Search patient, invoice or visit</label
+                    >
+                    <input
+                        id="work-search"
+                        v-model="query"
+                        type="search"
+                        maxlength="120"
+                        class="min-h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
+                    />
+                </div>
+                <Button type="submit" class="min-h-11 lg:min-h-9"
+                    >Search</Button
+                >
+                <Button
+                    v-if="appliedQuery"
+                    type="button"
+                    variant="outline"
+                    class="min-h-11 lg:min-h-9"
+                    @click="clearSearch"
+                    >Clear search</Button
+                >
+            </div>
+            <p class="text-sm text-muted-foreground">
+                Matching records in {{ work.branch }}: {{ work.total }}.
+                <template v-if="appliedQuery"
+                    >Applied search: “{{ appliedQuery }}”.</template
+                >
+                <template v-else>No search filter applied.</template>
+            </p>
+        </form>
+
         <EmptyState
             v-if="work.data.length === 0"
-            :title="panel ? 'No Panel reviews' : 'No Finance work'"
-            :description="`No authorized work is currently available in ${work.branch}.`"
+            :title="
+                work.total > 0
+                    ? 'No records on this page'
+                    : appliedQuery
+                      ? 'No matching work'
+                      : panel
+                        ? 'No Panel reviews'
+                        : 'No Finance work'
+            "
+            :description="
+                work.total > 0
+                    ? 'Use Search to return to the first page.'
+                    : appliedQuery
+                      ? `No authorized records match this search in ${work.branch}. Clear search to see the current work list.`
+                      : `No authorized work is currently available in ${work.branch}.`
+            "
         />
 
         <section

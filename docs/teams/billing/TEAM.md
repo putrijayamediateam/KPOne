@@ -520,3 +520,7 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 11. **BIL-10 Refunds after completion and partial refunds.** *(Built 2026-11-06/07; owner "start with 1", "ship it for
    BIL-10 for farah", relayed.)* A refund of part or all of a posted receipt after the visit is completed, with an
    invoice credit of the same amount, approved by a second person. Design note `BIL-10-DESIGN.md`.
+
+### Financial work search continuation (delegated technical authority,27November2026)
+
+Independent Staff/Inventory plan review clears literal patient-name/invoice/visit search on exact1178 responsive work list. Existing fixed finance/Panel mode, transactional actor/branch scope, current finalized invoice predicates, Panel responsibility eligibility, ledger amounts and secured Review destinations remain unchanged. Grouped parameterized matching precedes25-row count/page;percent/underscore/backslash are literal. Labels distinguish finalized invoices from unpaid-only work and Panel responsibility from claims. Draft text is separate from applied search; paging keeps applied criteria and failed GET keeps loaded data. No new money summary, Paid-date/all-branch scope, grants or migrations. Staff's exact delegated test adapter replaces only blanket no-form with one named search form while preserving all financial-action denials and six money assertions; new actual handlers prove GET-only behavior. This records technical delegation, not a direct owner answer. Final tests/browser/independent review precede scoped draft publication.

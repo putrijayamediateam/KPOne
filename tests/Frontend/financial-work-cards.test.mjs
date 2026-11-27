@@ -52,6 +52,17 @@ runInNewContext(code, {
             return moneyModule.exports;
         }
 
+        if (name === '@/components/ui/button') {
+            return {
+                Button: {
+                    setup:
+                        (_, { slots, attrs }) =>
+                        () =>
+                            h('button', attrs, slots.default?.()),
+                },
+            };
+        }
+
         if (name === '@/components/ui/action-link') {
             return {
                 ActionLink: {
@@ -185,7 +196,9 @@ test('finance card retains all six distinct money labels and the existing review
     assert.ok(content.includes(row.visitNumber));
     assert.ok(content.includes(row.invoiceNumber));
     assert.match(content, /href="\/synthetic-authorised-review\/one"/);
-    assert.doesNotMatch(html, /<form|To pay|Record payment/);
+    assert.doesNotMatch(html, /To pay|Record payment/);
+    assert.equal([...html.matchAll(/<form\b/g)].length, 1);
+    assert.match(html, /<form[^>]*aria-label="Search current work"/);
 });
 
 test('panel card preserves zero responsibility and requested time without finance-only fields', async () => {
@@ -200,7 +213,8 @@ test('panel card preserves zero responsibility and requested time without financ
         html,
         /Claims submission is not\s+available in this workspace/,
     );
-    assert.doesNotMatch(html, /<form/);
+    assert.equal([...html.matchAll(/<form\b/g)].length, 1);
+    assert.match(html, /<form[^>]*aria-label="Search current work"/);
 });
 
 test('zero finance values remain visible and both empty modes expose no card or mutation form', async () => {
@@ -226,6 +240,8 @@ test('zero finance values remain visible and both empty modes expose no card or 
     ]) {
         const html = await render(mode, []);
         assert.ok(html.includes(message));
-        assert.doesNotMatch(html, /financial-work-card|<form/);
+        assert.doesNotMatch(html, /financial-work-card/);
+        assert.equal([...html.matchAll(/<form\b/g)].length, 1);
+        assert.match(html, /<form[^>]*aria-label="Search current work"/);
     }
 });
