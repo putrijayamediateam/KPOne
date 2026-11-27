@@ -28,6 +28,16 @@ declare module '@inertiajs/core' {
                     clock: boolean;
                     spaces: boolean;
                 };
+                shellMenu?: Array<{
+                    key: string;
+                    title: string;
+                    icon: string;
+                    href: string;
+                    sections: Array<{
+                        title: string;
+                        links: Array<{ title: string; href: string }>;
+                    }>;
+                }>;
                 navigation: {
                     clinicManagement: boolean;
                     businessDetails: boolean;

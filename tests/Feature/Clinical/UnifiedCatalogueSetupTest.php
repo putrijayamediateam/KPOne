@@ -250,9 +250,38 @@ class UnifiedCatalogueSetupTest extends ClinicalTestCase
         ]);
     }
 
+    public function test_director_can_create_medicine_and_publish_price_with_ordinary_role_permissions(): void
+    {
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+
+        $medicine = app(UnifiedCatalogueSetupService::class)->createMedicine($director, [
+            'code' => 'DIRECTOR-PRICED-MED',
+            'display_name' => 'Synthetic Director priced medicine',
+            'order_unit' => 'tablet',
+            'prices' => ['self_pay_sen' => 250],
+            'expected_branch_id' => $this->branch->id,
+        ]);
+
+        $this->assertDatabaseHas('medicine_catalogue_items', ['id' => $medicine->id, 'code' => 'DIRECTOR-PRICED-MED']);
+        $this->assertDatabaseHas('inventory_items', ['organisation_id' => $director->organisation_id, 'code' => 'DIRECTOR-PRICED-MED']);
+        $this->assertDatabaseHas('inventory_skus', ['organisation_id' => $director->organisation_id, 'sku_code' => 'DIRECTOR-PRICED-MED']);
+        $charge = ChargeDefinition::query()->where('organisation_id', $director->organisation_id)
+            ->where('medicine_catalogue_item_id', $medicine->id)->sole();
+        $book = PriceBook::query()->where('organisation_id', $director->organisation_id)
+            ->where('scope_key', 'organisation')->where('price_tier', 'self_pay')->sole();
+        $this->assertDatabaseHas('price_entries', [
+            'charge_definition_id' => $charge->id,
+            'price_book_id' => $book->id,
+            'unit_price_sen' => 250,
+            'version' => 1,
+        ]);
+    }
+
     public function test_price_publication_failure_rolls_back_the_entire_medicine_setup(): void
     {
         $director = $this->actor('director');
+        $director->roles()->firstOrFail()->revokePermissionTo('prices.publish.organisation');
         $this->selectBranch($director);
 
         try {

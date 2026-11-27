@@ -14,8 +14,7 @@ anything staff typed about a person. It cannot change anything in KPOne. KPOne s
 no AI service.
 
 **The data rule.** The answers reach your Claude account, and so Anthropic, as part of your own use of Claude. Small
-counts on a quiet day can still point at a person. **Use it on the trial server with fictional data only, until the PDPA
-review is done.** On a server with real patient data the switch stays off until you say so in writing. This is not legal
+counts on a quiet day can still point at a person. The PDPA and lawyer review is approved (owner-confirmed, verbal, 25 Nov 2026; you keep the written copy). **On a server with real patient data the switch stays off until you give a separate written OK, naming that server and the date.** This is not legal
 advice.
 
 ## Who can use it
