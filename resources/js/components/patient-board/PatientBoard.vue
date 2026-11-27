@@ -53,6 +53,10 @@ const branchTimeline = computed(
         (props.queueTask === 'waiting' || props.queueTask === 'seeing'),
 );
 
+const branchHeld = computed(
+    () => props.queueLayout === 'branch' && props.queueTask === 'held',
+);
+
 defineEmits<{
     sendToWaiting: [row: PatientBoardRow];
     call: [row: PatientBoardRow];
@@ -166,6 +170,9 @@ const triageTextClass = (zone: TriageZone | null) =>
                         >
                             Doctor
                         </th>
+                        <th v-if="branchHeld" class="w-40 px-3 py-2">
+                            Treatment step
+                        </th>
                         <th v-if="branchTimeline" class="w-40 px-3 py-2">
                             Status
                         </th>
@@ -187,11 +194,13 @@ const triageTextClass = (zone: TriageZone | null) =>
                                       ? queueTask === 'waiting'
                                           ? 'Waiting'
                                           : 'Since'
-                                      : 'Waiting / since'
+                                      : branchHeld
+                                        ? 'Held'
+                                        : 'Waiting / since'
                             }}
                         </th>
                         <th
-                            v-if="!ownTask && !branchTimeline"
+                            v-if="!ownTask && !branchTimeline && !branchHeld"
                             class="w-40 px-3 py-2"
                         >
                             Status
@@ -279,7 +288,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                             >
                         </div>
                         <PatientBoardStatus
-                            v-if="ownTask"
+                            v-if="ownTask || branchHeld"
                             :show-treatment-badge="
                                 queueTask !== 'held' &&
                                 queueTask !== 'treatment'
@@ -290,7 +299,30 @@ const triageTextClass = (zone: TriageZone | null) =>
                             :from="from"
                             v-model:treatment-dialog-key="treatmentDialogKey"
                             @readiness-changed="$emit('readinessChanged')"
-                        />
+                        >
+                            <template #triage v-if="branchHeld">
+                                <!-- TRI-1c: the triage zone (CA, CA Supervisor and the patient's own doctor only; the server
+                                 sends nothing to anyone else). The word is always shown, never colour alone. -->
+                                <span
+                                    v-if="row.triage?.triaged"
+                                    class="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[11px] font-medium"
+                                    :class="triageTextClass(row.triage.zone)"
+                                    data-testid="triage-zone-chip"
+                                    ><span
+                                        v-if="row.triage.zone"
+                                        aria-hidden="true"
+                                        class="size-2 shrink-0 rounded-full"
+                                        :class="triageDotClass(row.triage.zone)"
+                                    />{{ triageLabel(row.triage.zone) }}</span
+                                >
+                                <span
+                                    v-else-if="row.triage"
+                                    class="inline-flex rounded-md border border-dashed border-border px-2 py-0.5 text-[11px] font-normal text-muted-foreground"
+                                    data-testid="triage-missing-chip"
+                                    >No triage yet</span
+                                >
+                            </template>
+                        </PatientBoardStatus>
                     </td>
                     <td
                         v-if="ownTask"
@@ -515,6 +547,25 @@ const triageTextClass = (zone: TriageZone | null) =>
                         </TooltipProvider>
                     </td>
                     <td
+                        v-if="branchHeld"
+                        class="px-3 py-2.5 align-middle"
+                        data-label="Treatment step"
+                    >
+                        <TreatmentProgressBadge
+                            v-if="
+                                treatmentBadgeText(
+                                    row.treatmentProgress,
+                                    row.treatmentMinutes ?? null,
+                                )
+                            "
+                            :progress="row.treatmentProgress"
+                            :minutes="row.treatmentMinutes"
+                        />
+                        <span v-else class="text-xs text-muted-foreground"
+                            >Not available</span
+                        >
+                    </td>
+                    <td
                         class="px-3 py-2.5 align-middle"
                         data-label="Status"
                         v-if="branchTimeline"
@@ -574,7 +625,9 @@ const triageTextClass = (zone: TriageZone | null) =>
                                   ? queueTask === 'waiting'
                                       ? 'Waiting'
                                       : 'Since'
-                                  : 'Duration'
+                                  : branchHeld
+                                    ? 'Held'
+                                    : 'Duration'
                         "
                     >
                         <span
@@ -625,7 +678,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                     <td
                         class="px-3 py-2.5 align-middle"
                         data-label="Status"
-                        v-if="!ownTask && !branchTimeline"
+                        v-if="!ownTask && !branchTimeline && !branchHeld"
                         :data-treatment-row="
                             row.treatmentProgress?.state ||
                             row.treatmentProgress?.canManage
