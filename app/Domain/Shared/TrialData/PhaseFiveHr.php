@@ -36,6 +36,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Sleep;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -64,6 +65,9 @@ final class PhaseFiveHr
         'hrd' => ['FICTIONAL HRD - trial staff', '0', '2'],
     ];
 
+    /** Minutes after local midnight before a session can have ended "earlier today". */
+    private const PAST_MOMENT_MINUTES = 3;
+
     private PlaceholderFiles $files;
 
     public function __construct(private readonly TrialDataContext $context)
@@ -78,6 +82,9 @@ final class PhaseFiveHr
         try {
             foreach (['staffFiles', 'bankAndDocuments', 'leave', 'roster', 'attendance', 'credentials', 'sopsAndMemos', 'letters',
                 'appraisal', 'incidentAndDiscipline', 'shiftsAndLocums', 'claims', 'jobPositions', 'payroll'] as $step) {
+                if ($step === 'attendance') {
+                    $this->waitForAPastMomentToday();
+                }
                 DB::transaction(fn () => $this->{$step}());
             }
         } finally {
@@ -508,12 +515,30 @@ final class PhaseFiveHr
         return ['content' => $bytes, 'thumb' => $bytes, 'width' => 480, 'height' => 360, 'bytes' => strlen($bytes), 'thumb_bytes' => strlen($bytes), 'sha256' => hash('sha256', $bytes)];
     }
 
+    /**
+     * The attendance step adds sessions that ended earlier today (see earlierToday()), which do not exist in the first
+     * minutes after local midnight. Rather than refuse, wait (at most three minutes, outside any transaction) until
+     * every branch is past 00:03 local time. Nothing waits once the step has run, so a rerun never pauses.
+     */
+    private function waitForAPastMomentToday(): void
+    {
+        if (DB::table('hr_attendance_settings')->where('organisation_id', $this->org())->exists()) {
+            return;
+        }
+        $ready = $this->context->branches
+            ->map(fn (Branch $branch): CarbonImmutable => CarbonImmutable::now($branch->timezone)->startOfDay()->addMinutes(self::PAST_MOMENT_MINUTES))
+            ->max();
+        if ($ready instanceof CarbonImmutable && CarbonImmutable::now()->lessThan($ready)) {
+            Sleep::until($ready->addSecond());
+        }
+    }
+
     /** @return array{string, string} branch-local Y-m-d\TH:i times today, $from hours and $to hours ago (never before midnight) */
     private function earlierToday(Branch $branch, int $from, int $to): array
     {
         $now = CarbonImmutable::now($branch->timezone)->startOfMinute();
         $midnight = $now->startOfDay();
-        if ($now->lessThan($midnight->addMinutes(3))) {
+        if ($now->lessThan($midnight->addMinutes(self::PAST_MOMENT_MINUTES))) {
             throw new RuntimeException('It is just after midnight at '.$branch->code.', so there is no earlier time today for a past session. Run the command again after 00:03 branch time.');
         }
         $in = $now->subHours($from)->max($midnight);

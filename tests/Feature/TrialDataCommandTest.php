@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Sleep;
 use Illuminate\Testing\PendingCommand;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
@@ -440,9 +441,48 @@ class TrialDataCommandTest extends TestCase
         return ['00:04 in Kuala Lumpur' => ['16:04:00'], '00:30 in Kuala Lumpur' => ['16:30:00'], '01:30 in Kuala Lumpur' => ['17:30:00'], '08:00 in Kuala Lumpur' => ['00:00:00']];
     }
 
+    /**
+     * CI-CLOCK-3: in the first three minutes after midnight in Kuala Lumpur (16:00 to 16:03 UTC) no session can have
+     * ended "earlier today", so phase 5 used to refuse and the end-to-end test failed whenever CI crossed that minute.
+     * Phase 5 now waits (at most three minutes, faked here) and then succeeds. Phase 1 runs just before midnight, as in
+     * the failing CI runs, so the phases straddle the change of day.
+     */
+    #[DataProvider('firstMinutesAfterKualaLumpurMidnight')]
+    public function test_phase_five_waits_out_the_first_minutes_after_midnight_in_kuala_lumpur(string $offset): void
+    {
+        // The latest past 16:00 UTC that leaves the whole scenario in the past, close to the database's own clock.
+        $midnight = CarbonImmutable::now('UTC')->subMinutes(5)->setTimeFromTimeString('16:00:00');
+        $midnight = $midnight->addMinutes(5)->isFuture() ? $midnight->subDay() : $midnight;
+        $this->travelTo($midnight->subSeconds(30));
+        Storage::fake('local');
+        $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
+
+        $this->travelTo($midnight->add($offset));
+        Sleep::fake(syncWithCarbon: true);
+        $this->runPhase('5')->doesntExpectOutputToContain('A step failed')->assertExitCode(Command::SUCCESS);
+        Sleep::assertSleptTimes(1);
+        $this->assertTrue(CarbonImmutable::now($this->cheras->timezone)->greaterThanOrEqualTo(
+            CarbonImmutable::now($this->cheras->timezone)->startOfDay()->addMinutes(3)), 'Phase 5 waited until 00:03 local time.');
+        $this->assertSame(1, DB::table('hr_overtime_requests')->where('status', 'approved')->count());
+        $this->assertSame(['approved' => 1, 'pending' => 1], DB::table('hr_attendance_corrections')->selectRaw('status, count(*) as n')
+            ->groupBy('status')->orderBy('status')->pluck('n', 'status')->map(fn ($n): int => (int) $n)->all());
+
+        // A rerun has nothing left to add, so it does not wait.
+        $this->travelTo($midnight->add($offset));
+        Sleep::fake(syncWithCarbon: true);
+        $this->runPhase('5')->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);
+        Sleep::assertNeverSlept();
+    }
+
+    /** @return array<string, array{string}> */
+    public static function firstMinutesAfterKualaLumpurMidnight(): array
+    {
+        return ['00:00:00 in Kuala Lumpur' => ['PT0S'], '00:00:30 in Kuala Lumpur' => ['PT30S'], '00:02:59 in Kuala Lumpur' => ['PT2M59S']];
+    }
+
     public function test_phase_five_fills_kpone_hr_once_with_fictional_payroll_tables(): void
     {
-        // This success case needs an earlier session today; the command deliberately refuses before 00:03.
+        // This success case needs an earlier session today (phase 5 waits until 00:03 local time for one).
         $at = CarbonImmutable::now($this->cheras->timezone)->startOfDay()->addHours(12);
         $this->travelTo($at->isFuture() ? $at->subDay() : $at);
         Storage::fake('local');
