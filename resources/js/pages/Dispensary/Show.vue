@@ -1881,57 +1881,82 @@ const exceptionStatusLabels: Record<string, string> = {
                                 data-field="quantity"
                             />
                             <label
-                                >Dosage (label max
-                                {{ dispensary.labelLimits?.dosage }}
-                                characters)<input
+                                >Dosage<input
                                     v-model="forms[item.publicId].dosage"
                                     :class="inputClass"
                                     maxlength="500"
                                     data-field="dosage"
-                            /></label>
+                                /><span
+                                    class="mt-1 block text-xs font-normal text-muted-foreground"
+                                    >Label max
+                                    {{ dispensary.labelLimits?.dosage }}</span
+                                ></label
+                            >
                             <label
-                                >Frequency (label max
-                                {{ dispensary.labelLimits?.frequency }}
-                                characters)<input
+                                >Frequency<input
                                     v-model="forms[item.publicId].frequency"
                                     :class="inputClass"
                                     maxlength="500"
                                     data-field="frequency"
-                            /></label>
+                                /><span
+                                    class="mt-1 block text-xs font-normal text-muted-foreground"
+                                    >Label max
+                                    {{
+                                        dispensary.labelLimits?.frequency
+                                    }}</span
+                                ></label
+                            >
                             <label
-                                >Duration (label max
-                                {{ dispensary.labelLimits?.duration }}
-                                characters)<input
+                                >Duration<input
                                     v-model="forms[item.publicId].duration"
                                     :class="inputClass"
                                     maxlength="500"
                                     data-field="duration"
-                            /></label>
+                                /><span
+                                    class="mt-1 block text-xs font-normal text-muted-foreground"
+                                    >Label max
+                                    {{ dispensary.labelLimits?.duration }}</span
+                                ></label
+                            >
                             <label
-                                >Route (not printed on the label)<input
+                                >Route<input
                                     v-model="forms[item.publicId].route"
                                     :class="inputClass"
                                     maxlength="500"
                                     data-field="route"
-                            /></label>
+                                /><span
+                                    class="mt-1 block text-xs font-normal text-muted-foreground"
+                                    >Not printed on the label</span
+                                ></label
+                            >
                             <label class="sm:col-span-2"
-                                >Instruction (label max
-                                {{ dispensary.labelLimits?.instruction }}
-                                characters)<input
+                                >Instruction<input
                                     v-model="forms[item.publicId].instruction"
                                     :class="inputClass"
                                     maxlength="2000"
                                     data-field="instruction"
-                            /></label>
+                                /><span
+                                    class="mt-1 block text-xs font-normal text-muted-foreground"
+                                    >Label max
+                                    {{
+                                        dispensary.labelLimits?.instruction
+                                    }}</span
+                                ></label
+                            >
                             <label class="sm:col-span-2"
-                                >Precaution (label max
-                                {{ dispensary.labelLimits?.precaution }}
-                                characters)<input
+                                >Precaution<input
                                     v-model="forms[item.publicId].precaution"
                                     :class="inputClass"
                                     maxlength="2000"
                                     data-field="precaution"
-                            /></label>
+                                /><span
+                                    class="mt-1 block text-xs font-normal text-muted-foreground"
+                                    >Label max
+                                    {{
+                                        dispensary.labelLimits?.precaution
+                                    }}</span
+                                ></label
+                            >
                             <label class="sm:col-span-2"
                                 >Batch<select
                                     v-model.number="
@@ -2338,53 +2363,72 @@ const exceptionStatusLabels: Record<string, string> = {
                             data-field="add-quantity"
                         />
                         <label
-                            >Dosage (label max
-                            {{ dispensary.labelLimits?.dosage }}
-                            characters)<input
+                            >Dosage<input
                                 v-model="addForm.dosage"
                                 :class="inputClass"
                                 maxlength="500"
                                 data-field="add-dosage"
-                        /></label>
+                            /><span
+                                class="mt-1 block text-xs font-normal text-muted-foreground"
+                                >Label max
+                                {{ dispensary.labelLimits?.dosage }}</span
+                            ></label
+                        >
                         <label
-                            >Frequency (label max
-                            {{ dispensary.labelLimits?.frequency }}
-                            characters)<input
+                            >Frequency<input
                                 v-model="addForm.frequency"
                                 :class="inputClass"
                                 maxlength="500"
                                 data-field="add-frequency"
-                        /></label>
+                            /><span
+                                class="mt-1 block text-xs font-normal text-muted-foreground"
+                                >Label max
+                                {{ dispensary.labelLimits?.frequency }}</span
+                            ></label
+                        >
                         <label
-                            >Duration (label max
-                            {{ dispensary.labelLimits?.duration }}
-                            characters)<input
+                            >Duration<input
                                 v-model="addForm.duration"
                                 :class="inputClass"
                                 maxlength="500"
-                        /></label>
+                            /><span
+                                class="mt-1 block text-xs font-normal text-muted-foreground"
+                                >Label max
+                                {{ dispensary.labelLimits?.duration }}</span
+                            ></label
+                        >
                         <label
-                            >Route (not printed on the label)<input
+                            >Route<input
                                 v-model="addForm.route"
                                 :class="inputClass"
                                 maxlength="500"
-                        /></label>
+                            /><span
+                                class="mt-1 block text-xs font-normal text-muted-foreground"
+                                >Not printed on the label</span
+                            ></label
+                        >
                         <label class="sm:col-span-2"
-                            >Instruction (label max
-                            {{ dispensary.labelLimits?.instruction }}
-                            characters)<input
+                            >Instruction<input
                                 v-model="addForm.instruction"
                                 :class="inputClass"
                                 maxlength="2000"
-                        /></label>
+                            /><span
+                                class="mt-1 block text-xs font-normal text-muted-foreground"
+                                >Label max
+                                {{ dispensary.labelLimits?.instruction }}</span
+                            ></label
+                        >
                         <label class="sm:col-span-2"
-                            >Precaution (label max
-                            {{ dispensary.labelLimits?.precaution }}
-                            characters)<input
+                            >Precaution<input
                                 v-model="addForm.precaution"
                                 :class="inputClass"
                                 maxlength="2000"
-                        /></label>
+                            /><span
+                                class="mt-1 block text-xs font-normal text-muted-foreground"
+                                >Label max
+                                {{ dispensary.labelLimits?.precaution }}</span
+                            ></label
+                        >
                         <label class="sm:col-span-2"
                             >Batch<select
                                 v-model.number="addForm.availabilityIndex"
