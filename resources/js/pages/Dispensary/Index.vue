@@ -263,7 +263,7 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                             id="dispensary-search"
                             v-model="search"
                             type="search"
-                            placeholder="Name, KP, visit or queue no."
+                            placeholder="Name, medicine, KP, visit or queue no."
                             class="max-lg:min-h-11"
                         />
                         <Button
@@ -288,6 +288,11 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                         }}</Button
                     >
                 </div>
+
+                <p class="text-xs text-muted-foreground">
+                    Medicine search uses saved names from the latest handoff and
+                    excludes medicines marked not dispensed.
+                </p>
 
                 <div
                     v-if="list.tab === 'prepare'"

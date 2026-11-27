@@ -149,7 +149,11 @@ final class DispensaryListService
             }
         }
         $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], Str::lower($term)).'%';
-        $query->whereHas('visit.patient', fn ($q) => $q->whereRaw("search_name LIKE ? ESCAPE '\\'", [$like]));
+        $query->where(fn ($q) => $q
+            ->whereHas('visit.patient', fn ($patient) => $patient->whereRaw("search_name LIKE ? ESCAPE '\\'", [$like]))
+            ->orWhereHas('latestHandoff.items', fn ($item) => $item
+                ->where('status', '!=', DispensaryItem::STATUS_NOT_DISPENSED)
+                ->whereRaw("LOWER(medicine_name_snapshot) LIKE ? ESCAPE '\\'", [$like])));
     }
 
     /** @return array{0: CarbonImmutable, 1: CarbonImmutable} branch-local today, in UTC */
