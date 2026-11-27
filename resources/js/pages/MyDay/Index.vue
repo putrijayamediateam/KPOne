@@ -54,6 +54,20 @@ const redZone = computed(() => {
         ? branch.id
         : null;
 });
+
+// Clean Look greeting: the signed-in user's own first name (already a shared page prop) and the browser clock.
+const greetingText = computed(() => {
+    const name = (page.props.auth?.user?.name ?? '').trim().split(/\s+/)[0];
+    const hour = new Date().getHours();
+    const part =
+        hour < 12
+            ? 'Good morning'
+            : hour < 18
+              ? 'Good afternoon'
+              : 'Good evening';
+
+    return name ? `${part}, ${name}` : part;
+});
 </script>
 
 <template>
@@ -70,6 +84,9 @@ const redZone = computed(() => {
                 "
                 data-test="my-day-head"
             />
+            <div class="space-greeting" data-test="space-greeting">
+                <p class="space-greet">{{ greetingText }}</p>
+            </div>
 
             <!-- Today first (the clock card), then what needs acting on, then the rest of the person's own week. -->
             <MeHome
