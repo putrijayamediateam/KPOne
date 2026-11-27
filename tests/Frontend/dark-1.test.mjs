@@ -43,13 +43,13 @@ const includes = (actual, expected) =>
         );
 const green = 'dark:border-emerald-900 dark:bg-emerald-950/30';
 
-test('DARK-1 S1-001: selected patient has a dark surface without changing light or unselected styling', () => {
+test('DARK-1 S1-001: selected patient uses Clean Look blue washes in both themes without changing unselected styling', () => {
     const option = elements(template('Registration/Create.vue')).find(
         (node) => node.tag === 'button' && attribute(node, 'role') === 'option',
     );
     includes(
         classes(option, { activeResultIndex: 0, index: 0 }),
-        'bg-emerald-50/80 dark:bg-emerald-950/30',
+        'bg-primary/8 dark:bg-primary/16',
     );
     includes(
         classes(option, { activeResultIndex: 0, index: 1 }),
@@ -57,7 +57,7 @@ test('DARK-1 S1-001: selected patient has a dark surface without changing light 
     );
     assert.ok(
         !classes(option, { activeResultIndex: 0, index: 1 }).includes(
-            'bg-emerald-50/80',
+            'bg-primary/8',
         ),
     );
 });
@@ -106,12 +106,12 @@ test('DARK-1 S1-007: confirmed and unconfirmed OTC allergy states have dark surf
     includes(classes(recorded), 'text-success');
 });
 
-test('DARK-1 S1-008: visit queue card and icon adapt to dark mode without changing the light styles', () => {
+test('DARK-1 S1-008: visit queue card and icon use shared semantic tokens in both themes', () => {
     const queue = elements(template('Registration/Show.vue')).find(
         (node) =>
             node.tag === 'section' && directive(node, 'if') === 'visit.queue',
     );
-    includes(classes(queue), `border-emerald-200 bg-emerald-50/40 ${green}`);
+    includes(classes(queue), 'border-success/25 bg-success-wash');
     const icon = elements(queue).find((node) => node.tag === 'ListOrdered');
-    includes(classes(icon), 'text-emerald-800 dark:text-emerald-300');
+    includes(classes(icon), 'text-success');
 });
