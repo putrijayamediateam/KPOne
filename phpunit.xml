@@ -9,6 +9,7 @@
             <directory>tests/Unit</directory>
         </testsuite>
         <testsuite name="Feature">
+            <exclude>tests/Feature/Clinical/PostgresTreatmentCallResumeTest.php</exclude>
             <directory>tests/Feature</directory>
             <exclude>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</exclude>
@@ -81,6 +82,7 @@
              test that starts a process is missing here. Order does not matter: TestCase restores the unseeded
              schema when seeded role grants were left committed. -->
         <testsuite name="Contention">
+            <file>tests/Feature/Clinical/PostgresTreatmentCallResumeTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelPriceProposalRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
@@ -198,6 +200,7 @@
             <file>tests/Feature/Website/WebsiteReleaseTest.php</file>
         </testsuite>
         <testsuite name="Contention3">
+            <file>tests/Feature/Clinical/PostgresTreatmentCallResumeTest.php</file>
             <file>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</file>
             <file>tests/Feature/HR/PostgresMemosContentionTest.php</file>
             <file>tests/Feature/HR/PostgresOvertimeContentionTest.php</file>

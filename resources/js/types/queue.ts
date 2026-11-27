@@ -41,6 +41,7 @@ export type QueueRow = {
     visitLockVersion: number;
     queueLockVersion: number;
     canCall: boolean;
+    canCallTreatment: boolean;
     canOpenEncounter: boolean;
     can: {
         viewPatient: boolean;
