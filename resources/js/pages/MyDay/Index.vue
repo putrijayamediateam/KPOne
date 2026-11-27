@@ -2,8 +2,8 @@
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
 import { computed } from 'vue';
-import RedZoneAlertBanner from '@/components/queue/RedZoneAlertBanner.vue';
 import MyRoutine from '@/components/MyRoutine.vue';
+import RedZoneAlertBanner from '@/components/queue/RedZoneAlertBanner.vue';
 import MeHome from '@/components/spaces/MeHome.vue';
 import NextThings from '@/components/spaces/NextThings.vue';
 import type { NextBlock } from '@/components/spaces/NextThings.vue';
@@ -44,9 +44,15 @@ const page = usePage();
 // Amirul's red-zone alert (Q-16b) is shown here as it is; the home builds no alert of its own.
 const redZone = computed(() => {
     const perms = (page.props.auth as { permissions: string[] }).permissions;
-    const branch = (page.props.branchContext as { active?: { id: number } | null } | null)?.active;
+    const branch = (
+        page.props.branchContext as { active?: { id: number } | null } | null
+    )?.active;
 
-    return branch && (perms.includes('queue.call.own') || perms.includes('visits.triage.record.branch')) ? branch.id : null;
+    return branch &&
+        (perms.includes('queue.call.own') ||
+            perms.includes('visits.triage.record.branch'))
+        ? branch.id
+        : null;
 });
 </script>
 

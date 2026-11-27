@@ -50,7 +50,9 @@ const strip = computed(() =>
         .filter(([key]) => key in liveLabels)
         .map(([key, count]) => ({ key, label: liveLabels[key], count })),
 );
-const more = computed(() => block.value.thingsTotal - block.value.things.length);
+const more = computed(
+    () => block.value.thingsTotal - block.value.things.length,
+);
 const ringgit = (sen: number) =>
     `RM ${(sen / 100).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -84,7 +86,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div v-if="strip.length || next.things.length || block.sales" class="contents">
+    <div
+        v-if="strip.length || next.things.length || block.sales"
+        class="contents"
+    >
         <section
             v-if="strip.length"
             class="space-card shadow-card"
@@ -93,8 +98,14 @@ onBeforeUnmount(() => {
         >
             <h2 id="day-live">Right now</h2>
             <ul class="mt-2 flex flex-wrap gap-x-6 gap-y-2">
-                <li v-for="s in strip" :key="s.key" class="flex items-baseline gap-2">
-                    <span class="text-2xl font-semibold tabular-nums">{{ s.count }}</span>
+                <li
+                    v-for="s in strip"
+                    :key="s.key"
+                    class="flex items-baseline gap-2"
+                >
+                    <span class="text-2xl font-semibold tabular-nums">{{
+                        s.count
+                    }}</span>
                     <span class="space-muted text-sm">{{ s.label }}</span>
                 </li>
             </ul>
@@ -107,16 +118,27 @@ onBeforeUnmount(() => {
             data-test="my-day-next"
         >
             <h2 id="day-next">Your next things</h2>
-            <p v-if="!block.things.length" class="space-muted" data-test="next-empty">
+            <p
+                v-if="!block.things.length"
+                class="space-muted"
+                data-test="next-empty"
+            >
                 Nothing is waiting for you right now.
             </p>
             <ul v-else class="space-list">
-                <li v-for="(t, i) in block.things" :key="`${t.kind}-${i}-${t.href}`">
+                <li
+                    v-for="(t, i) in block.things"
+                    :key="`${t.kind}-${i}-${t.href}`"
+                >
                     <Link :href="t.href" class="space-row" data-test="next-row">
                         <span class="space-row-body">
                             <span class="space-row-text">
-                                <span class="space-row-main">{{ t.title }}</span>
-                                <span class="space-row-sub">{{ t.detail }}</span>
+                                <span class="space-row-main">{{
+                                    t.title
+                                }}</span>
+                                <span class="space-row-sub">{{
+                                    t.detail
+                                }}</span>
                             </span>
                         </span>
                         <StatusBadge
@@ -128,14 +150,23 @@ onBeforeUnmount(() => {
                         <StatusBadge
                             v-else-if="t.tone !== 'plain'"
                             :status="t.tone"
-                            :label="t.tone === 'red' ? 'Overdue' : 'Waiting long'"
+                            :label="
+                                t.tone === 'red' ? 'Overdue' : 'Waiting long'
+                            "
                             :tone="t.tone === 'red' ? 'danger' : 'warning'"
                         />
-                        <ChevronRight class="space-chevron" aria-hidden="true" />
+                        <ChevronRight
+                            class="space-chevron"
+                            aria-hidden="true"
+                        />
                     </Link>
                 </li>
             </ul>
-            <p v-if="more > 0" class="space-muted mt-2 text-sm" data-test="next-more">
+            <p
+                v-if="more > 0"
+                class="space-muted mt-2 text-sm"
+                data-test="next-more"
+            >
                 and {{ more }} more on the boards
             </p>
         </section>
@@ -147,10 +178,14 @@ onBeforeUnmount(() => {
             data-test="my-day-sales"
         >
             <h2 id="day-sales">My sales</h2>
-            <p class="space-muted text-sm">{{ block.sales.branch }} · {{ block.sales.month }}</p>
+            <p class="space-muted text-sm">
+                {{ block.sales.branch }} · {{ block.sales.month }}
+            </p>
             <p class="mt-2 text-2xl font-semibold tabular-nums">
                 {{ ringgit(block.sales.achievedSen) }}
-                <span class="space-muted text-sm font-normal">of {{ ringgit(block.sales.targetSen) }}</span>
+                <span class="space-muted text-sm font-normal"
+                    >of {{ ringgit(block.sales.targetSen) }}</span
+                >
             </p>
             <div
                 class="mt-2 h-2 rounded-full bg-muted"
@@ -162,7 +197,9 @@ onBeforeUnmount(() => {
             >
                 <div
                     class="h-2 rounded-full bg-primary"
-                    :style="{ width: `${Math.min(block.sales.percent ?? 0, 100)}%` }"
+                    :style="{
+                        width: `${Math.min(block.sales.percent ?? 0, 100)}%`,
+                    }"
                 />
             </div>
             <p class="space-muted mt-2 text-sm">
