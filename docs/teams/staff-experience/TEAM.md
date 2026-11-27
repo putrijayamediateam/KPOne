@@ -170,6 +170,23 @@ usability aid only and must follow the permission the backend already enforces.
   Inertia's raw error page in a modal. Giving Classic the same handler is a separate, later piece, not yet started
   (see `lib/v2-refused-request.ts`; Classic is proven untouched by a real-app check).
 
+- **Staff Experience 2 handover (Rashid, Lead; Sofia, Reviewer; session retired 2026-11-27 with V2).** This
+  pair built UX-17 to UX-24 and DD-74 for the V2 layout, which is now removed. Nothing is unpushed. Their V2 feature
+  and `validation/*` branches (`feature/ux-17` to `ux-24`, `fix/ux-22`, `fix/ux-23`, `fix/dd-74-button-focus-ring`,
+  `fix/v2-layout-clock-photo` and the matching shot branches) are obsolete: never merge them. What still applies:
+  - `scripts/classic-compare/` (on `main`) is the pixel check for "Classic must not change": shoot a base build and
+    a branch build on a task-owned database, then compare. Run the base from a separate git worktree on its own port,
+    so the main checkout is not switched. Known flicker: anti-aliasing on the Registration tab count pills (about
+    61 px) and a text caret.
+  - The clock-in focus return in `useClockShortcut.ts` (focus goes back only to a control still on the page, and
+    only when no new photo flow has opened) and the HR reset in `ClockPhotoDialog.vue` `onBeforeUnmount` are both on
+    `main`; keep both.
+  - Optional, not started: `/kp-mark.png` is 758 KB and is drawn by the Classic header, the workspace rail, the TV
+    and the public QR pages, so it can paint late. A small copy (`public/kp-mark-56.png`, 4 KB, already on `main`)
+    or a resized file would fix that; the public and TV pages belong to other teams.
+  - Minor, not started: the clock state (`/hr/attendance/clock-state`) can be fetched twice on one page, once by
+    each component that uses `useClockShortcut`.
+
 ## 8. Rules (every task)
 
 - Read `CLAUDE.md`, `AGENTS.md`, `docs/BASELINE.md` and this file first.
