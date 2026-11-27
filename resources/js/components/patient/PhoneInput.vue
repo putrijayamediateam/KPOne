@@ -57,7 +57,7 @@ const countryOptions = countries.map((option) => ({
                 :model-value="country"
                 label="Phone country"
                 :options="countryOptions"
-                trigger-class="h-10 w-full min-w-0 sm:w-36 md:w-48"
+                trigger-class="h-10 w-full min-w-0 sm:w-36 sm:min-w-48 md:w-48"
                 @update:model-value="emit('update:country', String($event))"
             />
             <input
