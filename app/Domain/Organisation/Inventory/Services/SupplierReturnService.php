@@ -399,7 +399,13 @@ final class SupplierReturnService
         $branches = app(BranchAccessService::class);
         $branch = $branches->activeBranch($actor);
         abort_unless($branch && $branches->hasEffectiveAssignment($actor, $branch), 403);
-        $data = Validator::make($input, ['q' => ['nullable', 'string', 'max:100'], 'page' => ['sometimes', 'integer', 'min:1', 'max:1000000'], 'lots_page' => ['sometimes', 'integer', 'min:1', 'max:1000000'], 'groups_page' => ['sometimes', 'integer', 'min:1', 'max:1000000'], 'delivery' => ['sometimes', 'integer', 'min:1']])->validate();
+        $data = Validator::make($input, ['show' => ['sometimes', 'nullable', 'string', 'in:all,open,done'], 'q' => ['nullable', 'string', 'max:100'], 'page' => ['sometimes', 'integer', 'min:1', 'max:1000000'], 'lots_page' => ['sometimes', 'integer', 'min:1', 'max:1000000'], 'groups_page' => ['sometimes', 'integer', 'min:1', 'max:1000000'], 'delivery' => ['sometimes', 'integer', 'min:1']])->validate();
+        $show = filled($data['show'] ?? null) ? (string) $data['show'] : 'all';
+        $states = match ($show) {
+            'open' => ['awaiting_approval', 'approved', 'dispatched'],
+            'done' => ['credited', 'rejected', 'cancelled'],
+            default => [],
+        };
         $canRequest = $actor->can(self::REQUEST);
         $canApprove = $actor->can(self::APPROVE);
         $needle = filled($data['q'] ?? null) ? '%'.addcslashes((string) $data['q'], '%_\\').'%' : null;
@@ -411,6 +417,7 @@ final class SupplierReturnService
             ->join('inventory_locations as l', 'l.id', '=', 'r.inventory_location_id')->join('inventory_suppliers as sup', 'sup.id', '=', 'r.supplier_id')
             ->join('inventory_receipt_delivery_evidence as d', 'd.goods_receipt_id', '=', 'r.goods_receipt_id')
             ->where('r.organisation_id', $actor->organisation_id)->where('r.branch_id', $branch->id)->whereNull('r.group_id')
+            ->when($states !== [], fn ($q) => $q->whereIn('a.state', $states))
             ->when($needle, fn ($q) => $q->where(fn ($w) => $w->where('s.sku_code', 'ilike', $needle)->orWhere('b.batch_number', 'ilike', $needle)->orWhere('sup.name', 'ilike', $needle)->orWhere('r.return_number', 'ilike', $needle)->orWhere('d.delivery_reference', 'ilike', $needle)))
             ->orderByDesc('r.id')
             ->paginate(25, ['r.id', 'r.public_id', 'r.return_number', 'r.quantity', 'r.base_unit', 'r.reason', 'r.supplier_reference', 'r.requester_user_id', 'r.created_at', 'a.state', 'a.lock_version', 's.sku_code', 'itm.generic_name as item', 'b.batch_number', 'b.expiry_date', 'l.name as location', 'sup.name as supplier', 'd.delivery_reference'], 'page', (int) ($data['page'] ?? 1));
@@ -447,7 +454,7 @@ final class SupplierReturnService
             $lots = ['rows' => array_map(fn (stdClass $row): array => [...(array) $row, 'returnable' => StockUnitQuantity::format(max(0, min(StockUnitQuantity::scaled((string) $row->received_quantity) - StockUnitQuantity::scaled((string) $row->committed_quantity, true), StockUnitQuantity::scaled((string) $row->on_hand, true))))], $paged->items()), 'total' => $paged->total(), 'page' => $paged->currentPage(), 'lastPage' => $paged->lastPage()];
         }
 
-        $groups = $this->groupsPage($actor, $branch, $canRequest, $canApprove, (int) ($data['groups_page'] ?? 1));
+        $groups = $this->groupsPage($actor, $branch, $canRequest, $canApprove, (int) ($data['groups_page'] ?? 1), $states);
         $deliveries = [];
         $deliveryLots = [];
         if ($canRequest) {
@@ -465,7 +472,7 @@ final class SupplierReturnService
             }
         }
 
-        return ['branchId' => $branch->id, 'branchName' => $branch->name, 'q' => $data['q'] ?? '', 'canRequest' => $canRequest, 'canApprove' => $canApprove,
+        return ['branchId' => $branch->id, 'branchName' => $branch->name, 'show' => $show, 'q' => $data['q'] ?? '', 'canRequest' => $canRequest, 'canApprove' => $canApprove,
             'groups' => $groups, 'deliveries' => $deliveries, 'delivery' => isset($data['delivery']) ? (int) $data['delivery'] : null, 'deliveryLots' => $deliveryLots, 'maxGroupLines' => self::GROUP_MAX_LINES,
             'reasons' => self::REASONS, 'rejectReasons' => self::REJECT_REASONS,
             'returns' => ['rows' => $rows, 'total' => $returns->total(), 'page' => $returns->currentPage(), 'lastPage' => $returns->lastPage()], 'lots' => $lots];
@@ -474,13 +481,16 @@ final class SupplierReturnService
     /**
      * STK-17: multi-lot returns at this branch, newest first, each with its lines and the actions this person may take.
      *
+     * @param  list<string>  $states
      * @return array<string, mixed>
      */
-    private function groupsPage(User $actor, Branch $branch, bool $canRequest, bool $canApprove, int $page): array
+    private function groupsPage(User $actor, Branch $branch, bool $canRequest, bool $canApprove, int $page, array $states = []): array
     {
         $paged = DB::table('inventory_supplier_return_groups as g')->join('inventory_suppliers as sup', 'sup.id', '=', 'g.supplier_id')
             ->join('inventory_receipt_delivery_evidence as d', 'd.goods_receipt_id', '=', 'g.goods_receipt_id')
             ->where('g.organisation_id', $actor->organisation_id)->where('g.branch_id', $branch->id)
+            // Match the displayed group's first member/latest action, never any historical state.
+            ->when($states !== [], fn ($q) => $q->whereIn(DB::raw("COALESCE((SELECT ga.state FROM inventory_supplier_return_actions ga WHERE ga.return_id = (SELECT MIN(gr.id) FROM inventory_supplier_returns gr WHERE gr.group_id = g.id) ORDER BY ga.lock_version DESC LIMIT 1), 'awaiting_approval')"), $states))
             ->orderByDesc('g.id')->paginate(10, ['g.id', 'g.group_number', 'g.requester_user_id', 'g.created_at', 'sup.name as supplier', 'd.delivery_reference'], 'groups_page', $page);
         /** @var list<stdClass> $items */
         $items = $paged->items();
