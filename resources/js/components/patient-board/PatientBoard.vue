@@ -8,11 +8,8 @@ import {
     LoaderCircle,
     UserRound,
 } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
-import CallReadinessActions from '@/components/queue/CallReadinessActions.vue';
-import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
-import TreatmentProgressBadge from '@/components/queue/TreatmentProgressBadge.vue';
 import { Button } from '@/components/ui/button';
 import { DisclosureText } from '@/components/ui/disclosure';
 import {
@@ -31,15 +28,21 @@ import {
 import { waitingTone, waitingToneDescription } from '@/lib/waiting-time';
 import type { WaitingTone } from '@/lib/waiting-time';
 import type { PatientBoardRow } from '@/types';
+import PatientBoardStatus from './PatientBoardStatus.vue';
 
-defineProps<{
+const props = defineProps<{
     rows: PatientBoardRow[];
     branchId?: number;
     from?: 'registration' | 'queue';
     queueLayout?: 'own' | 'branch';
+    queueTask?: 'waiting' | 'seeing';
     busyKey?: string | null;
     emptyMessage?: string;
 }>();
+
+const ownTask = computed(
+    () => props.queueLayout === 'own' && props.queueTask !== undefined,
+);
 
 defineEmits<{
     sendToWaiting: [row: PatientBoardRow];
@@ -88,15 +91,6 @@ const editHref = (number: string) => `${visitHref(number)}/edit`;
 // DD-38 (Yasmin): theme tokens, so the chips read in dark mode. Waiting is neutral because the Q-1 time chip
 // carries the long-wait amber and red; On Hold is the warning exception; Serving uses the accent tone. The
 // quiet states are outline only: muted text on a muted fill measured 4.44:1, outline 4.58:1 light, 7.85:1 dark.
-const statusClass = (tone: PatientBoardRow['statusTone']) =>
-    ({
-        neutral: 'border-border text-muted-foreground',
-        waiting: 'border-border bg-muted text-foreground',
-        serving: 'border-brand/25 bg-brand/10 text-brand-strong',
-        held: 'border-warning/25 bg-warning/10 text-warning-strong',
-        cancelled: 'border-border text-muted-foreground',
-        removed: 'border-border text-muted-foreground',
-    })[tone];
 // Q-1: the waiting-time chip turns amber, then red, past the fixed limits.
 const durationClass = (tone: WaitingTone) =>
     ({
@@ -143,6 +137,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                     <template v-if="queueLayout">
                         <th class="w-20 px-3 py-2">No.</th>
                         <th class="w-56 px-3 py-2">Patient</th>
+                        <th v-if="ownTask" class="w-28 px-3 py-2">Zone</th>
                         <th v-if="queueLayout === 'own'" class="w-40 px-3 py-2">
                             Reason
                         </th>
@@ -152,8 +147,16 @@ const triageTextClass = (zone: TriageZone | null) =>
                         >
                             Doctor
                         </th>
-                        <th class="w-40 px-3 py-2">Waiting / since</th>
-                        <th class="w-40 px-3 py-2">Status</th>
+                        <th class="w-40 px-3 py-2">
+                            {{
+                                ownTask
+                                    ? queueTask === 'waiting'
+                                        ? 'Waiting'
+                                        : 'Since'
+                                    : 'Waiting / since'
+                            }}
+                        </th>
+                        <th v-if="!ownTask" class="w-40 px-3 py-2">Status</th>
                         <th class="w-[112px] px-3 py-2 text-right">Actions</th>
                     </template>
                     <template v-else>
@@ -236,6 +239,41 @@ const triageTextClass = (zone: TriageZone | null) =>
                                 >Reassign</Link
                             >
                         </div>
+                        <PatientBoardStatus
+                            v-if="ownTask"
+                            class="mt-2"
+                            :row="row"
+                            :branch-id="branchId"
+                            :from="from"
+                            v-model:treatment-dialog-key="treatmentDialogKey"
+                            @readiness-changed="$emit('readinessChanged')"
+                        />
+                    </td>
+                    <td
+                        v-if="ownTask"
+                        class="px-3 py-2.5 align-middle"
+                        data-label="Zone"
+                    >
+                        <!-- TRI-1c: the triage zone (CA, CA Supervisor and the patient's own doctor only; the server
+                                 sends nothing to anyone else). The word is always shown, never colour alone. -->
+                        <span
+                            v-if="row.triage?.triaged"
+                            class="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[11px] font-medium"
+                            :class="triageTextClass(row.triage.zone)"
+                            data-testid="triage-zone-chip"
+                            ><span
+                                v-if="row.triage.zone"
+                                aria-hidden="true"
+                                class="size-2 shrink-0 rounded-full"
+                                :class="triageDotClass(row.triage.zone)"
+                            />{{ triageLabel(row.triage.zone) }}</span
+                        >
+                        <span
+                            v-else-if="row.triage"
+                            class="inline-flex rounded-md border border-dashed border-border px-2 py-0.5 text-[11px] font-normal text-muted-foreground"
+                            data-testid="triage-missing-chip"
+                            >No triage yet</span
+                        >
                     </td>
                     <td
                         v-if="!queueLayout"
@@ -263,7 +301,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                     <td
                         class="px-3 py-2.5 align-middle"
                         v-if="queueLayout !== 'branch'"
-                        data-label="Visit notes"
+                        :data-label="ownTask ? 'Reason' : 'Visit notes'"
                     >
                         <div class="text-xs leading-5">
                             <DisclosureText
@@ -382,7 +420,16 @@ const triageTextClass = (zone: TriageZone | null) =>
                             </Tooltip>
                         </TooltipProvider>
                     </td>
-                    <td class="px-3 py-2.5 align-middle" data-label="Duration">
+                    <td
+                        class="px-3 py-2.5 align-middle"
+                        :data-label="
+                            ownTask
+                                ? queueTask === 'waiting'
+                                    ? 'Waiting'
+                                    : 'Since'
+                                : 'Duration'
+                        "
+                    >
                         <span
                             class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 tabular-nums"
                             :class="durationClass(rowWaitingTone(row))"
@@ -418,6 +465,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                     <td
                         class="px-3 py-2.5 align-middle"
                         data-label="Status"
+                        v-if="!ownTask"
                         :data-treatment-row="
                             row.treatmentProgress?.state ||
                             row.treatmentProgress?.canManage
@@ -425,104 +473,36 @@ const triageTextClass = (zone: TriageZone | null) =>
                                 : undefined
                         "
                     >
-                        <div class="flex flex-wrap items-center gap-1.5">
-                            <span
-                                class="inline-flex rounded-md border px-2 py-0.5 text-[11px] font-normal"
-                                :class="statusClass(row.statusTone)"
-                                >{{ row.statusLabel }}</span
-                            >
-                            <span
-                                v-if="row.priority === 'urgent'"
-                                class="inline-flex rounded-md border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-[11px] font-normal text-destructive"
-                                >Urgent</span
-                            >
-                            <!-- TRI-1c: the triage zone (CA, CA Supervisor and the patient's own doctor only; the server
+                        <PatientBoardStatus
+                            :row="row"
+                            :branch-id="branchId"
+                            :from="from"
+                            v-model:treatment-dialog-key="treatmentDialogKey"
+                            @readiness-changed="$emit('readinessChanged')"
+                        >
+                            <template #triage>
+                                <!-- TRI-1c: the triage zone (CA, CA Supervisor and the patient's own doctor only; the server
                                  sends nothing to anyone else). The word is always shown, never colour alone. -->
-                            <span
-                                v-if="row.triage?.triaged"
-                                class="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[11px] font-medium"
-                                :class="triageTextClass(row.triage.zone)"
-                                data-testid="triage-zone-chip"
-                                ><span
-                                    v-if="row.triage.zone"
-                                    aria-hidden="true"
-                                    class="size-2 shrink-0 rounded-full"
-                                    :class="triageDotClass(row.triage.zone)"
-                                />{{ triageLabel(row.triage.zone) }}</span
-                            >
-                            <span
-                                v-else-if="row.triage"
-                                class="inline-flex rounded-md border border-dashed border-border px-2 py-0.5 text-[11px] font-normal text-muted-foreground"
-                                data-testid="triage-missing-chip"
-                                >No triage yet</span
-                            >
-                            <span
-                                v-if="row.returnedFromDispensary"
-                                class="inline-flex rounded-md border border-border bg-muted px-2 py-0.5 text-[11px] font-normal text-foreground"
-                                >Returned</span
-                            >
-                            <!-- Q-13 (Daniel): the doctor's own row whose dispensary case waits for the doctor's check. Plain text
-                                 under the status; not interactive (the row's open-consultation action is the only way in). -->
-                            <span
-                                v-if="row.dispensaryCheckWaiting"
-                                class="block w-full rounded-md border border-warning/25 bg-warning/10 p-2 text-xs break-words text-warning-strong"
-                                data-testid="dispensary-check-waiting"
-                            >
                                 <span
-                                    class="flex items-start gap-1.5 font-medium"
-                                    ><AlertTriangle
-                                        class="mt-0.5 size-3.5 shrink-0"
+                                    v-if="row.triage?.triaged"
+                                    class="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[11px] font-medium"
+                                    :class="triageTextClass(row.triage.zone)"
+                                    data-testid="triage-zone-chip"
+                                    ><span
+                                        v-if="row.triage.zone"
                                         aria-hidden="true"
-                                    />Medicine ready for your check</span
+                                        class="size-2 shrink-0 rounded-full"
+                                        :class="triageDotClass(row.triage.zone)"
+                                    />{{ triageLabel(row.triage.zone) }}</span
                                 >
-                                <span class="mt-1 block text-warning-strong/80"
-                                    >Open the consultation to verify.</span
+                                <span
+                                    v-else-if="row.triage"
+                                    class="inline-flex rounded-md border border-dashed border-border px-2 py-0.5 text-[11px] font-normal text-muted-foreground"
+                                    data-testid="triage-missing-chip"
+                                    >No triage yet</span
                                 >
-                            </span>
-                            <span
-                                v-if="row.completedAt"
-                                class="text-[11px] text-muted-foreground"
-                                >{{ row.completedAt }}</span
-                            >
-                            <span
-                                v-if="
-                                    row.callHold?.active ||
-                                    row.callHold?.overridden
-                                "
-                                class="block w-full rounded-md border border-warning/25 bg-warning/10 p-2 text-xs break-words text-warning-strong"
-                                data-testid="call-readiness-badge"
-                            >
-                                {{
-                                    row.callHold.active
-                                        ? 'Not ready to call'
-                                        : 'Overridden by doctor'
-                                }}: {{ row.callHold.reason }}
-                            </span>
-                            <CallReadinessActions
-                                v-if="branchId"
-                                :row="row"
-                                :branch-id="branchId"
-                                :from="from ?? 'queue'"
-                                @changed="$emit('readinessChanged')"
-                            />
-                            <TreatmentProgressBadge
-                                :progress="row.treatmentProgress"
-                                :minutes="row.treatmentMinutes"
-                            />
-                            <TreatmentProgressActions
-                                v-if="branchId && row.treatmentProgress"
-                                :open="treatmentDialogKey === row.key"
-                                :progress="row.treatmentProgress"
-                                :visit-number="row.visitNumber"
-                                :branch-id="branchId"
-                                from="queue"
-                                inline="running"
-                                :subject="`${row.queueNumber ?? row.visitNumber} · ${row.patientName}`"
-                                @update:open="
-                                    treatmentDialogKey = $event ? row.key : null
-                                "
-                            />
-                        </div>
+                            </template>
+                        </PatientBoardStatus>
                     </td>
                     <td
                         class="px-3 py-2 text-right align-middle"
@@ -782,6 +762,7 @@ const triageTextClass = (zone: TriageZone | null) =>
     }
     .patient-board td[data-label='Patient'],
     .patient-board td[data-label='Visit notes'],
+    .patient-board td[data-label='Reason'],
     .patient-board td[data-label='Payment'] {
         grid-column: 1 / -1;
     }

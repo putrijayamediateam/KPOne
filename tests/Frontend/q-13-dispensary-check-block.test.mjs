@@ -6,7 +6,9 @@ import test from 'node:test';
 // a wrapping warning block under the status. Plain text: not interactive, not a live region, no sound or toast.
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
-const board = read('resources/js/components/patient-board/PatientBoard.vue');
+const board = read(
+    'resources/js/components/patient-board/PatientBoardStatus.vue',
+);
 const queue = read('resources/js/pages/Queue/Index.vue');
 const queueTypes = read('resources/js/types/queue.ts');
 const boardTypes = read('resources/js/types/patientBoard.ts');

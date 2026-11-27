@@ -1126,6 +1126,13 @@ onBeforeUnmount(() => {
                         :branch-id="live.branch.id"
                         from="queue"
                         :queue-layout="live.scope"
+                        :queue-task="
+                            activeTab === 'waiting'
+                                ? 'waiting'
+                                : activeTab === 'serving'
+                                  ? 'seeing'
+                                  : undefined
+                        "
                         :rows="boardRows"
                         :busy-key="busyKey"
                         @call="requestCall"

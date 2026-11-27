@@ -80,7 +80,10 @@ test('the board colours only the duration chip and marks it for tests and screen
         /const rowWaitingTone = \(row: PatientBoardRow\) =>\s*waitingTone\(row\.waitingMinutes\)/,
     );
     // Existing behaviour the change must keep.
-    assert.match(board, /data-testid="call-readiness-badge"/);
+    assert.match(
+        read('resources/js/components/patient-board/PatientBoardStatus.vue'),
+        /data-testid="call-readiness-badge"/,
+    );
     assert.match(board, /<WhatsAppLink/);
 });
 
@@ -154,6 +157,26 @@ const renderBoard = async (rows) => {
         '@/components/ui/dropdown-menu': stubs,
         '@/components/ui/tooltip': stubs,
         '@/lib/waiting-time': helper,
+    };
+    const statusScript = compileScript(
+        parse(
+            read(
+                'resources/js/components/patient-board/PatientBoardStatus.vue',
+            ),
+        ).descriptor,
+        { id: 'status', inlineTemplate: true },
+    ).content;
+    const statusModule = { exports: {} };
+    Function(
+        'require',
+        'module',
+        'exports',
+        ts.transpileModule(statusScript, {
+            compilerOptions: { module: ts.ModuleKind.CommonJS },
+        }).outputText,
+    )((specifier) => requireMap[specifier], statusModule, statusModule.exports);
+    requireMap['./PatientBoardStatus.vue'] = {
+        default: statusModule.exports.default,
     };
     const componentModule = { exports: {} };
     Function(
