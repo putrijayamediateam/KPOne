@@ -218,7 +218,7 @@ onBeforeUnmount(() => {
                     <label
                         v-for="row in result.data"
                         :key="row.url"
-                        class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/40"
+                        class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted"
                     >
                         <input
                             v-model="selectedUrl"
