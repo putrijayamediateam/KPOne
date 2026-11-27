@@ -37,7 +37,7 @@ const googleError = computed(
     <div
         v-if="status"
         role="status"
-        class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+        class="rounded-xl bg-success-wash px-3 py-2.5 text-sm font-medium text-success"
     >
         {{ status }}
     </div>
@@ -110,8 +110,8 @@ const googleError = computed(
         <div class="absolute inset-0 flex items-center">
             <span class="w-full border-t" />
         </div>
-        <div class="relative flex justify-center text-xs uppercase">
-            <span class="bg-white px-3 text-muted-foreground dark:bg-slate-900"
+        <div class="relative flex justify-center">
+            <span class="bg-card px-3 text-[12.5px] text-muted-foreground"
                 >or continue with</span
             >
         </div>
@@ -120,7 +120,7 @@ const googleError = computed(
         href="/auth/google/redirect"
         :aria-disabled="!googleEnabled"
         :class="[
-            'flex h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-md border border-input bg-white text-sm font-medium text-slate-800 shadow-xs transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none dark:bg-slate-950/40 dark:text-slate-100 dark:hover:bg-slate-800',
+            'flex h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-full border border-input bg-transparent text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
             !googleEnabled &&
                 'pointer-events-none cursor-not-allowed opacity-50',
         ]"
@@ -131,10 +131,13 @@ const googleError = computed(
         >
         Continue with Google
     </a>
-    <p v-if="!googleEnabled" class="text-center text-xs text-muted-foreground">
+    <p
+        v-if="!googleEnabled"
+        class="text-center text-[12.5px] text-muted-foreground"
+    >
         Google sign-in is ready for configuration.
     </p>
-    <p class="text-center text-xs leading-5 text-muted-foreground">
+    <p class="text-center text-[12.5px] leading-5 text-muted-foreground">
         KPOne access is limited to authorised Klinik Putrijaya staff.
     </p>
 </template>

@@ -295,7 +295,7 @@ const RIZAL_SHOWN = 5;
 <template>
     <Head title="Daily summary" />
     <main
-        class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 lg:px-8"
     >
         <PageHeader
             title="Daily summary"
@@ -328,7 +328,7 @@ const RIZAL_SHOWN = 5;
         <section
             v-if="summary.faris"
             aria-labelledby="faris-heading"
-            class="rounded-xl border bg-card p-4"
+            class="rounded-[14px] border bg-card p-4"
             data-test="summary-faris"
         >
             <h2 id="faris-heading" class="text-base font-semibold">
@@ -344,7 +344,7 @@ const RIZAL_SHOWN = 5;
             >
                 {{ summary.faris.summary }}
             </p>
-            <p class="mt-1 text-xs text-muted-foreground">
+            <p class="mt-1 text-[12.5px] text-muted-foreground">
                 {{ builtLine(summary.faris) }}
             </p>
         </section>
@@ -362,12 +362,12 @@ const RIZAL_SHOWN = 5;
             :default-open="openFirst(branch.code, index)"
             as="section"
             :aria-labelledby="`branch-${branch.code}`"
-            class="rounded-xl border bg-card"
+            class="rounded-[14px] border bg-card"
             data-test="summary-branch"
         >
             <h2 :id="`branch-${branch.code}`" class="text-lg font-semibold">
                 <CollapsibleTrigger
-                    class="flex min-h-11 w-full items-center gap-3 rounded-xl p-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    class="flex min-h-11 w-full items-center gap-3 rounded-[14px] p-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     data-test="summary-branch-toggle"
                 >
                     <span class="flex min-w-0 flex-1 flex-col">
@@ -397,7 +397,7 @@ const RIZAL_SHOWN = 5;
                             <h3 class="text-base font-semibold">
                                 {{ linaHeading(lina) }} · Lina (AI agent)
                             </h3>
-                            <p class="text-xs text-muted-foreground">
+                            <p class="text-[12.5px] text-muted-foreground">
                                 {{ builtAtLine(lina) }}.
                                 <template v-if="lina.comparedWith">
                                     Arrows compare with
@@ -420,7 +420,7 @@ const RIZAL_SHOWN = 5;
                                 :key="row.label"
                                 class="rounded-lg border px-3 py-2"
                             >
-                                <dt class="text-xs text-muted-foreground">
+                                <dt class="text-[12.5px] text-muted-foreground">
                                     {{ row.label }}
                                 </dt>
                                 <dd
@@ -429,7 +429,7 @@ const RIZAL_SHOWN = 5;
                                     {{ row.value }}
                                     <span
                                         v-if="row.trend"
-                                        class="text-xs font-medium"
+                                        class="text-[12.5px] font-medium"
                                         :class="row.trend.tone"
                                     >
                                         <span aria-hidden="true">{{
@@ -472,7 +472,7 @@ const RIZAL_SHOWN = 5;
                                                 doctor.seenBefore,
                                             )
                                         "
-                                        class="text-xs"
+                                        class="text-[12.5px]"
                                         :class="
                                             trend(
                                                 doctor.seen,
@@ -507,7 +507,7 @@ const RIZAL_SHOWN = 5;
                                 :key="row.label"
                                 class="rounded-lg border px-3 py-2"
                             >
-                                <dt class="text-xs text-muted-foreground">
+                                <dt class="text-[12.5px] text-muted-foreground">
                                     {{ row.label }}
                                 </dt>
                                 <dd
@@ -516,7 +516,7 @@ const RIZAL_SHOWN = 5;
                                     {{ row.value }}
                                     <span
                                         v-if="row.trend"
-                                        class="text-xs font-medium"
+                                        class="text-[12.5px] font-medium"
                                         :class="row.trend.tone"
                                     >
                                         <span aria-hidden="true">{{
@@ -568,7 +568,7 @@ const RIZAL_SHOWN = 5;
                     <h3 class="text-base font-semibold">
                         Stock suggestions · Hana (AI agent)
                     </h3>
-                    <p class="text-xs text-muted-foreground">
+                    <p class="text-[12.5px] text-muted-foreground">
                         {{ builtLine(branch.hana) }}.
                     </p>
                     <ul class="mt-2 grid gap-1 text-sm sm:grid-cols-2">
@@ -582,7 +582,7 @@ const RIZAL_SHOWN = 5;
                     <p
                         v-for="sender in branch.hana.transferFrom ?? []"
                         :key="sender.branch"
-                        class="mt-1 text-xs text-muted-foreground"
+                        class="mt-1 text-[12.5px] text-muted-foreground"
                         data-test="summary-transfer-from"
                     >
                         {{ fromLine(sender) }}
@@ -604,7 +604,7 @@ const RIZAL_SHOWN = 5;
                                 Open the approval inbox
                             </Link>
                         </Button>
-                        <span class="text-xs text-muted-foreground"
+                        <span class="text-[12.5px] text-muted-foreground"
                             >The inbox lists your active branch.
                             {{
                                 ownWaiting(branch.hana) === 0
@@ -619,7 +619,7 @@ const RIZAL_SHOWN = 5;
                     <h3 class="text-base font-semibold">
                         Stock counts · Rizal (AI agent)
                     </h3>
-                    <p class="text-xs text-muted-foreground">
+                    <p class="text-[12.5px] text-muted-foreground">
                         {{ builtLine(branch.rizal) }}.
                     </p>
                     <p class="mt-1 text-sm">

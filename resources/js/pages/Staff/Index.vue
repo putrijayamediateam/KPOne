@@ -12,8 +12,10 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status';
 import { formatRoleLabel } from '@/lib/displayLabels';
 import type { PaginatedStaff, StaffOptions } from '@/types';
 
@@ -175,7 +177,7 @@ const clearFilters = () => {
 
 <template>
     <Head title="Staff directory" />
-    <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
+    <PageFrame>
         <PageHeader
             title="Staff directory"
             description="Operational identities and access within your authorised scope."
@@ -340,7 +342,7 @@ const clearFilters = () => {
                         />
                         <input
                             v-model="form.search"
-                            class="h-9 w-full rounded-md border bg-background pr-3 pl-9 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                            class="h-11 w-full rounded-[10px] border border-input bg-field-fill pr-3 pl-9 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 lg:h-9"
                             placeholder="Name, email, staff number"
                         />
                     </label>
@@ -391,7 +393,7 @@ const clearFilters = () => {
                             staff.total === 1 ? '' : 's'
                         }}</CardTitle
                     >
-                    <span class="text-xs text-muted-foreground"
+                    <span class="text-[12.5px] text-muted-foreground"
                         >Current effective assignments shown</span
                     >
                 </div>
@@ -399,9 +401,7 @@ const clearFilters = () => {
             <CardContent class="p-0">
                 <div class="overflow-x-auto">
                     <table class="w-full min-w-[980px] text-left text-sm">
-                        <thead
-                            class="border-b bg-muted/35 text-xs tracking-wide text-muted-foreground uppercase"
-                        >
+                        <thead class="border-b bg-muted/35">
                             <tr>
                                 <th class="px-5 py-3">Staff member</th>
                                 <th class="px-5 py-3">Employment</th>
@@ -414,22 +414,22 @@ const clearFilters = () => {
                             <tr
                                 v-for="member in staff.data"
                                 :key="member.id"
-                                class="hover:bg-muted/20"
+                                class="hover:bg-muted"
                             >
                                 <td class="px-5 py-4 align-top">
                                     <Link
                                         :href="`/staff/${member.id}`"
-                                        class="font-medium text-foreground hover:text-success hover:underline"
+                                        class="font-medium text-foreground hover:text-link hover:underline"
                                         >{{ member.name }}</Link
                                     >
                                     <div
-                                        class="mt-0.5 text-xs [overflow-wrap:anywhere] text-muted-foreground"
+                                        class="mt-0.5 text-[12.5px] [overflow-wrap:anywhere] text-muted-foreground"
                                     >
                                         {{ member.email }}
                                     </div>
                                     <div
                                         v-if="member.staffNumber"
-                                        class="mt-1 text-xs font-medium text-muted-foreground"
+                                        class="mt-1 text-[12.5px] font-medium text-muted-foreground"
                                     >
                                         {{ member.staffNumber }}
                                     </div>
@@ -441,7 +441,7 @@ const clearFilters = () => {
                                         }}
                                     </div>
                                     <div
-                                        class="mt-0.5 text-xs text-muted-foreground"
+                                        class="mt-0.5 text-[12.5px] text-muted-foreground"
                                     >
                                         {{ member.jobTitle ?? 'No job title' }}
                                     </div>
@@ -477,27 +477,28 @@ const clearFilters = () => {
                                     </div>
                                     <span
                                         v-else
-                                        class="text-xs text-warning-strong"
+                                        class="text-[12.5px] text-warning"
                                         >No current assignment</span
                                     >
                                 </td>
                                 <td class="px-5 py-4 align-top">
-                                    <Badge
-                                        :variant="
+                                    <StatusBadge
+                                        :status="
                                             member.isActive
-                                                ? 'secondary'
-                                                : 'destructive'
+                                                ? 'active'
+                                                : 'inactive'
                                         "
-                                        :class="
-                                            member.isActive &&
-                                            'border-success/25 bg-success/10 text-success hover:bg-success/10'
+                                        :tone="
+                                            member.isActive
+                                                ? 'success'
+                                                : 'neutral'
                                         "
-                                        >{{
+                                        :label="
                                             member.isActive
                                                 ? 'Active'
                                                 : 'Inactive'
-                                        }}</Badge
-                                    >
+                                        "
+                                    />
                                 </td>
                             </tr>
                             <tr v-if="staff.data.length === 0">
@@ -515,7 +516,7 @@ const clearFilters = () => {
                     v-if="staff.last_page > 1"
                     class="flex items-center justify-between border-t px-5 py-3"
                 >
-                    <span class="text-xs text-muted-foreground"
+                    <span class="text-[12.5px] text-muted-foreground"
                         >Showing {{ staff.from }}–{{ staff.to }} of
                         {{ staff.total }}</span
                     >
@@ -553,5 +554,5 @@ const clearFilters = () => {
                 </div>
             </CardContent>
         </Card>
-    </main>
+    </PageFrame>
 </template>
