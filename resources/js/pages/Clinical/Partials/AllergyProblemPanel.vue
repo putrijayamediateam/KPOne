@@ -266,6 +266,13 @@ const saveProblem = () => {
                             <span v-if="reviewCurrent">
                                 Reviewed for this consultation
                             </span>
+                            <!-- DSP-30 (Daniel): nothing to press while the check waits, so the chip says what happened. -->
+                            <span
+                                v-else-if="
+                                    allergies.readOnlyReason === 'doctor_check'
+                                "
+                                >Changed since your review.</span
+                            >
                             <span v-else>Review required</span>
                         </div>
                     </div>

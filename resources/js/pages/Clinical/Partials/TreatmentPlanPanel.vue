@@ -396,8 +396,11 @@ const allergyReady = computed(
 );
 // DSP-30 (Hakim): while the doctor's check of prepared medicine waits, the allergy list is read only and nothing here
 // can be saved, so the medicine search stays closed too.
+const allergiesReadOnly = computed(
+    () => props.allergies?.readOnlyReason === 'doctor_check',
+);
 const medicineSearchOpen = computed(
-    () => allergyReady.value && props.allergies?.readOnlyReason === undefined,
+    () => allergyReady.value && !allergiesReadOnly.value,
 );
 const formError = computed(() => {
     const errors = form.errors as Record<string, string>;
@@ -769,7 +772,13 @@ defineExpose({
                         Find medicine
                         <input
                             v-model="medicineQuery"
-                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70"
+                            :disabled="allergiesReadOnly"
+                            :aria-describedby="
+                                allergiesReadOnly
+                                    ? 'medicine-search-closed'
+                                    : undefined
+                            "
                             autocomplete="off"
                             @keyup.enter.prevent="search('medicines')"
                         />
@@ -787,6 +796,16 @@ defineExpose({
                         /><Search v-else class="size-4" /> Search
                     </Button>
                 </div>
+                <!-- DSP-30 (Daniel): say why the search is closed while the medicine waits for the doctor's check. -->
+                <p
+                    v-if="allergiesReadOnly"
+                    id="medicine-search-closed"
+                    class="text-xs text-muted-foreground"
+                    data-testid="medicine-search-closed"
+                >
+                    Medicine search is closed while the medicine waits for your
+                    check.
+                </p>
                 <div
                     v-if="medicineResults.length"
                     class="divide-y rounded-md border"
