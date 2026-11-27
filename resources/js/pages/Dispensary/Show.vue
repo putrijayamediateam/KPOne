@@ -1880,7 +1880,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 :input-class="inputClass"
                                 data-field="quantity"
                             />
-                            <label
+                            <label class="lg:col-span-3"
                                 >Dosage<input
                                     v-model="forms[item.publicId].dosage"
                                     :class="inputClass"
@@ -1892,7 +1892,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     {{ dispensary.labelLimits?.dosage }}</span
                                 ></label
                             >
-                            <label
+                            <label class="lg:col-span-2"
                                 >Frequency<input
                                     v-model="forms[item.publicId].frequency"
                                     :class="inputClass"
@@ -2362,7 +2362,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             :input-class="inputClass"
                             data-field="add-quantity"
                         />
-                        <label
+                        <label class="lg:col-span-3"
                             >Dosage<input
                                 v-model="addForm.dosage"
                                 :class="inputClass"
@@ -2374,7 +2374,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 {{ dispensary.labelLimits?.dosage }}</span
                             ></label
                         >
-                        <label
+                        <label class="lg:col-span-2"
                             >Frequency<input
                                 v-model="addForm.frequency"
                                 :class="inputClass"
