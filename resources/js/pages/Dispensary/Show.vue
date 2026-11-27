@@ -1285,6 +1285,8 @@ type Directions = {
     frequency?: string | null;
     duration?: string | null;
     instruction?: string | null;
+    route?: string | null;
+    precaution?: string | null;
 };
 const directionLine = (directions: Directions): string => {
     const how = [
@@ -1322,6 +1324,28 @@ const givenQuantity = (item: Item): string => {
         item.packText ??
         `${displayQuantity(item.quantityDispensed ?? item.quantityOrdered)} ${item.unit}`
     );
+};
+// Owner decision (27 Nov): when the directions the CA gives match the doctor's order, "You give" says
+// "Same directions" instead of repeating the text; a changed line shows what is given. Hakim: a changed precaution
+// (printed on the label) or route is always named, so "Same directions" never hides it.
+const givenDirectionsText = (item: Item): string => {
+    const given = givenDirections(item);
+    const line = directionLine(given);
+    const differs = (now?: string | null, was?: string | null) =>
+        (now ?? '').trim() !== (was ?? '').trim();
+    const changed = [
+        differs(given.precaution, item.original.precaution)
+            ? `Precaution: ${(given.precaution ?? '').trim() || 'none'}`
+            : '',
+        differs(given.route, item.original.route)
+            ? `Route: ${(given.route ?? '').trim() || 'none'}`
+            : '',
+    ].filter(Boolean);
+
+    return [
+        line === directionLine(item.original) ? 'Same directions' : line,
+        ...changed,
+    ].join(' · ');
 };
 // DD-125: a short batch line on the card ("Batch DM-0207 · exp 3 Mar 2027 · 60 tablet on hand"); the full option text
 // stays in the dropdown and its "Selected:" line while editing.
@@ -1966,6 +1990,13 @@ const exceptionStatusLabels: Record<string, string> = {
                                     {{ givenQuantity(item) }}
                                 </p>
                                 <p
+                                    v-if="item.source === 'doctor'"
+                                    class="text-xs break-words text-muted-foreground"
+                                    data-testid="given-directions"
+                                >
+                                    {{ givenDirectionsText(item) }}
+                                </p>
+                                <p
                                     v-if="item.status === 'pending'"
                                     class="text-xs text-muted-foreground"
                                 >
@@ -1990,6 +2021,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             </p>
                             <p
                                 v-else-if="
+                                    livesInForm(item) &&
                                     !batchLine(item) &&
                                     item.availability.every(
                                         (stock) => stock.held,
