@@ -12,9 +12,9 @@ test('both receiving forms ask for the total paid, optional, with one help line 
     const lots = read(
         'resources/js/components/inventory/VerifiedReceivingForm.vue',
     );
-    assert.match(panel, /Total paid for this batch \(RM, optional\)/);
+    assert.match(panel, /Total paid for this batch \(RM,\s+optional\)/);
     assert.match(panel, /total paid for this batch RM/);
-    assert.match(panel, /Leave blank to\s+use the order's estimate\./);
+    assert.match(panel, /Leave blank\s+to\s+use the order's estimate\./);
     // Design review (Daniel): the help sits under the cost field it describes, never under the delivery reference.
     assert.match(
         panel,

@@ -119,7 +119,7 @@ function harness(
     const scope = effectScope();
     const state = inlineTemplate
         ? null
-        : scope.run(() => component.setup(props, { expose() {} }));
+        : scope.run(() => component.setup(props, { expose() {}, emit() {} }));
 
     return { calls, props, state, scope, component };
 }

@@ -143,7 +143,7 @@ test('Inventory Operations uses KPOne controls and server-backed idempotent endp
 
     for (const label of [
         'Supplier Management',
-        'Purchase Orders & Receiving',
+        'Purchase orders',
         'Stock Requests & Transfers',
         'Stocktake',
         'Manual Adjustment',

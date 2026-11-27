@@ -25,7 +25,7 @@ test('the inventory panel always shows orders and requests', () => {
 
     assert.doesNotMatch(panel, /hideOrders|hideRequests/);
     assert.match(panel, /<div class="grid gap-4 xl:grid-cols-2">/);
-    assert.match(panel, /Purchase Orders & Receiving/);
+    assert.match(panel, /Purchase orders/);
     assert.match(panel, /Stock Requests & Transfers/);
 });
 

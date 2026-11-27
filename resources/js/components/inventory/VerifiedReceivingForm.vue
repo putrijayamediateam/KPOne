@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
 import { DateField } from '@/components/ui/date-field';
 import { formatInventoryReason } from '@/lib/inventory-picker';
@@ -13,6 +13,25 @@ const props = defineProps<{
     branchId: number;
     nonce: string;
 }>();
+const emit = defineEmits<{
+    processingChange: [
+        state: {
+            token: symbol;
+            orderId: string;
+            branchId: number;
+            processing: boolean;
+        },
+    ];
+}>();
+const processingToken = Symbol('verified-receiving-instance');
+const reportProcessing = (processing: boolean) =>
+    emit('processingChange', {
+        token: processingToken,
+        orderId: props.row.publicId,
+        branchId: props.branchId,
+        processing,
+    });
+onBeforeUnmount(() => reportProcessing(false));
 const receivingForm = ref<HTMLFormElement | null>(null);
 const focusLot = (lineId: string, index: number) => {
     if (typeof document === 'undefined') {
@@ -183,6 +202,11 @@ async function highlight(sku: ScannedSku, gs1: Gs1Read | null = null) {
         .getElementById(`receiving-line-${line.publicId}`)
         ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
+watch(
+    [() => form.processing, () => props.branchId, () => props.row.publicId],
+    () => reportProcessing(form.processing),
+    { flush: 'sync' },
+);
 watch(
     () => [form.delivery_reference, JSON.stringify(form.lines)],
     () => {

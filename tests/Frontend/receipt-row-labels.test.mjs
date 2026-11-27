@@ -17,12 +17,12 @@ test('every Post receipt field has a visible label and its accessible name conta
         ['Batch number \\(required\\)', 'received batch number'],
         ['Expiry date \\(required\\)', 'expiry date'],
         [
-            'Quantity this receipt \\(\\{\\{ line\\.stockUnit \\}\\},\\s+required\\)',
+            'Quantity this receipt \\(\\{\\{\\s+line\\.stockUnit\\s+\\}\\},\\s+required\\)',
             'quantity this receipt',
         ],
     ]) {
         assert.match(
-            panel,
+            panel.replace(/\s+/g, ' '),
             new RegExp(
                 `<label class="grid min-w-0 gap-1 text-xs"\\s+>${label}\\s+<\\w+[\\s\\S]{0,160}?:aria-label="\`\\$\\{line\\.sku\\} ${name}\`"`,
             ),
