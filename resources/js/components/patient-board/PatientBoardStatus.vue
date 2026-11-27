@@ -4,12 +4,16 @@ import CallReadinessActions from '@/components/queue/CallReadinessActions.vue';
 import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
 import TreatmentProgressBadge from '@/components/queue/TreatmentProgressBadge.vue';
 import type { PatientBoardRow } from '@/types';
-defineProps<{
-    row: PatientBoardRow;
-    branchId?: number;
-    from?: 'registration' | 'queue';
-    treatmentDialogKey: string | null;
-}>();
+withDefaults(
+    defineProps<{
+        row: PatientBoardRow;
+        branchId?: number;
+        from?: 'registration' | 'queue';
+        treatmentDialogKey: string | null;
+        showTreatmentBadge?: boolean;
+    }>(),
+    { showTreatmentBadge: true },
+);
 defineEmits<{
     readinessChanged: [];
     'update:treatmentDialogKey': [key: string | null];
@@ -85,6 +89,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
         <TreatmentProgressBadge
             :progress="row.treatmentProgress"
             :minutes="row.treatmentMinutes"
+            v-if="showTreatmentBadge !== false"
         />
         <TreatmentProgressActions
             v-if="branchId && row.treatmentProgress"

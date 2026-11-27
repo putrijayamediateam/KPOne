@@ -378,7 +378,141 @@ test('actual renderer forwards readiness once and retains only one actionable tr
     await Vue.nextTick();
     assert.equal(active('treatment').length, 1);
     assert.equal(active('treatment')[0].props.open, false);
+    props.queueTask = 'held';
+    await Vue.nextTick();
+    assert.equal(active('treatment').length, 1);
+    active('treatment')[0].emit('update:open', true);
+    await Vue.nextTick();
+    assert.equal(active('treatment')[0].props.open, true);
+    active('readiness')[0].emit('changed');
+    await Vue.nextTick();
+    assert.equal(readiness, 2);
     app.unmount();
     assert.equal(active('treatment').length, 0);
     assert.equal(active('readiness').length, 0);
+});
+
+test('own Held uses the existing held duration and dedicated treatment step without guessing missing progress', async () => {
+    const html = await render(
+        { queueLayout: 'own', queueTask: 'held' },
+        {
+            statusLabel: 'On Hold',
+            statusTone: 'held',
+            durationLabel: 'Held 17 min',
+            waitingMinutes: null,
+        },
+    );
+    assert.deepEqual(headers(html), [
+        'No.',
+        'Patient',
+        'Zone',
+        'Treatment step',
+        'Held',
+        'Actions',
+    ]);
+    assert.match(html, /data-label="Held"/);
+    assert.match(html, /Held 17 min/);
+    assert.match(html, /data-label="Treatment step"/);
+    assert.match(html, /Not available/);
+    assert.doesNotMatch(html, /data-testid="treatment-progress-badge"/);
+    assert.doesNotMatch(html, /Synthetic reason|Resume|data-label="Status"/);
+    const empty = await render({
+        queueLayout: 'own',
+        queueTask: 'held',
+        rows: [],
+    });
+    assert.equal(headers(empty).length, 6);
+    assert.match(empty, /colspan="6"/);
+});
+
+test('Held renders the actual treatment badge once with authorized unsuccessful outcomes and retained controls', async () => {
+    const props = { queueLayout: 'own', queueTask: 'held' };
+    const progress = {
+        state: 'done',
+        label: 'Nebuliser',
+        startedAt: null,
+        doneAt: null,
+        canManage: true,
+        outcome: {
+            procedureLabel: 'Nebuliser',
+            outcomeLabel: 'Not successful',
+            reasonLabel: 'Patient declined',
+        },
+    };
+    const html = await render(props, {
+        statusLabel: 'On Hold',
+        statusTone: 'held',
+        durationLabel: 'Held 3 min',
+        treatmentProgress: progress,
+        callHold: {
+            active: true,
+            reason: 'Synthetic readiness',
+            canClear: true,
+        },
+    });
+    assert.equal(
+        (html.match(/data-testid="treatment-progress-badge"/g) ?? []).length,
+        1,
+    );
+    assert.equal((html.match(/data-dialog-open=/g) ?? []).length, 1);
+    assert.match(html, /Nebuliser/);
+    assert.match(html, /Not successful/);
+    assert.match(html, /Patient declined/);
+    assert.match(html, /Not ready to call/);
+    assert.match(html, /Synthetic readiness/);
+    const patient = html.slice(
+        html.indexOf('data-label="Patient"'),
+        html.indexOf('data-label="Zone"'),
+    );
+    assert.doesNotMatch(patient, /data-testid="treatment-progress-badge"/);
+    assert.match(patient, /Existing treatment controls/);
+    const redacted = await render(props, {
+        treatmentProgress: { ...progress, outcome: undefined },
+    });
+    assert.doesNotMatch(
+        redacted,
+        /Not successful|Patient declined|treatment-record-outcome/,
+    );
+    const running = await render(props, {
+        treatmentProgress: {
+            ...progress,
+            state: 'started',
+            outcome: undefined,
+        },
+        treatmentMinutes: 4,
+    });
+    assert.match(running, /data-treatment-state="started"/);
+    assert.doesNotMatch(running, /Not successful|Patient declined/);
+    const noCurrentStep = await render(props, {
+        treatmentProgress: { state: null, label: null, canManage: true },
+    });
+    assert.match(noCurrentStep, /Not available/);
+    assert.equal((noCurrentStep.match(/data-dialog-open=/g) ?? []).length, 1);
+});
+
+test('branch Held still uses original status placement and badge even if passed the optional task', async () => {
+    const html = await render(
+        { queueLayout: 'branch', queueTask: 'held' },
+        {
+            treatmentProgress: {
+                state: 'done',
+                label: 'Nebuliser',
+                startedAt: null,
+                doneAt: null,
+            },
+        },
+    );
+    assert.deepEqual(headers(html), [
+        'No.',
+        'Patient',
+        'Doctor',
+        'Waiting / since',
+        'Status',
+        'Actions',
+    ]);
+    assert.match(html, /data-label="Status"/);
+    assert.equal(
+        (html.match(/data-testid="treatment-progress-badge"/g) ?? []).length,
+        1,
+    );
 });
