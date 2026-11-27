@@ -723,7 +723,7 @@ onBeforeUnmount(() => {
                                 >{{ callLabel(call) }}</span
                             >
                             <span
-                                class="truncate text-xl font-semibold lg:text-3xl"
+                                class="min-w-0 text-xl leading-tight font-semibold break-words lg:text-[clamp(1.125rem,3.2vh,1.875rem)]"
                                 >{{ roomLabel(call.room, call.service) }}</span
                             >
                             <span
@@ -801,7 +801,7 @@ onBeforeUnmount(() => {
         <button
             v-if="!soundOn && !sessionEnded"
             type="button"
-            class="fixed bottom-14 left-3 z-40 rounded-full bg-[#006ae0] px-6 py-3 text-lg font-bold text-white shadow-xl focus:ring-4 focus:ring-[#6ba6ff] focus:outline-none lg:bottom-16 lg:text-2xl"
+            class="fixed right-24 bottom-14 z-40 rounded-full bg-[#006ae0] px-6 py-3 text-lg font-bold text-white shadow-xl focus:ring-4 focus:ring-[#6ba6ff] focus:outline-none lg:bottom-16 lg:text-2xl"
             autofocus
             @click="start"
         >
