@@ -444,40 +444,40 @@ class TrialDataCommandTest extends TestCase
     /**
      * CI-CLOCK-3: in the first three minutes after midnight in Kuala Lumpur (16:00 to 16:03 UTC) no session can have
      * ended "earlier today", so phase 5 used to refuse and the end-to-end test failed whenever CI crossed that minute.
-     * Phase 5 now waits (at most three minutes, faked here) and then succeeds. Phase 1 runs just before midnight, as in
-     * the failing CI runs, so the phases straddle the change of day.
+     * Phase 5 now waits (faked here) until 00:03 local time and then succeeds; from two minutes before midnight it
+     * waits for the coming 00:03, since its own work before that point takes seconds. Phase 1 runs before midnight,
+     * as in the failing CI runs, so the phases straddle the change of day. Dates are built in the branch time zone.
      */
-    #[DataProvider('firstMinutesAfterKualaLumpurMidnight')]
-    public function test_phase_five_waits_out_the_first_minutes_after_midnight_in_kuala_lumpur(string $offset): void
+    #[DataProvider('aroundKualaLumpurMidnight')]
+    public function test_phase_five_waits_out_the_minutes_around_midnight_in_kuala_lumpur(int $secondsFromMidnight): void
     {
-        // The latest past 16:00 UTC that leaves the whole scenario in the past, close to the database's own clock.
-        $midnight = CarbonImmutable::now('UTC')->subMinutes(5)->setTimeFromTimeString('16:00:00');
-        $midnight = $midnight->addMinutes(5)->isFuture() ? $midnight->subDay() : $midnight;
-        $this->travelTo($midnight->subSeconds(30));
+        // The latest past local midnight that leaves the whole scenario in the past, close to the database's own clock.
+        $midnight = CarbonImmutable::now($this->cheras->timezone)->subMinutes(5)->startOfDay();
+        $this->travelTo($midnight->subMinutes(5));
         Storage::fake('local');
         $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
 
-        $this->travelTo($midnight->add($offset));
+        $this->travelTo($midnight->addSeconds($secondsFromMidnight));
         Sleep::fake(syncWithCarbon: true);
         $this->runPhase('5')->doesntExpectOutputToContain('A step failed')->assertExitCode(Command::SUCCESS);
         Sleep::assertSleptTimes(1);
-        $this->assertTrue(CarbonImmutable::now($this->cheras->timezone)->greaterThanOrEqualTo(
-            CarbonImmutable::now($this->cheras->timezone)->startOfDay()->addMinutes(3)), 'Phase 5 waited until 00:03 local time.');
+        $this->assertSame($midnight->addMinutes(3)->addSecond()->toIso8601String(), CarbonImmutable::now($this->cheras->timezone)->toIso8601String(),
+            'Phase 5 waited until just after 00:03 local time.');
         $this->assertSame(1, DB::table('hr_overtime_requests')->where('status', 'approved')->count());
         $this->assertSame(['approved' => 1, 'pending' => 1], DB::table('hr_attendance_corrections')->selectRaw('status, count(*) as n')
             ->groupBy('status')->orderBy('status')->pluck('n', 'status')->map(fn ($n): int => (int) $n)->all());
 
         // A rerun has nothing left to add, so it does not wait.
-        $this->travelTo($midnight->add($offset));
+        $this->travelTo($midnight->addSeconds($secondsFromMidnight));
         Sleep::fake(syncWithCarbon: true);
         $this->runPhase('5')->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);
         Sleep::assertNeverSlept();
     }
 
-    /** @return array<string, array{string}> */
-    public static function firstMinutesAfterKualaLumpurMidnight(): array
+    /** @return array<string, array{int}> */
+    public static function aroundKualaLumpurMidnight(): array
     {
-        return ['00:00:00 in Kuala Lumpur' => ['PT0S'], '00:00:30 in Kuala Lumpur' => ['PT30S'], '00:02:59 in Kuala Lumpur' => ['PT2M59S']];
+        return ['23:58:30 in Kuala Lumpur' => [-90], '00:00:00 in Kuala Lumpur' => [0], '00:00:30 in Kuala Lumpur' => [30], '00:02:59 in Kuala Lumpur' => [179]];
     }
 
     public function test_phase_five_fills_kpone_hr_once_with_fictional_payroll_tables(): void

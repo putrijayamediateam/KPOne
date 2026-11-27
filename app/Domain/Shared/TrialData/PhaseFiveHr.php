@@ -68,6 +68,9 @@ final class PhaseFiveHr
     /** Minutes after local midnight before a session can have ended "earlier today". */
     private const PAST_MOMENT_MINUTES = 3;
 
+    /** Minutes before local midnight from which the attendance step waits for the coming 00:03 instead. */
+    private const MIDNIGHT_MARGIN_MINUTES = 2;
+
     private PlaceholderFiles $files;
 
     public function __construct(private readonly TrialDataContext $context)
@@ -517,8 +520,10 @@ final class PhaseFiveHr
 
     /**
      * The attendance step adds sessions that ended earlier today (see earlierToday()), which do not exist in the first
-     * minutes after local midnight. Rather than refuse, wait (at most three minutes, outside any transaction) until
-     * every branch is past 00:03 local time. Nothing waits once the step has run, so a rerun never pauses.
+     * minutes after local midnight. Rather than refuse, wait (outside any transaction) until every branch is past 00:03
+     * local time. The step's own work before earlierToday() takes seconds, so from two minutes before midnight it waits
+     * for the coming 00:03 too (at most five minutes in all). Nothing waits once the step has run, so a rerun never
+     * pauses. The branches are assumed to share one day (all are in Asia/Kuala_Lumpur).
      */
     private function waitForAPastMomentToday(): void
     {
@@ -526,7 +531,8 @@ final class PhaseFiveHr
             return;
         }
         $ready = $this->context->branches
-            ->map(fn (Branch $branch): CarbonImmutable => CarbonImmutable::now($branch->timezone)->startOfDay()->addMinutes(self::PAST_MOMENT_MINUTES))
+            ->map(fn (Branch $branch): CarbonImmutable => CarbonImmutable::now($branch->timezone)->addMinutes(self::MIDNIGHT_MARGIN_MINUTES)
+                ->startOfDay()->addMinutes(self::PAST_MOMENT_MINUTES))
             ->max();
         if ($ready instanceof CarbonImmutable && CarbonImmutable::now()->lessThan($ready)) {
             Sleep::until($ready->addSecond());
