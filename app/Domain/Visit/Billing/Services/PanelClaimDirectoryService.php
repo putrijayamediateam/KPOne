@@ -55,7 +55,7 @@ final class PanelClaimDirectoryService
 
     private const APPROVED = ['accepted', 'partially_accepted', 'partially_paid'];
 
-    private const TABS = ['all', 'pending', 'overdue', 'submitted', 'approved', 'waiting_payment', 'queried', 'rejected', 'received'];
+    private const TABS = ['all', 'pending', 'not_submitted', 'overdue', 'submitted', 'approved', 'waiting_payment', 'queried', 'rejected', 'received'];
 
     /** PNL-28a: Pending lists approved invoices with no claim; Overdue lists Prepared claims past the Panel's due date. */
     private const INVOICE_TABS = ['pending'];
@@ -85,6 +85,9 @@ final class PanelClaimDirectoryService
             $claims = $waitingPayment['claims'] ?? $this->applyListFilters($base(), $filters, $onInvoices ? 'all' : $tab, $overdueIds)
                 ->orderByDesc('id')
                 ->paginate(20, ['*'], 'claims_page', $claimsPage);
+            $submissionDue = $tab === 'not_submitted'
+                ? app(PanelFirstSubmissionDueProjection::class)->forClaims($branch, array_values(array_map(static fn ($id): int => (int) $id, $claims->getCollection()->pluck('id')->all())), $today)
+                : [];
             $paymentRemarks = $this->latestPaymentReferences(array_values(array_map(static fn ($id): int => (int) $id, $claims->getCollection()->pluck('id')->all())), $actor, $branch);
             $latest = $this->latestEvents(array_values(array_map(static fn ($id): int => (int) $id, $claims->getCollection()->pluck('id')->all())), $actor, $branch);
 
@@ -141,8 +144,9 @@ final class PanelClaimDirectoryService
                             'receivedSen' => (int) $claim->getAttribute('received_sen'),
                             'outstandingSen' => (int) $claim->getAttribute('outstanding_sen'),
                         ]]),
+                        ...($tab === 'not_submitted' ? ['submissionDue' => $submissionDue[$claim->id] ?? null] : []),
                         'status' => self::statusLabel($claim),
-                        'overdue' => in_array($claim->id, $overdueIds, true),
+                        'overdue' => $tab === 'not_submitted' ? ($submissionDue[$claim->id]['overdue'] ?? false) : in_array($claim->id, $overdueIds, true),
                         'createdAt' => $claim->created_at?->setTimezone($branch->timezone)->format('j F Y'),
                         'updatedBy' => $latest[$claim->id]['actor'] ?? null,
                         'remarks' => $paymentRemarks[$claim->id] ?? ($latest[$claim->id]['note'] ?? null),
@@ -390,6 +394,7 @@ final class PanelClaimDirectoryService
     private function applyListFilters($query, array $filters, string $tab, array $overdueIds = [])
     {
         match ($tab) {
+            'not_submitted' => $query->where('status', 'prepared')->whereNotExists(fn (Builder $events) => $events->selectRaw('1')->from('panel_claim_events as ev')->whereColumn('ev.panel_claim_id', 'panel_claims.id')->where('ev.event_type', 'submitted')),
             'overdue' => $query->whereIn('id', $overdueIds),
             'submitted' => $query->whereIn('status', self::SUBMITTED),
             'approved' => $query->whereIn('status', self::APPROVED),
