@@ -5,37 +5,34 @@ built, what the owner decided, the rules, and what to build next. The team reads
 updates it in the same PR as the code.
 
 
-## 0. Handoff for the next session (updated 2026-11-27, after the #1139 slice)
+## 0. Handoff for the next session (updated 2026-11-27 evening, after DSP-CARD-1)
 
 Owner decision 27 Nov: one slice per session. Read this first, then sections 6 to 9.
 
-**Merged in this slice**
-- **#1139 Clean Look Stage 1 of the Dispensary case page** (`Dispensary/Show.vue`, `DoctorCheckActions.vue`,
-  `DispensaryAttentionPanel.vue`), merged as `4f7700420`. Semantic tokens (owner-approved assertion changes of
-  26 Nov), three columns from xl, field labels and card titles 13/600 and 15/600, one filled button (Start or
-  Complete Dispensary; row actions outline; Complete outline while its verify panel is open; both scanners pass
-  ScanInput `lookupVariant="outline"`), allergy safety card with icon and words and the warning wash whenever
-  allergies are recorded or a return is needed, dark "Save all lines" edge `border-muted-foreground` (5.83:1),
-  label limits as a help line under each field ("Label max 96"), Dosage 3 and Frequency 2 grid columns from lg
-  (owner: a stop-gap). Presentation only; prints and clinical behaviour unchanged. Daniel OK; screenshots on
-  `validation/clean-look-dispensary-shots` (evidence only, never merged).
+**Merged**
+- **#1274 DSP-CARD-1 medicine card on the case page**, merged 27 Nov 17:18 UTC (`66ef0b7ba`). See section 5.
+- (Earlier: #1139 Clean Look Stage 1 of the case page, `4f7700420`.)
 
-**Open work**
-- **DSP-28 (Returns history and controlled filter)** on `feature/dsp-28-returns-history`, head `58dae460`: our
-  build plus two fixes ported from ChatGPT's draft #1155 (closed unmerged, owner tick 27 Nov): array-valued
-  `?view`/`?controlled` fall back to waiting/all (new test) and the Quarantined chip uses info tokens. `main`
-  `84ea12fce` merged in; needs a fresh `main` merge. Daniel OK on the chip. **Waiting:** Hakim's OK, then the
-  coordinator calls its PR turn, then the owner's ship-it. Optional: a 390 px shot of the returns table.
-  `PharmacySpaceTest:73` is unchanged and still waits for the owner.
+**Open PRs (owner ship-it given; auto-merge on, the coordinator updates the branches in the merge line)**
+- **#1279 DSP-28** Returns history and controlled filter, `feature/dsp-28-returns-history`, CI green on `f985572a`.
+- **#1285 DSP-29 part B** doctor's check panel allergy mark, `feature/dsp-29-doctor-allergy-mark` (`e7e65d12`).
+  `attest` was red only because `main` moved after the one allowed merge; it waits for the coordinator's branch
+  update (next in line after #1265). Do not merge `main` in yourself (coordinator, 27 Nov).
 
-**Next slice (owner decision 27 Nov): the demo's medicine card on the case page**
-- Rebuild the case page's medicine rows as the demo's medicine card (`project/PharmacyCase.dc.html` in demo
-  artifact `KUkn7hc8xW9k2REtRUCFbG`): one direction line per medicine (for example "1 tablet, 3 times a day,
-  before food · 5 days"), the doctor's order beside what is given, and the inputs shown only while editing.
-  It replaces the widened-grid stop-gap. Design note, Daniel's look, Hakim's review and the owner's ship-it first.
-- Fold in DD-125 (Daniel): at 1280 px the Batch select is narrow ("10 unit on hand ·" is cut off; the CA picks
-  by that text) and a long Frequency still clips.
+**Built, not pushed or not yet a PR**
+- **DSP-30** header allergies read only while the doctor's check waits, `feature/dsp-30-header-allergies-during-check`
+  (from `fff4c972`). Hakim OK with changes (done); shots ready; push waits for the owner's go-ahead in the session,
+  then Daniel's look, then the owner's ship-it before the PR.
+
+**Next**
+- **DSP-29 part A** (the same read-only mark on the doctor's view-only case card in `Dispensary/Show.vue`): start
+  from the newest `main` only after #1285 merges (it reuses `AllergyMatchMark`). The owner's DSP-29 ship-it covers
+  it; Hakim and Daniel first, then the PR.
 - Then the decision 43 order: B6 search by medicine name, B7, B9, B4, B8, B10.
+- Debt: the "Sent by … at" baseline at 390 px in the doctor's check panel; at 390 px the "Edited by CA" chip column
+  narrows the card's name and direction line (Daniel to decide); the edit form under the card is still the old
+  dense grid with native selects (Daniel, DSP-CARD-1); "Review required" chip wording in DSP-30's read-only mode;
+  the Problem List still says "unavailable" while the doctor's check waits (owner follow-up, not in DSP-30).
 
 **Working notes for the new session**
 - The session hook may stop on a Docker Hub rate limit for `postgres:18`; rerun it with that pull made
@@ -47,6 +44,15 @@ Owner decision 27 Nov: one slice per session. Read this first, then sections 6 t
   `ClinicalTestCase` and `OtcDispensaryFixtures` and commit them into a task-owned database; then serve with an
   explicit env file and check the effective database first. Push shots only to a `validation/*` branch.
 - Pinned strings: DSP-7b, CO-5 and CO-10 tests pin text in `ReturnsToCheck.vue`; keep it.
+- The session image's PHP container lacks GD, so about 140 image tests (HR photo, website images, letterhead, Panel
+  claim photos, MC letters) error locally; CI is the backend proof. Give parallel workers `--passthru-php="'-d'
+  'memory_limit=1G'"` or a worker runs out of memory.
+- CI `attest` fails whenever `main` has moved past the PR's base: the coordinator updates branches in the merge line.
+  `TrialDataEndToEndTest` fails if it runs between 00:00 and 00:03 branch time (CI-CLOCK-3): one re-run is enough.
+- Many Dispensary frontend tests pin source text in `Show.vue` (for example `clearBatchHint(item.publicId); done?.();`
+  and `{{ displayQuantity(item.quantityOrdered) }}` on one line). Run them after Prettier, not before.
+- Separate worktrees per slice under the scratchpad keep the served checkout on its own branch; copy `vendor` and
+  link `node_modules`, and point the `php` shim at that worktree before `npm run build`.
 
 ## 1. Team
 
@@ -155,7 +161,10 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-26 | The Resident Doctor sees the Dispensary pages at their active branch, view only: the Registration board's Dispensary tab and "Open Dispensary" row action, a case in any status, the Completed page with its returns read only, and the label preview of a completed or waiting case (no print token, no row locks, no print row). A muted "View only. You cannot change this case." banner; every action removed, not disabled; "View in Dispensary" on the doctor's check panel with "Back to consultation" for the attending doctor. A separate read gate (`DispensaryDirectoryService::canView`), so every write path and the print log keep their checks. New permission `dispensary.view_readonly.branch` (Resident Doctor), migration `2026_11_06_200900` | #1086 (merged `477a252`) |
 | REL-DSP | The drug label size 100 × 62 mm is confirmed and the pharmacist review recorded as "owner-confirmed, verbal, 25 Nov 2026" (no names). "(provisional). Confirm printer and sticker stock." comes off the label preview line; the pilot pack, the Malay CA and CA Supervisor guides and the layout comment drop "provisional" and the pharmacist checks. No behaviour change. Note: [REL-DSP.md](REL-DSP.md) | #1102 (merged `f0d55e9`) |
 | DSP-27 | The branch's Dispensary list at `/dispensary` (Clean Look gap list B1 and B2): three status tabs with counts (To prepare: pending and dispensing; Waiting for doctor's check; Done today since branch-local midnight), search by name, KP or visit number, 25 a page, oldest first (Done today newest first), "Open case" per row and "Reprint labels" (or the doctor's "View labels") on Done today; refreshes every 15 s while visible. Read only, the case page's read gate (`DispensaryDirectoryService::canView`), no migration or permission | Merged in #1127 |
-| DSP-28 | Returns to check gains a "Checked this month" tab (branch-local month, newest first: outcome, refuse reason, who checked and when; never the notes) and a controlled-medicine filter (All, Controlled, Not controlled) on both tabs (Clean Look gap list B3 and B5). `DispensaryReturnService::waitingList()` takes `view` and `controlled`; new `waitingTotal()` feeds the Pharmacy space count. Read only, no migration or permission, no existing assertion changed. Hakim OK (changes applied), Daniel OK; shots on `validation/dsp-28-shots` | Built, pushed on `feature/dsp-28-returns-history` at `51d316cf7`; no PR yet (waits for the owner's ship-it) |
+| DSP-28 | Returns to check gains a "Checked this month" tab (branch-local month, newest first: outcome, refuse reason, who checked and when; never the notes) and a controlled-medicine filter (All, Controlled, Not controlled) on both tabs (Clean Look gap list B3 and B5). `DispensaryReturnService::waitingList()` takes `view` and `controlled`; new `waitingTotal()` feeds the Pharmacy space count. Read only, no migration or permission, no existing assertion changed. Hakim OK (changes applied), Daniel OK; shots on `validation/dsp-28-shots` | PR #1279 (owner ship-it 27 Nov; CI green on `f985572a` after one re-run; auto-merge on) |
+| DSP-CARD-1 | The case page's medicine rows become the owner's demo medicine card: name, one direction line ("1 capsule, once a day, before breakfast · 14 days"), "Doctor ordered" beside "You give" ("CA gives" on the doctor's view-only page; "Same directions" when the CA's directions match the order, with a changed precaution or route always named), a short batch and stock line, and the inputs only after Edit (a card stays open while it has unsaved changes, an allergy re-save or a scan's batch hint). Save line, Edit, Done editing or Undo changes, Remove and Print label sit on each card. DD-125: Batch spans the full card width (514 px at 1280). QA fix: `isDirty` compares quantities as numbers, which ended a Save all lines loop on whole-number quantities that was also on `main`. Frontend only; no assertion changed. Hakim OK, Daniel OK, QA pass at Puchong; shots on `validation/dsp-card-1-shots` | #1274 (merged `66ef0b7ba`) |
+| DSP-29 B | The doctor's "Medicine ready for your check" panel shows the CA's possible-allergy-match warning, read only: `checkLines()` gives each line `allergyMatches` (allergen names only, same matcher and catalogue terms; none for a removed line), shown by the new `AllergyMatchMark` (red box, no tick box, `role="note"`) before the quantities; one muted panel line "It can miss an allergy, so always read the full allergy list." (wording needs a doctor's or pharmacist's approval later). No migration or permission. Hakim OK, Daniel OK; shots on `validation/dsp-29-shots` | PR #1285 (owner ship-it 27 Nov) |
+| DSP-30 | While the doctor's check waits, the consultation header shows the allergy list read only (`ClinicalSafetyDirectoryService::allergiesDuringDoctorCheck()`, `readOnlyReason: 'doctor_check'`, "Read only while the medicine waits for your check.") instead of "Allergy information is unavailable"; the medicine search stays closed then. No migration or permission. Hakim OK with changes (done) | Built locally; push and ship-it pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -339,6 +348,14 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     doctor's Verify completes the case), no "Ready to hand over" tab, the doctor's check stays on the consultation page,
     no approvals-inbox change, no follow-up link.
 
+44. DSP-CARD-1 (2026-11-27, owner tick box): build the demo's medicine card; then "DSP-CARD-1 goes in before Monday",
+    and "You give" says "Same directions" when the CA's line is unchanged.
+45. DSP-28 (2026-11-27, owner tick box): ship it; the tab counts follow the Controlled filter as built.
+46. DSP-29 (2026-11-27, coordinator OK, owner ship-it 16:53 UTC): the doctor sees the allergy match mark read only,
+    part B in the check panel, part A on the view-only case card after #1285; the caveat line once per panel (Daniel).
+47. DSP-30 (2026-11-27, owner option (a)): while the doctor's check waits, the header loads the allergy list read only.
+    The Problem List stays "unavailable" there (owner follow-up).
+
 ## 7. Open items and known limits
 
 - **Controlled-medicine flag (DSP-3):** Director, CA Supervisor and Administrator set it (decision 12). The flag is read live: reprints of
@@ -488,8 +505,11 @@ order, each its own PR:
 19. **DSP-26 Doctor's view-only Dispensary — merged in #1086.**
 20. **REL-DSP Label size confirmed — merged in #1102.** Decision 42.
 21. **DSP-27 Dispensary list (B1, B2) — merged in #1127.** Decision 43.
-22. **DSP-28 Returns history and controlled filter (B3, B5) — built, pushed on `feature/dsp-28-returns-history` (`51d316cf7`), PR after ship-it.** Decision 43.
-23. **Next, in order (decision 43):** B6, B7, B9, B4, then B8 and B10. See section 0.
+22. **DSP-28 Returns history and controlled filter (B3, B5) — PR #1279, ship-it given.** Decision 43, 45.
+23. **DSP-CARD-1 medicine card — merged in #1274.** Decision 44.
+24. **DSP-29 doctor sees the allergy match — part B PR #1285; part A after it merges.** Decision 46.
+25. **DSP-30 header allergies during the doctor's check — built, push and ship-it pending.** Decision 47.
+26. **Next, in order (decision 43):** B6, B7, B9, B4, then B8 and B10. See section 0.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
