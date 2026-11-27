@@ -22,6 +22,7 @@ export const hourFromAsOf = (
 /** Hour 0-23 in an IANA time zone, or null when the zone is missing or unknown. */
 export const hourInZone = (
     timezone: string | null | undefined,
+    now: Date = new Date(),
 ): number | null => {
     if (!timezone) {
         return null;
@@ -32,7 +33,7 @@ export const hourInZone = (
             hour: 'numeric',
             hourCycle: 'h23',
             timeZone: timezone,
-        }).format(new Date());
+        }).format(now);
 
         return Number(text) % 24;
     } catch {
