@@ -147,7 +147,7 @@ final class DispensaryReturnService
      *
      * @return array<string, mixed>
      */
-    public function waitingList(User $actor, int $page, string $view = 'waiting', string $controlled = 'all', bool $withCounts = true, string $outcome = 'all'): array
+    public function waitingList(User $actor, int $page, string $view = 'waiting', string $controlled = 'all', bool $withCounts = true, string $outcome = 'all', string $waitingAge = 'all'): array
     {
         $actor = $actor->fresh()?->load(['roles.permissions', 'permissions']);
         abort_unless($actor && $actor->is_active && $actor->can('dispensary.view.branch') && $this->mayCheck($actor), 403);
@@ -157,11 +157,18 @@ final class DispensaryReturnService
         $view = $view === 'checked' ? 'checked' : 'waiting';
         $controlled = in_array($controlled, ['yes', 'no'], true) ? $controlled : 'all';
         $outcome = $view === 'checked' && in_array($outcome, DispensaryReturnCheck::OUTCOMES, true) ? $outcome : 'all';
-        $monthStart = CarbonImmutable::now($branch->timezone)->startOfMonth();
+        $waitingAge = $view === 'waiting' && in_array($waitingAge, ['today', 'yesterday', '2days', '3days'], true) ? $waitingAge : 'all';
+        $localNow = CarbonImmutable::now($branch->timezone);
+        $ageStart = $waitingAge === 'all' ? null : $localNow->startOfDay()->subDays(match ($waitingAge) {
+            'today' => 0, 'yesterday' => 1, '2days' => 2, '3days' => 3,
+        });
+        $ageFrom = $ageStart?->utc();
+        $ageTo = $ageStart?->addDay()->utc();
+        $monthStart = $localNow->startOfMonth();
         $from = $monthStart->utc();
         $to = $monthStart->addMonth()->utc();
 
-        $base = function (bool $checked) use ($actor, $branch, $controlled, $outcome, $from, $to) {
+        $base = function (bool $checked) use ($actor, $branch, $controlled, $outcome, $from, $to, $ageFrom, $ageTo) {
             $q = DB::table('dispensary_returns as r')
                 ->join('dispensary_items as i', 'i.id', '=', 'r.dispensary_item_id')
                 ->join('dispensary_cases as c', 'c.id', '=', 'r.dispensary_case_id')
@@ -177,6 +184,9 @@ final class DispensaryReturnService
                 }
             } else {
                 $q->whereNotExists(fn ($w) => $w->selectRaw('1')->from('dispensary_return_checks as k')->whereColumn('k.dispensary_return_id', 'r.id'));
+                if ($ageFrom !== null) {
+                    $q->where('r.recorded_at', '>=', $ageFrom)->where('r.recorded_at', '<', $ageTo);
+                }
             }
             if ($controlled === 'yes') {
                 $q->where('m.is_controlled', true);
@@ -206,6 +216,7 @@ final class DispensaryReturnService
             'view' => $view,
             'controlled' => $controlled,
             'outcome' => $outcome,
+            'waitingAge' => $waitingAge,
             'monthLabel' => $monthStart->format('F Y'),
             // The active tab's count is the paginator's total; only the other tab is counted again.
             'counts' => $withCounts ? [

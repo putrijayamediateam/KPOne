@@ -142,8 +142,9 @@ class DispensaryController extends Controller
         $view = $request->query('view', 'waiting');
         $controlled = $request->query('controlled', 'all');
         $outcome = $request->query('outcome', 'all');
+        $waitingAge = $request->query('waiting_age', 'all');
 
-        return Inertia::render('Dispensary/ReturnsToCheck', ['returns' => $returns->waitingList($request->user(), (int) $request->query('page', '1'), is_string($view) ? $view : 'waiting', is_string($controlled) ? $controlled : 'all', outcome: is_string($outcome) ? $outcome : 'all')]);
+        return Inertia::render('Dispensary/ReturnsToCheck', ['returns' => $returns->waitingList($request->user(), (int) $request->query('page', '1'), is_string($view) ? $view : 'waiting', is_string($controlled) ? $controlled : 'all', outcome: is_string($outcome) ? $outcome : 'all', waitingAge: is_string($waitingAge) ? $waitingAge : 'all')]);
     }
 
     /** DSP-7: record medicine a patient brought back on one line of a completed case. Moves no stock. */

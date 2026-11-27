@@ -123,7 +123,10 @@ test('checked outcome select uses server state, an explicit label and truthful f
     assert.match(single, /1 matching checked return</);
     assert.doesNotMatch(single, /1 matching checked returns/);
     const waiting = await render({ view: 'waiting', outcome: 'dispose' });
-    assert.doesNotMatch(waiting, /<select|matching checked returns/);
+    assert.doesNotMatch(
+        waiting,
+        /<select[^>]*id="returns-outcome"|matching checked returns/,
+    );
     assert.match(waiting, /No returns waiting/);
 });
 test('actual GET navigation resets filter changes, preserves checked paging and clears outcome when leaving checked', () => {
