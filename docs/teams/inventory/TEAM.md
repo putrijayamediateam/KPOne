@@ -131,6 +131,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | STK-33 | Stock health (`/inventory/stock-health`): days on hand, turnover and expiry loss per SKU and location, quantities only | #626 |
 | DD-75, DD-76 | Inventory task links: three groups side by side from 1024 px, folding groups with a count on phones (44 px summaries); a two-line Pilot readiness card pointing to the pharmacist review pack | #629 |
 | DD tiles | Inventory summary tiles (SKUs with stock, Total batches, Expired batches) stay in one row at every width, sentence case; fits 320 px | #633 (in batch #634) |
+| STK-46 service/schema | Owner-approved hand-cost evidence/grants, immutable history guards, encrypted note, two-person decision, actor-bound retries and fail-closed audit. Same-DB rebuild twice,52 focused tests/1206assertions and3 real-process races / 58 assertions pass. WAC/report/UI follow; no existing assertions changed. | Local continuation,26 Nov |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -363,6 +364,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     published; each value is filed through PanelPriceProposalService as a proposal for the default Panel book, as a
     named Panel Officer (`--panel-proposer`, `--panel-reference`, today's date), and a Director or Finance Officer
     approves it (decision 27 unchanged). Opening stock and its unit cost stay with the STK-35 opening import and its STK-1 sign-off.
+
+53. STK-46 (owner, 26 Nov 2026, relayed by B.E.R.N.I.S.S): exact migrations `2026_11_26_110000`
+    (hand-cost evidence and guards) and `2026_11_26_110100` (already-approved enter/check role grants) approved,
+    both with no-op downs preserving history, guards and grants. The owner subsequently approved the exact one-line
+    `CREATE FUNCTION` → `CREATE OR REPLACE FUNCTION guard_inventory_hand_cost()` rebuild fix. No existing assertion
+    changes are approved or made for this service/schema slice. Replay/report/UI integration follows independent review.
 
 ## 7. Open items and known limits
 
