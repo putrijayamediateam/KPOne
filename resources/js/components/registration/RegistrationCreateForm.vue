@@ -722,7 +722,9 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
 </script>
 
 <template>
-    <section class="overflow-hidden rounded-lg border bg-card shadow-card">
+    <section
+        class="shrink-0 overflow-hidden rounded-lg border bg-card shadow-card"
+    >
         <fieldset :disabled="draftLocked" class="contents">
             <div
                 class="flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-2"
@@ -949,133 +951,92 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     </Button>
                 </div>
             </div>
-            <div v-else class="grid gap-3 p-4 md:grid-cols-2">
-                <label class="grid gap-1 md:col-span-2"
-                    ><span class="text-sm font-medium">Name</span
-                    ><input
-                        id="quick-patient-name"
-                        :aria-invalid="!!errorFor('quick_patient.full_name')"
-                        aria-describedby="quick-name-error"
-                        v-model="quick.full_name"
-                        autocomplete="off"
-                        class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11" /><InputError
-                        id="quick-name-error"
-                        :message="errorFor('quick_patient.full_name')"
-                /></label>
-                <label class="grid gap-1"
-                    ><span class="text-sm font-medium"
-                        >Identity document *</span
+            <div v-else class="space-y-5 p-4">
+                <section
+                    aria-labelledby="quick-identity-heading"
+                    class="space-y-3 border-t border-border/60 pt-4"
+                >
+                    <h3
+                        id="quick-identity-heading"
+                        class="text-sm font-semibold"
                     >
-                    <div class="flex flex-col gap-2 sm:flex-row sm:gap-0">
-                        <OperationalSelect
-                            v-model="quickIdentifierType"
-                            label="Identification type"
-                            :options="identityTypeOptions"
-                            trigger-class="h-10 w-full max-lg:min-h-11 sm:w-40 sm:rounded-r-none"
-                        /><input
-                            v-model="quickIdentifierValue"
-                            aria-label="IC or Passport number"
-                            :aria-invalid="
-                                !!(
-                                    errorFor('quick_patient.identifiers') ||
-                                    errorFor(
-                                        'quick_patient.identifiers.0.value',
-                                    )
-                                )
+                        Identity
+                    </h3>
+                    <div class="grid gap-3 md:grid-cols-2">
+                        <label class="grid gap-1 md:col-span-2"
+                            ><span class="text-sm font-medium">Name</span
+                            ><input
+                                id="quick-patient-name"
+                                :aria-invalid="
+                                    !!errorFor('quick_patient.full_name')
+                                "
+                                aria-describedby="quick-name-error"
+                                v-model="quick.full_name"
+                                autocomplete="off"
+                                class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11" /><InputError
+                                id="quick-name-error"
+                                :message="errorFor('quick_patient.full_name')"
+                        /></label>
+                        <label class="grid gap-1"
+                            ><span class="text-sm font-medium">{{
+                                requirements.requireDateOfBirth
+                                    ? 'DOB *'
+                                    : 'DOB (optional)'
+                            }}</span
+                            ><DateField
+                                v-model="quick.date_of_birth"
+                                :required="requirements.requireDateOfBirth"
+                                :aria-invalid="
+                                    !!errorFor('quick_patient.date_of_birth')
+                                " /><InputError
+                                :message="
+                                    errorFor('quick_patient.date_of_birth')
+                                "
+                        /></label>
+                        <AdultConfirmation
+                            v-if="
+                                !quick.date_of_birth &&
+                                !requirements.requireDateOfBirth
                             "
-                            aria-describedby="quick-identity-error"
-                            autocomplete="off"
-                            class="h-9 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11 sm:flex-1 sm:rounded-l-none sm:border-l-0"
+                            v-model="quick.adult_confirmed"
+                            :error="
+                                errorFor('quick_patient.adult_confirmed') ||
+                                errorFor('quick_patient.adult_confirmation_key')
+                            "
                         />
+                        <label class="grid gap-1" for="quick-nationality"
+                            ><span class="text-sm font-medium"
+                                >Nationality country code{{
+                                    requirements.requireNationality
+                                        ? ' *'
+                                        : ' (optional)'
+                                }}</span
+                            ><input
+                                id="quick-nationality"
+                                v-model="quick.nationality_code"
+                                :required="requirements.requireNationality"
+                                :aria-invalid="
+                                    !!errorFor('quick_patient.nationality_code')
+                                "
+                                maxlength="2"
+                                placeholder="MY"
+                                class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm uppercase max-lg:h-11" /><InputError
+                                :message="
+                                    errorFor('quick_patient.nationality_code')
+                                "
+                        /></label>
+                        <label class="grid gap-1" for="quick-gender"
+                            ><span class="text-sm font-medium">Gender</span
+                            ><OperationalSelect
+                                trigger-class="max-lg:min-h-11"
+                                id="quick-gender"
+                                v-model="quick.sex"
+                                label="Gender"
+                                :invalid="!!errorFor('quick_patient.sex')"
+                                :options="genderOptions"
+                        /></label>
                     </div>
-                    <InputError
-                        id="quick-identity-error"
-                        :message="
-                            errorFor('quick_patient.identifiers') ||
-                            errorFor('quick_patient.identifiers.0.value') ||
-                            errorFor(
-                                'quick_patient.identifiers.0.issuing_country_code',
-                            )
-                        "
-                /></label>
-                <label
-                    v-if="quickIdentifierType === 'passport'"
-                    class="grid gap-1"
-                    ><span class="text-sm font-medium">Passport issuer *</span
-                    ><input
-                        v-model="quickIssuer"
-                        :aria-invalid="
-                            !!errorFor(
-                                'quick_patient.identifiers.0.issuing_country_code',
-                            )
-                        "
-                        aria-describedby="quick-identity-error"
-                        maxlength="2"
-                        class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm uppercase max-lg:h-11" /></label
-                ><span v-else />
-                <PhoneInput
-                    id="quick-phone"
-                    v-model="quick.mobile_phone"
-                    v-model:country="quick.phone_country"
-                    :required="!knownMinor(quick.date_of_birth, guardianToday)"
-                    :error="
-                        errorFor('quick_patient.mobile_phone') ||
-                        errorFor('quick_patient.phone_country')
-                    "
-                />
-                <label class="grid gap-1"
-                    ><span class="text-sm font-medium">{{
-                        requirements.requireDateOfBirth
-                            ? 'DOB *'
-                            : 'DOB (optional)'
-                    }}</span
-                    ><DateField
-                        v-model="quick.date_of_birth"
-                        :required="requirements.requireDateOfBirth"
-                        :aria-invalid="
-                            !!errorFor('quick_patient.date_of_birth')
-                        " /><InputError
-                        :message="errorFor('quick_patient.date_of_birth')"
-                /></label>
-                <AdultConfirmation
-                    v-if="
-                        !quick.date_of_birth && !requirements.requireDateOfBirth
-                    "
-                    v-model="quick.adult_confirmed"
-                    :error="
-                        errorFor('quick_patient.adult_confirmed') ||
-                        errorFor('quick_patient.adult_confirmation_key')
-                    "
-                />
-                <label class="grid gap-1" for="quick-nationality"
-                    ><span class="text-sm font-medium"
-                        >Nationality country code{{
-                            requirements.requireNationality
-                                ? ' *'
-                                : ' (optional)'
-                        }}</span
-                    ><input
-                        id="quick-nationality"
-                        v-model="quick.nationality_code"
-                        :required="requirements.requireNationality"
-                        :aria-invalid="
-                            !!errorFor('quick_patient.nationality_code')
-                        "
-                        maxlength="2"
-                        placeholder="MY"
-                        class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm uppercase max-lg:h-11" /><InputError
-                        :message="errorFor('quick_patient.nationality_code')"
-                /></label>
-                <label class="grid gap-1" for="quick-gender"
-                    ><span class="text-sm font-medium">Gender</span
-                    ><OperationalSelect
-                        trigger-class="max-lg:min-h-11"
-                        id="quick-gender"
-                        v-model="quick.sex"
-                        label="Gender"
-                        :invalid="!!errorFor('quick_patient.sex')"
-                        :options="genderOptions"
-                /></label>
+                </section>
                 <GuardianFields
                     v-model="quick.guardian"
                     :dob="quick.date_of_birth"
@@ -1083,14 +1044,110 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     new-patient
                     :errors="contactErrors"
                 />
-                <RegistrationContactFields
-                    class="md:col-span-2"
-                    :model="quick"
-                    :require-email="requirements.requireEmail"
-                    :require-address="requirements.requireAddress"
-                    :errors="contactErrors"
-                    id-prefix="quick-contact"
-                />
+                <section
+                    aria-labelledby="quick-contact-heading"
+                    class="space-y-3 border-t border-border/60 pt-4 max-lg:[&_input]:min-h-11 max-lg:[&_select]:min-h-11"
+                >
+                    <h3
+                        id="quick-contact-heading"
+                        class="text-sm font-semibold"
+                    >
+                        Contact and address
+                    </h3>
+                    <div class="grid gap-3 md:grid-cols-2">
+                        <PhoneInput
+                            id="quick-phone"
+                            v-model="quick.mobile_phone"
+                            v-model:country="quick.phone_country"
+                            :required="
+                                !knownMinor(quick.date_of_birth, guardianToday)
+                            "
+                            :error="
+                                errorFor('quick_patient.mobile_phone') ||
+                                errorFor('quick_patient.phone_country')
+                            "
+                        />
+                        <RegistrationContactFields
+                            class="md:col-span-2"
+                            :model="quick"
+                            :require-email="requirements.requireEmail"
+                            :require-address="requirements.requireAddress"
+                            :errors="contactErrors"
+                            id-prefix="quick-contact"
+                        />
+                    </div>
+                </section>
+                <section
+                    aria-labelledby="quick-identifiers-heading"
+                    class="space-y-3 border-t border-border/60 pt-4"
+                >
+                    <h3
+                        id="quick-identifiers-heading"
+                        class="text-sm font-semibold"
+                    >
+                        Identifiers
+                    </h3>
+                    <div class="grid gap-3 md:grid-cols-2">
+                        <label class="grid gap-1"
+                            ><span class="text-sm font-medium"
+                                >Identity document *</span
+                            >
+                            <div
+                                class="flex flex-col gap-2 sm:flex-row sm:gap-0"
+                            >
+                                <OperationalSelect
+                                    v-model="quickIdentifierType"
+                                    label="Identification type"
+                                    :options="identityTypeOptions"
+                                    trigger-class="h-10 w-full max-lg:min-h-11 sm:w-40 sm:rounded-r-none"
+                                /><input
+                                    v-model="quickIdentifierValue"
+                                    aria-label="IC or Passport number"
+                                    :aria-invalid="
+                                        !!(
+                                            errorFor(
+                                                'quick_patient.identifiers',
+                                            ) ||
+                                            errorFor(
+                                                'quick_patient.identifiers.0.value',
+                                            )
+                                        )
+                                    "
+                                    aria-describedby="quick-identity-error"
+                                    autocomplete="off"
+                                    class="h-9 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11 sm:flex-1 sm:rounded-l-none sm:border-l-0"
+                                />
+                            </div>
+                            <InputError
+                                id="quick-identity-error"
+                                :message="
+                                    errorFor('quick_patient.identifiers') ||
+                                    errorFor(
+                                        'quick_patient.identifiers.0.value',
+                                    ) ||
+                                    errorFor(
+                                        'quick_patient.identifiers.0.issuing_country_code',
+                                    )
+                                "
+                        /></label>
+                        <label
+                            v-if="quickIdentifierType === 'passport'"
+                            class="grid gap-1"
+                            ><span class="text-sm font-medium"
+                                >Passport issuer *</span
+                            ><input
+                                v-model="quickIssuer"
+                                :aria-invalid="
+                                    !!errorFor(
+                                        'quick_patient.identifiers.0.issuing_country_code',
+                                    )
+                                "
+                                aria-describedby="quick-identity-error"
+                                maxlength="2"
+                                class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm uppercase max-lg:h-11" /></label
+                        ><span v-else />
+                    </div>
+                </section>
                 <label
                     v-if="errorFor('quick_patient.duplicate_override')"
                     class="flex items-start gap-2 rounded-md border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong md:col-span-2"

@@ -47,5 +47,5 @@ test('guardian storage never enters WA, matching, public status, TV, billing pri
 });
 
 test('Quick create HTML phone requirement follows the same minor rule as validation', () => {
-    assert.match(read('resources/js/components/registration/RegistrationCreateForm.vue'), /:required="!knownMinor\(quick.date_of_birth, guardianToday\)"/);
+    assert.match(read('resources/js/components/registration/RegistrationCreateForm.vue'), /:required="\s*!knownMinor\(\s*quick.date_of_birth,\s*guardianToday,?\s*\)\s*"/);
 });
