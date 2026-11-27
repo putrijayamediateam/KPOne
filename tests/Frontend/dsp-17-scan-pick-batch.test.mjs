@@ -29,10 +29,10 @@ test('a matching scan points at the line batch dropdown and never selects a batc
     assert.equal(/showPicker|\.click\(\)/.test(point), false);
 });
 
-test('the hint is a brand ring and a polite status line, not the error look', () => {
+test('the hint is a blue ring and a polite status line, not the error look', () => {
     assert.ok(
         show.includes(
-            "'border-brand ring-2 ring-brand ring-offset-2 ring-offset-background focus-visible:ring-brand'",
+            "'border-primary ring-2 ring-ring ring-offset-2 ring-offset-background focus-visible:ring-ring'",
         ),
     );
     const hintClass = show.slice(show.indexOf('const batchHintClass'));
