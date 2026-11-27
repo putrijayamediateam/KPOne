@@ -290,7 +290,14 @@ test('Registration, branch and ordinary emergency/default layouts retain their c
         queueLayout: 'branch',
         queueTask: 'waiting',
     });
-    assert.match(branch, /Waiting \/ since/);
+    assert.deepEqual(headers(branch), [
+        'No.',
+        'Patient',
+        'Doctor',
+        'Status',
+        'Waiting',
+        'Actions',
+    ]);
 });
 test('empty own task spans exactly the six rendered columns', async () => {
     for (const queueTask of ['waiting', 'seeing']) {
@@ -812,4 +819,144 @@ test('own Medicine checks show only supplied review-line count and current sende
         /including intentionally not-dispensed lines/,
     );
     assert.match(page.replace(/\s+/g, ' '), /not a supplied medicine quantity/);
+});
+
+test('branch timeline status relocation preserves exactly one open dialog and readiness event across default transitions', async () => {
+    mountedControls.length = 0;
+    const node = () => ({ children: [], parent: null });
+    const renderer = Vue.createRenderer({
+        createElement: node,
+        createText: node,
+        createComment: node,
+        setText() {},
+        setElementText() {},
+        patchProp() {},
+        insert(child, parent, anchor) {
+            if (child.parent) {
+                const i = child.parent.children.indexOf(child);
+
+                if (i >= 0) {
+                    child.parent.children.splice(i, 1);
+                }
+            }
+
+            child.parent = parent;
+            const i = anchor ? parent.children.indexOf(anchor) : -1;
+
+            if (i < 0) {
+                parent.children.push(child);
+            } else {
+                parent.children.splice(i, 0, child);
+            }
+        },
+        remove(child) {
+            if (child.parent) {
+                const i = child.parent.children.indexOf(child);
+
+                if (i >= 0) {
+                    child.parent.children.splice(i, 1);
+                }
+            }
+
+            child.parent = null;
+        },
+        parentNode: (child) => child.parent,
+        nextSibling: (child) =>
+            child.parent?.children[child.parent.children.indexOf(child) + 1] ??
+            null,
+    });
+    const props = Vue.reactive({ queueLayout: 'branch', queueTask: 'waiting' });
+    let readiness = 0;
+    const app = renderer.createApp({
+        setup: () => () =>
+            Vue.h(Board, {
+                ...props,
+                branchId: 3,
+                rows: [
+                    {
+                        ...row,
+                        treatmentProgress: {
+                            state: 'started',
+                            canManage: true,
+                        },
+                    },
+                ],
+                onReadinessChanged: () => readiness++,
+            }),
+    });
+    app.mount(node());
+    const active = (kind) =>
+        mountedControls.filter((entry) => entry.active && entry.kind === kind);
+    assert.equal(active('treatment').length, 1);
+    active('treatment')[0].emit('update:open', true);
+    await Vue.nextTick();
+
+    for (const task of [undefined, 'seeing', 'held', 'waiting']) {
+        props.queueTask = task;
+        await Vue.nextTick();
+        assert.equal(active('treatment').length, 1);
+        assert.equal(active('readiness').length, 1);
+        assert.equal(active('treatment')[0].props.open, true);
+        active('readiness')[0].emit('changed');
+        await Vue.nextTick();
+    }
+
+    assert.equal(readiness, 4);
+    active('treatment')[0].emit('update:open', false);
+    await Vue.nextTick();
+    assert.equal(active('treatment')[0].props.open, false);
+    app.unmount();
+    assert.equal(active('treatment').length, 0);
+    assert.equal(active('readiness').length, 0);
+});
+
+test('branch Waiting and Serving put existing safety status before truthful timing without changing default tasks', async () => {
+    for (const [task, timing] of [
+        ['waiting', 'Waiting'],
+        ['seeing', 'Since'],
+    ]) {
+        const html = await render(
+            { queueLayout: 'branch', queueTask: task },
+            {
+                triage: { triaged: true, zone: 'red' },
+                priority: 'urgent',
+                returnedFromDispensary: true,
+            },
+        );
+        assert.deepEqual(headers(html), [
+            'No.',
+            'Patient',
+            'Doctor',
+            'Status',
+            timing,
+            'Actions',
+        ]);
+        assert.ok(
+            html.indexOf('data-label="Status"') <
+                html.indexOf('data-label="' + timing + '"'),
+        );
+        assert.equal((html.match(/data-label="Status"/g) ?? []).length, 1);
+        assert.equal(
+            (html.match(/data-testid="triage-zone-chip"/g) ?? []).length,
+            1,
+        );
+        assert.match(html, /Red zone/);
+        assert.match(html, /Returned/);
+    }
+
+    for (const task of [undefined, 'held', 'completed']) {
+        const html = await render({ queueLayout: 'branch', queueTask: task });
+        assert.deepEqual(headers(html), [
+            'No.',
+            'Patient',
+            'Doctor',
+            'Waiting / since',
+            'Status',
+            'Actions',
+        ]);
+        assert.ok(
+            html.indexOf('data-label="Duration"') <
+                html.indexOf('data-label="Status"'),
+        );
+    }
 });

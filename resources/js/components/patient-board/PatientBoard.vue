@@ -47,6 +47,11 @@ const props = defineProps<{
 const ownTask = computed(
     () => props.queueLayout === 'own' && props.queueTask !== undefined,
 );
+const branchTimeline = computed(
+    () =>
+        props.queueLayout === 'branch' &&
+        (props.queueTask === 'waiting' || props.queueTask === 'seeing'),
+);
 
 defineEmits<{
     sendToWaiting: [row: PatientBoardRow];
@@ -161,6 +166,9 @@ const triageTextClass = (zone: TriageZone | null) =>
                         >
                             Doctor
                         </th>
+                        <th v-if="branchTimeline" class="w-40 px-3 py-2">
+                            Status
+                        </th>
                         <th class="w-40 px-3 py-2">
                             {{
                                 ownTask
@@ -175,10 +183,19 @@ const triageTextClass = (zone: TriageZone | null) =>
                                               : queueTask === 'waiting'
                                                 ? 'Waiting'
                                                 : 'Since'
-                                    : 'Waiting / since'
+                                    : branchTimeline
+                                      ? queueTask === 'waiting'
+                                          ? 'Waiting'
+                                          : 'Since'
+                                      : 'Waiting / since'
                             }}
                         </th>
-                        <th v-if="!ownTask" class="w-40 px-3 py-2">Status</th>
+                        <th
+                            v-if="!ownTask && !branchTimeline"
+                            class="w-40 px-3 py-2"
+                        >
+                            Status
+                        </th>
                         <th class="w-[112px] px-3 py-2 text-right">Actions</th>
                     </template>
                     <template v-else>
@@ -498,6 +515,48 @@ const triageTextClass = (zone: TriageZone | null) =>
                         </TooltipProvider>
                     </td>
                     <td
+                        class="px-3 py-2.5 align-middle"
+                        data-label="Status"
+                        v-if="branchTimeline"
+                        :data-treatment-row="
+                            row.treatmentProgress?.state ||
+                            row.treatmentProgress?.canManage
+                                ? ''
+                                : undefined
+                        "
+                    >
+                        <PatientBoardStatus
+                            :row="row"
+                            :branch-id="branchId"
+                            :from="from"
+                            v-model:treatment-dialog-key="treatmentDialogKey"
+                            @readiness-changed="$emit('readinessChanged')"
+                        >
+                            <template #triage>
+                                <!-- TRI-1c: the triage zone (CA, CA Supervisor and the patient's own doctor only; the server
+                                 sends nothing to anyone else). The word is always shown, never colour alone. -->
+                                <span
+                                    v-if="row.triage?.triaged"
+                                    class="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[11px] font-medium"
+                                    :class="triageTextClass(row.triage.zone)"
+                                    data-testid="triage-zone-chip"
+                                    ><span
+                                        v-if="row.triage.zone"
+                                        aria-hidden="true"
+                                        class="size-2 shrink-0 rounded-full"
+                                        :class="triageDotClass(row.triage.zone)"
+                                    />{{ triageLabel(row.triage.zone) }}</span
+                                >
+                                <span
+                                    v-else-if="row.triage"
+                                    class="inline-flex rounded-md border border-dashed border-border px-2 py-0.5 text-[11px] font-normal text-muted-foreground"
+                                    data-testid="triage-missing-chip"
+                                    >No triage yet</span
+                                >
+                            </template>
+                        </PatientBoardStatus>
+                    </td>
+                    <td
                         v-if="!(ownTask && queueTask === 'treatment')"
                         class="px-3 py-2.5 align-middle"
                         :data-label="
@@ -511,7 +570,11 @@ const triageTextClass = (zone: TriageZone | null) =>
                                         : queueTask === 'waiting'
                                           ? 'Waiting'
                                           : 'Since'
-                                : 'Duration'
+                                : branchTimeline
+                                  ? queueTask === 'waiting'
+                                      ? 'Waiting'
+                                      : 'Since'
+                                  : 'Duration'
                         "
                     >
                         <span
@@ -562,7 +625,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                     <td
                         class="px-3 py-2.5 align-middle"
                         data-label="Status"
-                        v-if="!ownTask"
+                        v-if="!ownTask && !branchTimeline"
                         :data-treatment-row="
                             row.treatmentProgress?.state ||
                             row.treatmentProgress?.canManage
