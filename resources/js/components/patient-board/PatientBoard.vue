@@ -90,7 +90,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
     ({
         neutral: 'border-border text-muted-foreground',
         waiting: 'border-border bg-muted text-foreground',
-        serving: 'border-brand/25 bg-brand/10 text-brand-strong',
+        serving: 'border-info/25 bg-info-wash text-info',
         held: 'border-warning/25 bg-warning/10 text-warning-strong',
         cancelled: 'border-border text-muted-foreground',
         removed: 'border-border text-muted-foreground',
