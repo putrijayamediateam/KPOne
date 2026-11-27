@@ -860,7 +860,7 @@ const saveReorder = () =>
 
         <div
             v-if="operationError"
-            class="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+            class="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive"
             role="alert"
             aria-live="assertive"
         >
@@ -899,7 +899,7 @@ const saveReorder = () =>
                 <div
                     v-for="item in operations.suppliers"
                     :key="item.publicId"
-                    class="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border p-2 [&_[data-slot=status-badge]]:max-w-full [&_[data-slot=status-badge]]:wrap-anywhere [&_[data-slot=status-badge]]:whitespace-normal"
+                    class="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-xl border bg-card-quiet p-2 [&_[data-slot=status-badge]]:max-w-full [&_[data-slot=status-badge]]:wrap-anywhere [&_[data-slot=status-badge]]:whitespace-normal"
                 >
                     <StatusBadge
                         :status="item.isActive ? 'active' : 'inactive'"
@@ -907,7 +907,7 @@ const saveReorder = () =>
                     />
                     <Button
                         size="sm"
-                        variant="secondary"
+                        variant="outline"
                         :disabled="busy"
                         @click="
                             confirmSupplierStatus(item.publicId, !item.isActive)
@@ -1465,7 +1465,7 @@ const saveReorder = () =>
                 <article
                     v-for="row in operations.stocktakes"
                     :key="row.publicId"
-                    class="space-y-2 rounded-lg border p-3"
+                    class="space-y-2 rounded-xl border bg-card-quiet p-3"
                 >
                     <div class="flex justify-between">
                         <span class="font-mono text-xs">{{ row.number }}</span
@@ -1493,7 +1493,7 @@ const saveReorder = () =>
                 <article
                     v-for="row in operations.adjustments"
                     :key="row.publicId"
-                    class="space-y-1 rounded-lg border p-3 text-sm break-words"
+                    class="space-y-1 rounded-xl border bg-card-quiet p-3 text-sm break-words"
                 >
                     <p>{{ row.sku }} / {{ row.batch }} · {{ row.location }}</p>
                     <p>
@@ -1583,7 +1583,7 @@ const saveReorder = () =>
                 <div
                     v-for="row in operations.lowStock"
                     :key="`${row.location}-${row.sku}`"
-                    class="rounded-lg border border-amber-300 bg-amber-50 p-2 text-sm dark:bg-amber-950/20"
+                    class="rounded-xl border border-warning/25 bg-warning-wash p-2 text-sm text-warning"
                 >
                     <strong>{{ row.sku }}</strong> ·
                     {{ row.availableQuantity }} available /
@@ -1602,7 +1602,7 @@ const saveReorder = () =>
                 <div
                     v-for="row in operations.expiringBatches"
                     :key="`${row.sku}-${row.batch}-${row.location}`"
-                    class="space-y-1 rounded-lg border bg-muted/30 p-2 text-xs break-words whitespace-normal"
+                    class="space-y-1 rounded-xl border bg-card-quiet p-2 text-xs break-words whitespace-normal"
                 >
                     {{ row.sku }} · {{ row.batch }} · {{ row.expiryDate }}
                     <span class="block break-words whitespace-normal">
