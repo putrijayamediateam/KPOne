@@ -4,6 +4,133 @@ Status: **set up with the owner on 2026-11-05.** This folder is the team's memor
 built, what the owner decided, the rules, and what to build next. The team reads it before every task and
 updates it in the same PR as the code.
 
+## 0. Handover for a fresh session (written 27 Nov 2026, state as seen at about 06:30 UTC)
+
+Owner decision 27 Nov: every team gets a fresh session on a new model, one slice per session. This section is
+everything a fresh session needs. It also covers the Triage (Syazwan, Farhana) and Patient flow (Aqilah, Imran)
+parts of the team. Read sections 6 to 8 as usual; nothing below changes a rule. Never edit `docs/BASELINE.md`;
+no PR and no merge unless the owner has said "ship it" (typed, or relayed by B.E.R.N.I.S.S. once the owner has
+confirmed that relayed ship-its count in that session). Verify every PR and branch state below on GitHub before
+acting: it was true when this was written.
+
+### 0.1 Context: Clean Look replaces Classic (owner, 25 Nov 2026)
+
+- The whole frontend is restyled **in place** with the shared components (`resources/js/components/ui/*`, AppShell,
+  AppSidebar, AppHeader, `resources/css/app.css` tokens). No V2-style switch, no parallel page folder, no
+  duplicate page or component. Spec: `docs/design/CLEAN-LOOK-SPEC.md` (Daniel). Canvas:
+  https://claude.ai/artifact/Jyr8UV231y4roWRyyqxxRJ, clickable demo: https://claude.ai/artifact/KUkn7hc8xW9k2REtRUCFbG.
+- Deadline: Monday 30 Nov 08:30 MYT, the owner's live test with the CAs at Puchong. Every button the CA flow
+  needs must work.
+- Daniel's requirement for the Registration board: at 390 px the main action ("Register Visit") sits in the page
+  header row above the tabs, never over the tab strip (it hides the Triage tab today); tabs keep horizontal scroll
+  with the right-edge fade (spec section 5).
+- Changed existing assertions are listed in the PR body; B.E.R.N.I.S.S. reports them to the owner. Any new
+  permission or role grant comes to B.E.R.N.I.S.S. as a tick-box question for the owner before it is built.
+
+### 0.2 Pull requests open on 27 Nov (opened by the coordinator account, not by this session)
+
+| PR | What | Notes |
+|---|---|---|
+| #1132 | Registration Clean Look: board and four visit pages on the shared components (9 files) | Open, not draft, CI "unstable" at last look; contains main `d0f37b5c1`. Emergency contact, Family and TRI-2 are separate. |
+| #1146, #1166 | Registration workspace navigation and composition | Drafts or follow-ups on #1132; check the dependency order before touching. |
+| #1147 | Optional patient emergency contacts (draft) | Canvas "Proposal: needs owner approval". Check what the owner approved. |
+| #1148 | Direct patient family links (draft) | See 0.5; compare with the model below before building anything else. |
+| #1164 | AUTO-1c recovery on `release/auto1c-doctor-warning` | Compare with my branch (0.3); it may lack the owner-approved assertion change and Daniel's changes. |
+| #1171, #1174, #1177 | Patient directory composition, Patient edit change summary, Patient create requirements guidance | Presentation slices. |
+| #1172, #1180 | Treatment room records backend and UI | See 0.4. |
+| #1182 | TRI-2 emergency lifecycle and bounded alarm ranking | See 0.4. |
+
+### 0.3 Work from the previous Patients & Registration session (branches, all pushed, no PR)
+
+- **AUTO-1, merged:** PR #1099, `916ec0b` (roster-based automatic doctor assignment, per-branch Director switch,
+  permission `registration.auto_assign.manage.branch`, audit `doctor_source` and `doctor_reason_code`).
+  Design: `docs/teams/patients-registration/AUTO-1-DESIGN.md`, section 7 of AUTO-1c-DESIGN records the owner's
+  answers.
+- **AUTO-1c, doctor warning chip and Reassign link:** branch `feature/auto-1c-doctor-warning`, head `6fd30499b`,
+  pushed, no PR from me. Daniel: OK with changes (applied: short labels "Not on today's roster", "On leave now",
+  "No room today", "Another doctor free", neutral outline chip for the advice, full doctor name as `title` on
+  the truncated pill). Owner approved the one existing assertion change: `QueuePerformanceTest` GET ceiling
+  21 to 22 ("Lulus 21→22"). Queue, Visit and Unit regression green on this branch (634 tests); PHPStan clean.
+  Needs the owner's ship-it. PR #1164 exists from another branch; reconcile before opening a second PR.
+- **REL-PR, approved wording released:** branch `feature/rel-pr-approved-wording`, head `8aeda5cae`, pushed, no PR.
+  Migration `2026_11_26_200000_release_approved_document_wording` appends approved template revisions
+  (MC rev 3, referral rev 2, attendance rev 2) with an approval record (`approved_by_label`, `approved_on`),
+  set to "the clinic's doctor (owner-confirmed, verbal, 25 Nov 2026)"; issued snapshots keep their frozen DRAFT
+  text; QR privacy notice version `approved-2026-11-25-v1`; the "draf UAT" headings read "Notis privasi". New
+  test `ApprovedWordingReleaseTest`. Still needed: independent review, Daniel's look at the three printed copies,
+  and the owner's confirmation of the assertion changes that were not in the owner's list: the "EN revision 3" and
+  "DRAF banner absent" assertions in `MedicalCertificateTest`, and the two "Notis privasi" heading assertions in
+  `registration-contact-settings.test.mjs` and `classic-only-co9-kept-public-show.test.mjs`. Local runs show only
+  5 GD-extension errors (the container has no GD; CI does).
+- **TRI-2 owner answers:** branch `docs/tri-2-owner-answers`, head `00fccc5b9`, pushed (section 12 of
+  `TRI-2-DESIGN.md`).
+- **Toast fix (small, not done):** `AutoAssignSettingController` line 20 still uses `->with('success', ...)`, which
+  never shows a toast; change it to `Inertia::flash('toast', ['type' => 'success', 'message' => ...])`
+  (B.E.R.N.I.S.S.: Adlina's fix covers `RegistrationSettingsController`; mine is this controller only). No existing
+  assertion reads the flash. Own small `fix/` branch and PR.
+- **Follow-ups:** AUTO-1b (QR acceptance auto-assigns a doctor); Edit visit still lists all eligible doctors and
+  records no `doctor_source`; Daniel logs the shared 44 px select as design debt (do not change it in a Clean Look
+  PR unless Daniel asks).
+
+### 0.4 Triage part (Syazwan, Farhana)
+
+- **TRI-1a to TRI-1e** are merged (triage form `visits/{visit}/triage`, view for the patient's own doctor, guideline
+  settings).
+- **Emergency lane (TRI-2):** the owner answered all nine questions A on 25 Nov: two buttons ("I'll see this patient"
+  assigns the patient and stops the alert; "Seen, not taking" is recorded and the alert continues); Resident Doctors
+  whose active branch is this branch; nobody acknowledges on a doctor's behalf in v1; not-ready cannot be set
+  while an alert is open; sound on by default, repeating every 10 s, silenced on one device for at most 2 min; the
+  new permission `queue.emergency.respond.branch` is **approved for `resident_doctor` only**; no escalation beyond
+  the lane counter; locums without a clinical role see nothing; one confirmed "Hold my current patient, then
+  take" action (Hold first; if Take fails the patient stays held and the doctor is told). TRI-2 builds the lane,
+  the Call next ordering and the take-over action and **reuses Amirul's Q-16b alert record and endpoint**; agree
+  the shared model with him first. PR #1182 is the coordinator's recovery of the lifecycle; check it before
+  building.
+- **Treatment room (canvas "proposal", owner chose to build before Monday):** lanes A1/A2/B/C, Transfer in and
+  Receive patient, Waiting for result and Enter result, Not successful with a reason, priority call-back, Complete
+  to Billing, and Consultation "Transfer to treatment room". Builds on `TreatmentRoomPermissions`
+  (`treatment_room.record.branch`, `treatment_room.view.branch`), the Q-2 treatment steps
+  (`visits/{visit}/queue/treatment-steps`) and the TV-2 room call. PRs #1172 and #1180 are open.
+- Build order the owner set: Registration restyle, then Treatment room, then Family link, then Emergency lane.
+
+### 0.5 Patient flow part (Aqilah, Imran): Family link
+
+- Model agreed with Farah (Billing) on 25 Nov: `patient_families` and `patient_family_members` (a patient is in at
+  most one family; relationship label; no head or payer), an append-only events table, one `PatientFamilyService`
+  (permission, `DB::transaction`, row locks in patient id order, `lock_version`, audit), and a nullable
+  `visits.family_group_id` (uuid) stamped when linked members register together, with a partial index on
+  `(branch_id, family_group_id)` where not null. Billing reads the key and never writes it; "Remove from family
+  bill" is Billing's own `family_bill_exclusions`. Design note to write: `FAMILY-LINK-DESIGN.md`. Billing note:
+  `docs/teams/billing/BIL-39-DESIGN.md` (Farah).
+- Owner decisions F1 to F3 were sent to B.E.R.N.I.S.S. and are **not recorded here yet**: permission to manage the
+  link (reuse `patients.update.organisation`, recommended, or a new narrow permission), phone-number matching of
+  relatives (recommended: no, explicit link only), and clinical history on the Consultation Family card
+  (recommended: only that a relative is waiting today, plus a link the viewer may already open; no history across
+  patients). PR #1148 is a draft by the coordinator account; read it before building.
+- Emergency contact (canvas "required for adults"): a separate new data item, PR #1147, needs the owner's
+  decisions before more building.
+
+### 0.6 Backend gap list sent to B.E.R.N.I.S.S. (25 Nov)
+
+Puchong CA flow boards: gaps were family link, treatment room, "Transfer to treatment room" and the emergency lane
+(all now chosen for building, above). Everything else on Registration, Register visit, Create patient, QR
+check-ins, Consultation, Triage and Visit details has a route on main and needs only the restyle. **Not walked yet:**
+Patient, PatientEdit, PatientDirectory, PatientMerge, PublicQrForm, PublicQrStatus, MC, AttendanceLetter and
+ReferralLetter (the usage limit stopped the walk). Triage "To triage" and "Triaged today" list counts were not
+verified.
+
+### 0.7 Working notes for the next session
+
+- Run PHP through `kphp` (`KPHP_ENV_FILE=<task env> kphp vendor/bin/phpunit ...`); never `php artisan serve` with the
+  real `.env`; use a task-owned PostgreSQL 18 database and check the effective DB host, port and name before the
+  first request. Raise `max_locks_per_transaction` (about 1024) on the test database for the large suites.
+- The cloud container has no GD extension, so logo tests error locally; CI covers them. The host PHP 8.3 breaks the
+  nav-02 frontend test and `npm run build` unless a PHP 8.4 shim is first on the PATH.
+- Build test dates from the branch time zone, never the UTC clock.
+- Next slice, in the owner's order: Registration restyle (finish or take over #1132 with Daniel's header
+  requirement), then Treatment room, Family link, Emergency lane; the AUTO-1c, REL-PR and toast PRs wait for
+  ship-its.
+
 ## 1. Team
 
 | Role | Name | Job |
