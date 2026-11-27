@@ -247,3 +247,17 @@ All three branch from the main of 25 Nov; merge `origin/main` in before opening.
 - Real-browser checks: preview server with a task-owned database (verify host, port and name before the first request), seeded with `KPOnePresentationSeeder` and `KPOneDemoSetupSeeder`; demo password is in the seeder. `npm run build` needs `php` on `PATH` pointing at the Docker wrapper.
 - Local-only frontend failures, not yours: `nav-02-top-bar` and the logout-surface test (the second only when Wayfinder files are not generated).
 - Queue source-pin tests to keep in mind when editing pages: `q-4-call-next`, `q-4b-held-call-next`, `q-1-waiting-time` (mounts `PatientBoard` with a stubbed import map: add no new import there), `tab-counts-1` (evaluates the Queue `tabs` computed alone), the Registration page tests (stub every import).
+
+### Q-16d/e/f progress and ChatGPT duplicates (27 Nov 2026, Amirul)
+Local merge of `origin/main` (84ea12fce) into each branch, none pushed, no PR opened yet:
+- `feature/q-16d-rooms-today` -> `e51323a6` (conflicts in `routes/web.php` and `QueueController` resolved by keeping both sides; Rooms today, red-zone and details tests 20/20).
+- `feature/q-16e-average-wait` -> `4d6ae601` (same conflict, same fix; 20/20). It is based on `main`, so it conflicts a third time once 16d lands: merge `main` again after 16d.
+- `feature/q-16f-tv-calls-today` -> `fca2ed24` (clean merge; QueueDisplay suite 23/23, queue and TV frontend tests 51/51).
+Tests ran on a task-owned PostgreSQL 16 database (PG18 is not installed here), so this is not release evidence.
+
+Open ChatGPT PRs that overlap these slices, for the coordinator to close as duplicates if ours land:
+- #1161 `release/q16d-rooms-today` (Q-16d) and #1249 `recovery/queue-doctors-table` (doctors table with room and waiting context), possibly #1223 and #1164 (room provenance, doctor availability).
+- #1157 `release/q16e-average-wait` (Q-16e).
+- #1204 `release/q16f-calls-today` (Q-16f).
+Not overlapping, left alone: the workload and column PRs #1151, #1153, #1156, #1215, #1220, #1229, #1233, #1234, #1238, #1242, #1244, #1246, #1247, and #1169 (treatment call while held).
+Q-16c gaps found on `main`: the details panel header shows `patientName` only (no queue number), and vitals are returned as a raw string cast so padded decimals can show. Units, the "Not yet reviewed" warning badge and "waiting <1 min" did land.
