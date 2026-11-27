@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { getCountries, getCountryCallingCode } from 'libphonenumber-js/max';
 import { computed, ref } from 'vue';
+import { OperationalSelect } from '@/components/ui/select';
 import { phoneInputError } from '@/lib/patient-registration';
 
 const props = withDefaults(
@@ -39,6 +40,10 @@ const countries = getCountries()
         prefix: getCountryCallingCode(code),
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
+const countryOptions = countries.map((option) => ({
+    value: option.code,
+    label: `${option.name} (+${option.prefix})`,
+}));
 </script>
 
 <template>
@@ -47,26 +52,14 @@ const countries = getCountries()
             >Phone <span v-if="required">*</span></label
         >
         <div class="flex flex-col gap-2 sm:flex-row">
-            <select
+            <OperationalSelect
                 :id="id + '-country'"
-                :value="country"
-                aria-label="Phone country"
-                class="h-10 w-full min-w-0 rounded-md border bg-background px-2 text-sm sm:w-36"
-                @change="
-                    emit(
-                        'update:country',
-                        ($event.target as HTMLSelectElement).value,
-                    )
-                "
-            >
-                <option
-                    v-for="option in countries"
-                    :key="option.code"
-                    :value="option.code"
-                >
-                    {{ option.name }} (+{{ option.prefix }})
-                </option>
-            </select>
+                :model-value="country"
+                label="Phone country"
+                :options="countryOptions"
+                trigger-class="h-10 w-full min-w-0 sm:w-36 md:w-48"
+                @update:model-value="emit('update:country', String($event))"
+            />
             <input
                 :id="id"
                 :value="modelValue"
