@@ -72,13 +72,29 @@ class DispensaryReturnsHistoryTest extends VisitTestCase
     {
         $w = $this->waiting(controlled: false);
         $this->refuse($w);
-        $lastMonth = now($w['f']['visit']->branch->timezone)->startOfMonth()->subMinute()->utc();
-        DB::statement('ALTER TABLE dispensary_return_checks DISABLE TRIGGER USER');
-        DB::table('dispensary_return_checks')->update(['checked_at' => $lastMonth]);
-        DB::statement('ALTER TABLE dispensary_return_checks ENABLE TRIGGER USER');
+        $monthStart = now($w['f']['visit']->branch->timezone)->startOfMonth();
+        $this->actingAs($w['supervisor']);
 
-        $this->actingAs($w['supervisor'])->get(route('dispensary.returns-to-check', ['view' => 'checked']))
-            ->assertInertia(fn (Assert $page) => $page->where('returns.counts.checked', 0)->has('returns.rows', 0));
+        // Hakim: both edges, in the branch's local month. The start itself is in; a minute before it and the next
+        // month's start are out.
+        foreach ([[$monthStart, 1], [$monthStart->copy()->subMinute(), 0], [$monthStart->copy()->addMonth(), 0]] as [$at, $expected]) {
+            $this->setCheckedAt($at->copy()->utc());
+            $this->get(route('dispensary.returns-to-check', ['view' => 'checked']))
+                ->assertInertia(fn (Assert $page) => $page->where('returns.counts.checked', $expected)->has('returns.rows', $expected));
+        }
+    }
+
+    /** The check row is append-only; PostgreSQL's guard trigger is paused only while the test moves its time. */
+    private function setCheckedAt(\DateTimeInterface $at): void
+    {
+        $postgres = DB::connection()->getDriverName() === 'pgsql';
+        if ($postgres) {
+            DB::statement('ALTER TABLE dispensary_return_checks DISABLE TRIGGER USER');
+        }
+        DB::table('dispensary_return_checks')->update(['checked_at' => $at]);
+        if ($postgres) {
+            DB::statement('ALTER TABLE dispensary_return_checks ENABLE TRIGGER USER');
+        }
     }
 
     public function test_both_lists_filter_by_controlled_medicine(): void

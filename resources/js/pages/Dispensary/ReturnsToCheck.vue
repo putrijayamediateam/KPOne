@@ -118,7 +118,7 @@ const outcome = (row: Row) =>
         : row.outcome === 'quarantine'
           ? 'Quarantined'
           : row.outcome === 'refuse'
-            ? `Refused: ${refuseReasonLabels[row.refuseReason ?? ''] ?? 'Other'}`
+            ? `Refused: ${refuseReasonLabels[row.refuseReason ?? ''] ?? row.refuseReason ?? 'Other'}`
             : '';
 const ownNote = 'You recorded this. Another CA Supervisor must check it.';
 const help = computed(() =>
