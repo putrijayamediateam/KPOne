@@ -30,26 +30,33 @@ with "Remove from family bill". The family link itself belongs to Patients & Reg
 
 ## 3. Take payment for the family
 
-- **Input:** method, amount (at most the family total due now), reference, and one `idempotency_key` for the whole family
-  payment.
+- **Input:** method, amount (at most the family total due now), reference, one `idempotency_key` for the whole family
+  payment, and, for each member invoice shown, its public id and `lock_version`, plus the family total due now the page
+  displayed (Kumar R2).
 - **Split:** the amount is spread oldest invoice first (by `finalized_at`, then id), up to each invoice's due now. A
   member with nothing due gets nothing.
 - **One receipt per invoice**, through today's `PaymentService::add`, so every receipt keeps its own number, its own
   print and its own refund path:
   - each child receipt's idempotency key is derived from the family key and the invoice;
-  - a retry returns the same receipts;
-  - a changed payload is refused.
+  - a retry first looks up the receipts already recorded for this family key (by `family_payment_id` and the derived
+    keys) and returns them, **before** any amount or due-now check, because after a success the due now has already
+    dropped (Kumar R3);
+  - a family-level `family_payload_hash` (method, reference, amount, the ordered invoice ids and their lock versions,
+    actor) is stored on every child receipt; a retry whose hash differs is refused for the whole family (Kumar R4).
 - **Locks and atomicity:**
   - one `DB::transaction`;
   - the actor and branch lock, and the BIL-32 day gate;
-  - every member invoice row locked in id order before any receipt is written;
+  - the same lock order as a single payment (`BillingContextService::lock`, then `PaymentService::add`), for every member
+    before any receipt is written (Kumar R1): every member's **patient** in id order, then every member's **visit** in
+    id order, then the organisation share lock, then every member **invoice** in id order;
+  - each member invoice's `lock_version` must equal the one sent (Kumar R2);
   - all-or-nothing: if one invoice changed (version), became void, or its due now shrank, the whole payment is refused
     ("A bill in this family changed. Reload.") and nothing is recorded.
 - **Audit:** one `billing.family_payment_recorded` (family group id, invoice ids, amounts, no names), in addition to each
   receipt's usual audit.
 - **No new table for the payment:**
-  - a `family_payment_id` uuid is stored on each receipt in a new nullable `payments.family_payment_id` column, so the
-    receipts can be shown together;
+  - a `family_payment_id` uuid and a `family_payload_hash` are stored on each receipt in new nullable `payments` columns,
+    so the receipts can be shown together and a changed retry is refused;
   - Panel and pay-later stay per invoice, as today.
 
 ## 4. Remove from family bill
@@ -64,6 +71,8 @@ with "Remove from family bill". The family link itself belongs to Patients & Reg
 ## 5. Permissions
 
 - `billing.view.branch` (or `billing.summary.branch`) to see the family bill.
+- Member invoice **lines** are shown only with `billing.lines.view.branch` (or `billing.view.branch`), exactly as on the
+  single Billing page; a `billing.summary.branch` holder without it sees each member's totals only (Kumar R5).
 - `payments.add.branch` to take the family payment.
 - `billing.build.branch` to remove or put back.
 - No new permission or role grant.
@@ -71,7 +80,7 @@ with "Remove from family bill". The family link itself belongs to Patients & Reg
 ## 6. Migrations
 
 - `family_bill_exclusions` (new).
-- `payments.family_payment_id` (nullable uuid, indexed).
+- `payments.family_payment_id` (nullable uuid, indexed) and `payments.family_payload_hash` (nullable).
 - Both additive and in my range.
 - They depend on Nurul's `visits.family_group_id` migration, which must merge first.
 
@@ -85,11 +94,16 @@ with "Remove from family bill". The family link itself belongs to Patients & Reg
   - an amount above the total is refused;
   - a member with nothing due gets nothing.
 - **Atomicity:** one invoice changing or voiding refuses the whole payment, with nothing written.
-- **Idempotent retry:** the same receipts; a changed payload is refused.
+- **Idempotent retry:** the same receipts, even though due now has dropped; a changed payload (method, reference,
+  amount or invoice versions) is refused for the whole family.
+- **Versions:** a stale `lock_version` on any member invoice refuses the whole payment, with nothing written.
+- **Lines:** a summary-only holder sees member totals but no lines.
 - **Day gate:** locked or paused days are refused, as for one payment.
 - **Access:** permissions for each action; another branch gives 404.
 - **Each child receipt** prints, reverses and refunds exactly as a normal receipt.
-- **Contention:** a family payment racing a single payment on one member's invoice; two family payments at once.
+- **Contention (PostgreSQL):** a family payment racing a single payment on one member's invoice, with **both lock
+  orders forced in turn** (as BIL-20), and no deadlock; two family payments at once; the same family request sent twice
+  at once records one set of receipts.
 - **Existing assertions:** none expected to change. Any that do will be listed for the owner first.
 
 ## 8. Questions for the owner (tick boxes)
@@ -112,3 +126,10 @@ with "Remove from family bill". The family link itself belongs to Patients & Reg
 3. Receipts: **A**, one receipt per invoice; no combined family receipt.
 4. Dependency: wait for Nurul's `visits.family_group_id` migration to merge before building; Kumar reviews this note
    meanwhile.
+
+## 10. Kumar's review (27 Nov 2026)
+
+Reviewed at `08667d2d`. Verdict: OK to build after FAM-1 merges, with R1 to R5 now applied above (lock order matching
+`BillingContextService` and `PaymentService::add`, per-invoice `lock_version` input, receipts found before validation on
+retry, a family-level payload hash, line visibility gated by `billing.lines.view.branch`). No owner decision needed; no
+new permission.
