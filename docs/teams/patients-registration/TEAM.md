@@ -249,6 +249,39 @@ Backlog: "(edited)" kept after a save (decision 34; needs a server change).
 - The Docker daemon in the cloud container has stopped twice. Restart the containers and check the database host, port and name before running tests.
 - Image tests need the GD extension, which the container lacks; they pass in CI.
 
+### CL2-TRIAGE Clean Look Stage 2 (27 Nov 2026)
+
+Brief: `docs/clean-look-stage2/triage.md` on `claude/relaxed-edison-t8klk2`. Look only: restyled in place, with no PHP, route, payload, permission, migration or assertion change. Coordinator: B.E.R.N.I.S.S.
+
+- **PR #1263** `feature/cl2-triage` (`1594190bd`, two commits on main `9d663157`). Open (ready, not draft) as of 27 Nov; the coordinator merges it after CI, Farhana's check and Daniel's look.
+  - `Triage/Show.vue`:
+    - cards use the 14 px radius and `shadow-card`; status boxes use the `-wash` backgrounds;
+    - headings 15/600, labels 13/500, help 12.5;
+    - fields use `border-input` and `bg-field-fill`; the zone buttons are pills; the side column is 320 px.
+  - `Triage/View.vue`: cards with shadow, readings in a `card-quiet` well, and a divider above the zone line.
+  - `TriageGuideline/Index.vue`: cards with shadow, 17/600 section titles, a `card-quiet` summary well and `card-quiet` table headers.
+- **Screenshots:** `validation/cl2-triage-shots` (`39dbdf4e0`), in `docs/screenshots/cl2-triage/`. It holds 12 PNGs at 1440 light, 1440 dark and 390 light. Not for merge.
+- **Not done:**
+  - TreatmentRoom: only in #1180, not merged.
+  - EmergencyAlert: the TRI-2 shared alert, #1193, not merged. The Q-16b red-zone alert on main lives in Queue and My day, which belong to Amirul and Kavitha.
+  - StatusGuide: a guide board, nothing to build.
+  - When #1180 and #1193 land, their pages need the same Clean Look pass.
+- **Demo-only (not built):**
+  - the demo Triage board's list, metric tiles, search and help panel (KPOne's list is the Registration Triage tab, owned by Nurul);
+  - the "Patient journey map" link;
+  - the settings side navigation on the TriageGuideline board (shell work).
+- **Rules learnt:**
+  - A crossed reading's `border-2 border-destructive` or `border-2 border-warning` must stay in the `:class` ternary. Put `border-input` only in the "no limit crossed" branch; on the same element the two colour utilities conflict and the warning border can lose.
+  - A `float-left w-full` legend (used to keep the fieldset heading inside the card) needs a `clear-left` element after it. Without one, a following flex row is laid out beside the float and overflows at 390 px. This was found in the shots (444 px) and fixed.
+  - The tri-1b, tri-1c and tri-1e class pins (`border-2 border-warning`, `class="space-y-2 md:hidden"`) still hold.
+- **Screenshot data:**
+  - A throwaway (uncommitted) test extending `TriageTestCase`, with `beginDatabaseTransaction()` overridden to a no-op so the data commits. Run with `APP_ENV=testing` against the task database: the branch bootstrapper refuses any other environment.
+  - Then `kphp artisan serve` with an explicit env file, after checking `config:show database.connections.pgsql`.
+  - Sign in once per user and reuse the session; repeated sign-ins hit the login throttle.
+- **Environment:**
+  - The session hook needs the Docker daemon running first; it was down at the start of this session.
+  - `npm run build` and the frontend tests that call PHP need a `php` shim to `kphp` first on PATH.
+
 - ~~The Registration result page is about 567 px wide on a 390 px phone.~~ Fixed by REG-1 (pending merge): the
   page is `/visits/{number}` (`Registration/Show.vue`), not the board; it measured 570 px at 390 px and 793 px at
   768 px, and now matches the viewport at 320, 390, 768 and 1440 px, including long text without spaces. Not
