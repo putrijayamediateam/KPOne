@@ -29,7 +29,7 @@ test('the recorder is never offered Accept or Reject', () => {
     assert.match(page, /<template v-if="!invoice\.recordedByYou">/);
     assert.match(
         page,
-        /You recorded this invoice, so a different Finance\s+Officer or Director must decide it\./,
+        /You recorded this invoice, so a different Finance\s+Officer must decide it\./,
     );
 });
 

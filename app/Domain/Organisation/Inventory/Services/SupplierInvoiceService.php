@@ -23,7 +23,7 @@ use stdClass;
  * or Finance Officer records the invoice against one purchase order; each line is compared with what was received
  * (quantity, exact) and with the cost recorded at receipt, or the order's estimate when no actual cost was recorded
  * (price, to the sen; zero tolerance in v1). Every line matching makes the invoice Matched; anything else waits for a
- * Finance Officer or Director who did not record it to accept or reject it. KPOne pays nothing.
+ * Finance Officer who did not record it to accept or reject it (STK-51: Finance only). KPOne pays nothing.
  */
 final class SupplierInvoiceService
 {
@@ -185,7 +185,7 @@ final class SupplierInvoiceService
                 throw ValidationException::withMessages(['status' => 'Only an invoice waiting for approval can be accepted or rejected.']);
             }
             if ((int) $invoice->recorded_by_user_id === $actor->id) {
-                throw new AuthorizationException('You recorded this invoice, so a different Finance Officer or Director must decide it.');
+                throw new AuthorizationException('You recorded this invoice, so a different Finance Officer must decide it.');
             }
             DB::table('inventory_supplier_invoices')->where('id', $invoice->id)->update(['status' => $decision, 'decided_by_user_id' => $actor->id, 'decided_at' => now()->utc(),
                 'decision_reason' => $data['reason'], 'decision_note' => $note === '' ? null : $note, 'lock_version' => (int) $invoice->lock_version + 1]);

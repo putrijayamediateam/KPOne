@@ -104,7 +104,7 @@ final class ProcurementService
     {
         return $this->transition($actor, $order, $attributes, self::APPROVE_PERMISSION, PurchaseOrder::STATUS_SUBMITTED, PurchaseOrder::STATUS_APPROVED, 'approved', function (PurchaseOrder $locked, User $lockedActor): array {
             if ($this->raisedBy($locked, $lockedActor)) {
-                throw new AuthorizationException('You raised or submitted this purchase order, so a different Finance Officer or Director must approve it.');
+                throw new AuthorizationException('You raised or submitted this purchase order, so a Director who did not raise or submit it must approve it.');
             }
 
             return ['approved_by_user_id' => $lockedActor->id, 'approved_at' => now()->utc()];
@@ -125,7 +125,7 @@ final class ProcurementService
                 throw new AuthorizationException('Cancelling an approved Purchase Order requires approval authority.');
             }
             if ($locked->status === PurchaseOrder::STATUS_APPROVED && $this->raisedBy($locked, $lockedActor)) {
-                throw new AuthorizationException('You raised or submitted this purchase order, so a different Finance Officer or Director must cancel it once it is approved.');
+                throw new AuthorizationException('You raised or submitted this purchase order, so a Director who did not raise or submit it must cancel it once it is approved.');
             }
             if ($locked->lines()->where('received_quantity', '>', 0)->exists()) {
                 throw ValidationException::withMessages(['purchase_order' => 'A Purchase Order with received stock cannot be cancelled.']);
@@ -174,7 +174,7 @@ final class ProcurementService
             $locked = $this->lockOrder($lockedActor, $order, $attributes);
             $this->requireStatus($locked, [PurchaseOrder::STATUS_PARTIALLY_RECEIVED]);
             if ($this->raisedBy($locked, $lockedActor)) {
-                throw new AuthorizationException('You raised or submitted this purchase order, so a different Finance Officer or Director must close the rest of it.');
+                throw new AuthorizationException('You raised or submitted this purchase order, so a Director who did not raise or submit it must close the rest of it.');
             }
             // A review is pinned to the order's version, so one left behind by a later receipt can never be posted and
             // does not block. A correction always writes a consumption row as well, so consumption alone is enough.

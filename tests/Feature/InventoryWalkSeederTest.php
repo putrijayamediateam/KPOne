@@ -84,10 +84,10 @@ class InventoryWalkSeederTest extends TestCase
             ->where('inventory_skus.sku_code', 'DEMO-PARA500')->orderBy('expiry_date')->pluck('batch_number')->all();
         $this->assertSame([KPOneInventoryWalkSeeder::SECOND_BATCH, 'DEMO-B001'], $expiries);
 
-        // One order into the store, raised by the CA Supervisor and approved by the Finance Officer, waiting to be received.
+        // One order into the store, raised by the CA Supervisor and approved by the Director, waiting to be received.
         $order = PurchaseOrder::query()->where('destination_location_id', $store->id)->sole();
-        $finance = User::query()->where('email', 'demo.finance_officer@kpone.test')->sole();
-        $this->assertSame([PurchaseOrder::STATUS_APPROVED, $supervisor->id, $finance->id], [$order->status, (int) $order->created_by_user_id, (int) $order->approved_by_user_id]);
+        $director = User::query()->where('email', 'demo.director@kpone.test')->sole();
+        $this->assertSame([PurchaseOrder::STATUS_APPROVED, $supervisor->id, $director->id], [$order->status, (int) $order->created_by_user_id, (int) $order->approved_by_user_id]);
         $this->assertSame(2, DB::table('inventory_purchase_order_lines')->where('purchase_order_id', $order->id)->count());
         $this->assertSame(0, DB::table('inventory_goods_receipts')->where('purchase_order_id', $order->id)->count());
     }

@@ -14,7 +14,7 @@ use Spatie\Permission\Models\Role;
 use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\VerifiedReceivingFixture;
 
-/** STK-19: a purchase order is approved by a Finance Officer or Director who neither raised nor submitted it. */
+/** STK-19 and STK-50: a purchase order is approved only by a Director who neither raised nor submitted it. */
 final class PurchaseOrderApprovalTest extends VisitTestCase
 {
     private function as(User $actor): User
@@ -44,42 +44,31 @@ final class PurchaseOrderApprovalTest extends VisitTestCase
         return $service->submit($this->as($submitter ?? $creator), $order, $this->cmd($order));
     }
 
-    public function test_the_finance_officer_and_director_hold_approval(): void
+    public function test_only_the_director_holds_approval(): void
     {
         $holders = collect(PermissionCatalogue::roles())->filter(fn (array $p) => in_array(ProcurementService::APPROVE_PERMISSION, $p, true))->keys()->sort()->values()->all();
-        $this->assertSame(['director', 'finance_officer'], $holders);
-        $this->assertTrue(Role::findByName('finance_officer')->hasPermissionTo(ProcurementService::APPROVE_PERMISSION));
+        $this->assertSame(['director'], $holders);
+        $this->assertFalse(Role::findByName('finance_officer')->hasPermissionTo(ProcurementService::APPROVE_PERMISSION));
         $this->assertFalse(Role::findByName('ca_supervisor')->hasPermissionTo(ProcurementService::APPROVE_PERMISSION));
     }
 
-    public function test_a_finance_officer_approves_another_persons_order_but_never_one_they_raised_or_submitted(): void
+    public function test_a_finance_officer_is_refused_and_the_director_approves(): void
     {
         $f = (new VerifiedReceivingFixture($this->branch))->build('10.000');
         $service = app(ProcurementService::class);
         $finance = $this->staff('finance_officer');
         $supervisor = $this->staff('ca_supervisor');
 
-        // A CA Supervisor's order: the Finance Officer approves it.
+        // A CA Supervisor's order: the Finance Officer may no longer approve it; the Director does.
         $order = $this->submitted($f, $supervisor);
-        $approved = $service->approve($this->as($finance), $order, $this->cmd($order));
-        $this->assertSame([PurchaseOrder::STATUS_APPROVED, $finance->id], [$approved->status, $approved->approved_by_user_id]);
+        $this->assertThrows(fn () => $service->approve($this->as($finance), $order, $this->cmd($order)), AuthorizationException::class);
+        $this->assertSame(PurchaseOrder::STATUS_SUBMITTED, $order->refresh()->status);
+        $approved = $service->approve($this->as($f['director']), $order, $this->cmd($order));
+        $this->assertSame([PurchaseOrder::STATUS_APPROVED, $f['director']->id], [$approved->status, $approved->approved_by_user_id]);
 
-        // Their own order: refused, and nothing changes.
-        $own = $this->submitted($f, $finance);
-        try {
-            $service->approve($this->as($finance), $own, $this->cmd($own));
-            $this->fail('A Finance Officer approved their own order.');
-        } catch (AuthorizationException $e) {
-            $this->assertStringContainsString('different Finance Officer or Director', $e->getMessage());
-        }
-        $this->assertSame(PurchaseOrder::STATUS_SUBMITTED, $own->refresh()->status);
-
-        // An order they only submitted for someone else: refused too.
-        $other = $this->staff('finance_officer');
-        $forwarded = $this->submitted($f, $supervisor, $other);
-        $this->assertThrows(fn () => $service->approve($this->as($other), $forwarded, $this->cmd($forwarded)), AuthorizationException::class);
-        // The Director approves it.
-        $this->assertSame(PurchaseOrder::STATUS_APPROVED, $service->approve($this->as($f['director']), $forwarded, $this->cmd($forwarded))->status);
+        // The raiser and submitter rule still stands for the Director (PostgreSQL test below); a Director holds no
+        // permission to raise or submit an order, so an order always reaches a Director who did neither.
+        $this->assertFalse(Role::findByName('director')->hasPermissionTo('inventory.purchase_orders.create.organisation'));
     }
 
     public function test_an_approved_order_is_never_cancelled_by_whoever_raised_it(): void
@@ -87,7 +76,7 @@ final class PurchaseOrderApprovalTest extends VisitTestCase
         $f = (new VerifiedReceivingFixture($this->branch))->build('10.000');
         $service = app(ProcurementService::class);
         $finance = $this->staff('finance_officer');
-        $other = $this->staff('finance_officer');
+        $other = $f['director'];
         $order = $this->submitted($f, $finance);
         $service->approve($this->as($other), $order, $this->cmd($order));
 

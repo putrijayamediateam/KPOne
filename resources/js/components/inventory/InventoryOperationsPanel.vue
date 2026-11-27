@@ -1149,8 +1149,8 @@ const saveReorder = () =>
                             "
                             class="w-full text-sm text-muted-foreground"
                         >
-                            You raised or submitted this order, so a different
-                            Finance Officer or Director must approve it.
+                            You raised or submitted this order, so a Director
+                            who did not raise or submit it must approve it.
                         </p>
                         <p
                             v-if="
@@ -1163,9 +1163,9 @@ const saveReorder = () =>
                             "
                             class="w-full text-sm text-muted-foreground"
                         >
-                            You raised or submitted this order, so a different
-                            Finance Officer or Director must cancel it now that
-                            it is approved.
+                            You raised or submitted this order, so a Director
+                            who did not raise or submit it must cancel it now
+                            that it is approved.
                         </p>
                         <Button
                             v-if="canPurchase(row, 'short_close')"
@@ -1186,9 +1186,9 @@ const saveReorder = () =>
                             "
                             class="w-full text-sm text-muted-foreground"
                         >
-                            You raised or submitted this order, so a different
-                            Finance Officer or Director must close the rest of
-                            it.
+                            You raised or submitted this order, so a Director
+                            who did not raise or submit it must close the rest
+                            of it.
                         </p>
                         <Button
                             v-if="canPurchase(row, 'close')"

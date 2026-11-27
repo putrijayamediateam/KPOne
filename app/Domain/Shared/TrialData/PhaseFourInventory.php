@@ -520,7 +520,8 @@ final class PhaseFourInventory
             $order = $procurement->submit($this->as($code, 'supervisor1', $branch), $order, $base + ['lock_version' => $order->lock_version]);
         }
 
-        return $procurement->approve($this->context->as('finance', $branch), $order->refresh(), $base + ['lock_version' => $order->refresh()->lock_version]);
+        // STK-50: only the Director approves a purchase order.
+        return $procurement->approve($this->context->asDirector($branch), $order->refresh(), $base + ['lock_version' => $order->refresh()->lock_version]);
     }
 
     /**

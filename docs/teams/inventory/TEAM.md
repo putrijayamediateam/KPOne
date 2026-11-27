@@ -74,9 +74,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | `inventory.usage.record.branch` | CA, CA Supervisor | Record treatment-room usage and waste (STK-8); reversal uses `inventory.variances.approve.branch` |
 | `inventory.cost.view.organisation` | Director, Finance Officer | See inventory cost (STK-13) |
 | `inventory.medicine_sales.view.organisation` | Director, Finance Officer | The medicine sales page (STK-44, P9) |
-| `inventory.purchase_orders.approve.organisation` | Director, Finance Officer | Approve purchase orders, never one they raised or submitted (STK-19) |
+| `inventory.purchase_orders.approve.organisation` | Director | Approve purchase orders, never one they raised or submitted (STK-50 supersedes STK-19) |
 | `inventory.purchase_requests.create.branch` | CA, CA Supervisor | Raise purchase requests; converting one uses the purchase order create permission (STK-18) |
-| `inventory.supplier_invoices.record.branch` / `.approve.branch` | record: CA Supervisor, Finance Officer; approve: Finance Officer, Director | Supplier invoice match; the recorder never decides (STK-22) |
+| `inventory.supplier_invoices.record.branch` / `.approve.branch` | record: Account Assistant, CA Supervisor, Finance Officer; approve: Finance Officer | Supplier invoice match; the recorder never decides (STK-51 supersedes STK-22 approvers) |
 | `inventory.controlled_register.view.branch` / `.check.branch` | CA Supervisor, Finance Officer, Director | Draft controlled-drug register and its second-person checks (STK-24) |
 | `inventory.recalls.manage.organisation` / `.lift.organisation` | start: Director; lift: Director, Finance Officer | Recalls across branches; never lifted by the starter (STK-25) |
 
@@ -131,6 +131,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | STK-33 | Stock health (`/inventory/stock-health`): days on hand, turnover and expiry loss per SKU and location, quantities only | #626 |
 | DD-75, DD-76 | Inventory task links: three groups side by side from 1024 px, folding groups with a count on phones (44 px summaries); a two-line Pilot readiness card pointing to the pharmacist review pack | #629 |
 | DD tiles | Inventory summary tiles (SKUs with stock, Total batches, Expired batches) stay in one row at every width, sentence case; fits 320 px | #633 (in batch #634) |
+| STK-50 / STK-51 | Recovered approved approver narrowing from `4e1bed53` onto main `23639679e` on 26 Nov 2026; migration removes exactly the two grants in decision 52. Ten focused frontend tests pass. Explicit Feature-suite backend run passes 43/43 tests and 970 assertions with exit 0; default suite discovery warned about pre-existing duplicate Contention entries. Full Pint and PHPStan pass with exit 0. Coordinated integration/full gate and UAT pending. No commit or PR. | Local continuation |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -363,6 +364,16 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     published; each value is filed through PanelPriceProposalService as a proposal for the default Panel book, as a
     named Panel Officer (`--panel-proposer`, `--panel-reference`, today's date), and a Director or Finance Officer
     approves it (decision 27 unchanged). Opening stock and its unit cost stay with the STK-35 opening import and its STK-1 sign-off.
+
+52. STK-50 and STK-51 (owner by tick box, 25 Nov 2026, relayed by B.E.R.N.I.S.S, with every existing assertion change
+    listed): only the Director approves, cancels once approved, closes a fully received order and closes the rest of a
+    purchase order (a Finance Officer can still cancel a draft or submitted order, as before). Finance loses
+    `inventory.purchase_orders.approve.organisation`; only Finance accepts or rejects a supplier invoice mismatch,
+    so Director loses `inventory.supplier_invoices.approve.branch`. Revoke migration `2026_11_07_003800` restores both
+    grants on rollback; historical decisions retain their decider. The demo walk and trial data approve as Director.
+    The owner separately approved `InventoryWalkSeederTest` lines 87–90 to expect the Director (full handoff, 25 Nov).
+    Recovered from origin `feature/stk-50-51-approver-narrowing` at `4e1bed53` on 26 Nov; its TEAM insertion was
+    reconciled after the current IMP-1 decision rather than overwriting it. No commit, push or merge in this continuation.
 
 ## 7. Open items and known limits
 
