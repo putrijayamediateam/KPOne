@@ -5,6 +5,7 @@ import { computed, ref, watch } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { StatusBadge } from '@/components/ui/status';
@@ -373,7 +374,7 @@ const lossHelp: Record<string, string> = {
 
 <template>
     <Head title="Stock value and cost" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <PageFrame width="wide">
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -387,7 +388,7 @@ const lossHelp: Record<string, string> = {
         />
 
         <p
-            class="flex items-start gap-2 rounded-lg border bg-muted/40 p-3 text-sm font-medium text-foreground"
+            class="flex items-start gap-2 rounded-xl bg-card-quiet p-3 text-sm font-medium text-foreground"
             data-testid="valuation-banner"
         >
             <Info
@@ -400,7 +401,7 @@ const lossHelp: Record<string, string> = {
         <p
             v-if="refused.length"
             role="alert"
-            class="rounded-lg border border-destructive bg-destructive/10 p-3 text-sm font-medium text-destructive"
+            class="rounded-xl bg-destructive/10 p-3 text-sm font-medium text-destructive"
             data-testid="valuation-refused"
         >
             {{ refused.join(' ') }} Showing the default period instead.
@@ -535,7 +536,7 @@ const lossHelp: Record<string, string> = {
             <li
                 v-for="item in summaryItems"
                 :key="item.label"
-                class="min-w-0 rounded-xl border bg-card p-3"
+                class="min-w-0 rounded-[14px] border bg-card p-4 shadow-card"
             >
                 <p class="text-xs break-words text-muted-foreground">
                     {{ item.label }}
@@ -564,7 +565,9 @@ const lossHelp: Record<string, string> = {
             </li>
         </ul>
 
-        <section class="space-y-4 rounded-xl border bg-card p-4">
+        <section
+            class="space-y-4 rounded-[14px] border bg-card p-4 shadow-card md:p-5"
+        >
             <OperationalTabs
                 v-model="tab"
                 :tabs="tabs"
@@ -1129,5 +1132,5 @@ const lossHelp: Record<string, string> = {
                 />
             </div>
         </section>
-    </main>
+    </PageFrame>
 </template>
