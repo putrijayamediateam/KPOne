@@ -5,7 +5,9 @@ import test from 'node:test';
 // DD-38 (Daniel; Yasmin's tokens): board and consultation chips use theme tokens, so they read in dark mode.
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
-const board = read('resources/js/components/patient-board/PatientBoard.vue');
+const board =
+    read('resources/js/components/patient-board/PatientBoard.vue') +
+    read('resources/js/components/patient-board/PatientBoardStatus.vue');
 const show = read('resources/js/pages/Clinical/Show.vue');
 
 test('the board status chips use tokens: neutral waiting, warning On Hold, accent serving, outline quiet states', () => {
@@ -58,7 +60,7 @@ test('no pale palette fills are left on these chips', () => {
 test('the not-ready-to-call panel uses the warning tokens, not a hard-coded orange palette', () => {
     const board = readFileSync(
         new URL(
-            '../../resources/js/components/patient-board/PatientBoard.vue',
+            '../../resources/js/components/patient-board/PatientBoardStatus.vue',
             import.meta.url,
         ),
         'utf8',

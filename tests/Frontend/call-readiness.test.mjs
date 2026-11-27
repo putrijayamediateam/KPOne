@@ -79,7 +79,7 @@ test('dropdown remains count-only, contains exactly one additional aggregate and
     assert.match(dropdown, /include_readiness: '1'/);
     assert.match(dropdown, /not ready to be called/);
     assert.doesNotMatch(dropdown, /patientName|patientNumber|reason_code|callHold|override_reason|next.patient|\/queue\/call/);
-    const board = read('resources/js/components/patient-board/PatientBoard.vue');
+    const board = read('resources/js/components/patient-board/PatientBoard.vue') + read('resources/js/components/patient-board/PatientBoardStatus.vue');
     assert.match(board, /data-testid="call-readiness-badge"/);
     assert.match(board, /:disabled="row.callHold\?\.active"/);
     assert.match(board, /Override\s+flag\s+and\s+call/);

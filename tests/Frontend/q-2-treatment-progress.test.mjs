@@ -272,9 +272,16 @@ test('the board shows the badge and button in the Status cell, and only Serving 
     const board = read(
         'resources/js/components/patient-board/PatientBoard.vue',
     );
-    const status = board.slice(
+    const statusCell = board.slice(
         board.indexOf('data-label="Status"'),
         board.indexOf('data-label="Actions"'),
+    );
+    const status = read(
+        'resources/js/components/patient-board/PatientBoardStatus.vue',
+    );
+    assert.match(
+        statusCell,
+        /<PatientBoardStatus[\s\S]*?v-model:treatment-dialog-key="treatmentDialogKey"/,
     );
     assert.match(status, /data-testid="call-readiness-badge"/);
     assert.match(

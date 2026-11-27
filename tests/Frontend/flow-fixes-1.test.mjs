@@ -551,6 +551,10 @@ test('FLOW-FIXES-1 Send to Waiting preserves state and refreshes only after a su
 });
 
 test('FLOW-FIXES-1 readiness component preserves Registration state and emits success after releasing its busy state', () => {
+    assert.match(
+        read('resources/js/components/patient-board/PatientBoard.vue'),
+        /@readiness-changed="\$emit\('readinessChanged'\)"/,
+    );
     const source = read(
         'resources/js/components/queue/CallReadinessActions.vue',
     );
@@ -560,7 +564,7 @@ test('FLOW-FIXES-1 readiness component preserves Registration state and emits su
         /onFinish:[\s\S]*busy.value = false;[\s\S]*if \(succeeded\)[\s\S]*emit\('changed'\)/,
     );
     assert.match(
-        read('resources/js/components/patient-board/PatientBoard.vue'),
+        read('resources/js/components/patient-board/PatientBoardStatus.vue'),
         /@changed="\$emit\('readinessChanged'\)"/,
     );
     assert.match(
