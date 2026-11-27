@@ -140,7 +140,7 @@ const submit = () => {
 <template>
     <Head :title="editing ? 'Edit panel' : 'Add panel'" />
     <form
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
         @submit.prevent="submit"
     >
         <div class="flex items-center justify-between gap-3">
@@ -148,7 +148,9 @@ const submit = () => {
                 <Button variant="outline" size="sm" as-child>
                     <Link href="/checkout-settings" aria-label="Back">←</Link>
                 </Button>
-                <h1 class="text-xl font-semibold">
+                <h1
+                    class="text-[26px] font-semibold tracking-[-0.02em] text-foreground lg:text-[30px]"
+                >
                     {{ editing ? 'Edit panel' : 'Add panel' }}
                 </h1>
             </div>
