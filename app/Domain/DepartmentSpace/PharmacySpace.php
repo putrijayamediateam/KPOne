@@ -139,7 +139,7 @@ final class PharmacySpace
             return null;
         }
 
-        return ['total' => $this->returns->waitingList($actor, 1)['total']];
+        return ['total' => $this->returns->waitingTotal($actor)];
     }
 
     /** "Waiting 144 min, Very long wait": the words as well as the colour. */

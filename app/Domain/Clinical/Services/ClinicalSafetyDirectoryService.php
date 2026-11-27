@@ -33,6 +33,32 @@ class ClinicalSafetyDirectoryService
         );
     }
 
+    /**
+     * DSP-30 (owner, 27 Nov 2026, option (a)): while the attending doctor's check of prepared medicine is waiting, the
+     * consultation is no longer Serving, so allergies() refuses and the header said "unavailable" above the check panel's
+     * allergy line. The caller passes this only when DoctorDispensaryAttentionService::checkForEncounter() found a case
+     * waiting for this doctor. Same projection, read only: nothing can be added, edited or reviewed from it, and every
+     * write path keeps its own Serving check.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function allergiesDuringDoctorCheck(User $actor, ClinicalEncounter $encounter): ?array
+    {
+        if (Gate::forUser($actor)->denies('viewAllergies', $encounter)) {
+            return null;
+        }
+        abort_unless(
+            $encounter->organisation_id === $actor->organisation_id
+            && $encounter->attending_clinician_user_id === $actor->id
+            && $encounter->visit->assigned_doctor_user_id === $actor->id
+            && $encounter->visit->visit_type === 'consultation',
+            404,
+        );
+        $projection = DB::transaction(fn (): array => $this->lockedAllergyProjection($actor, $encounter), 3);
+
+        return [...$projection, 'canUpdate' => false, 'canReview' => false, 'readOnlyReason' => 'doctor_check'];
+    }
+
     /** @return array<string, mixed>|null */
     public function problems(User $actor, ClinicalEncounter $encounter): ?array
     {

@@ -162,7 +162,7 @@ const decide = (
             <div
                 v-for="refund in receipt.refunds"
                 :key="refund.publicId"
-                class="rounded-md bg-muted/40 p-2 text-sm"
+                class="rounded-[10px] bg-card-quiet p-2 text-sm"
                 data-testid="refund-entry"
             >
                 <p>
