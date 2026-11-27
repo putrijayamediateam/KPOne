@@ -57,6 +57,10 @@ const branchHeld = computed(
     () => props.queueLayout === 'branch' && props.queueTask === 'held',
 );
 
+const branchDone = computed(
+    () => props.queueLayout === 'branch' && props.queueTask === 'completed',
+);
+
 defineEmits<{
     sendToWaiting: [row: PatientBoardRow];
     call: [row: PatientBoardRow];
@@ -170,6 +174,9 @@ const triageTextClass = (zone: TriageZone | null) =>
                         >
                             Doctor
                         </th>
+                        <th v-if="branchDone" class="w-40 px-3 py-2">
+                            Sent to
+                        </th>
                         <th v-if="branchHeld" class="w-40 px-3 py-2">
                             Treatment step
                         </th>
@@ -194,13 +201,20 @@ const triageTextClass = (zone: TriageZone | null) =>
                                       ? queueTask === 'waiting'
                                           ? 'Waiting'
                                           : 'Since'
-                                      : branchHeld
-                                        ? 'Held'
-                                        : 'Waiting / since'
+                                      : branchDone
+                                        ? 'Completed (consultation)'
+                                        : branchHeld
+                                          ? 'Held'
+                                          : 'Waiting / since'
                             }}
                         </th>
                         <th
-                            v-if="!ownTask && !branchTimeline && !branchHeld"
+                            v-if="
+                                !ownTask &&
+                                !branchTimeline &&
+                                !branchHeld &&
+                                !branchDone
+                            "
                             class="w-40 px-3 py-2"
                         >
                             Status
@@ -288,7 +302,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                             >
                         </div>
                         <PatientBoardStatus
-                            v-if="ownTask || branchHeld"
+                            v-if="ownTask || branchHeld || branchDone"
                             :show-treatment-badge="
                                 queueTask !== 'held' &&
                                 queueTask !== 'treatment'
@@ -300,7 +314,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                             v-model:treatment-dialog-key="treatmentDialogKey"
                             @readiness-changed="$emit('readinessChanged')"
                         >
-                            <template #triage v-if="branchHeld">
+                            <template #triage v-if="branchHeld || branchDone">
                                 <!-- TRI-1c: the triage zone (CA, CA Supervisor and the patient's own doctor only; the server
                                  sends nothing to anyone else). The word is always shown, never colour alone. -->
                                 <span
@@ -547,6 +561,15 @@ const triageTextClass = (zone: TriageZone | null) =>
                         </TooltipProvider>
                     </td>
                     <td
+                        v-if="branchDone"
+                        class="px-3 py-2.5 align-middle"
+                        data-label="Sent to"
+                    >
+                        <span class="text-xs">{{
+                            row.checkoutDestination ?? 'Not available'
+                        }}</span>
+                    </td>
+                    <td
                         v-if="branchHeld"
                         class="px-3 py-2.5 align-middle"
                         data-label="Treatment step"
@@ -625,9 +648,11 @@ const triageTextClass = (zone: TriageZone | null) =>
                                   ? queueTask === 'waiting'
                                       ? 'Waiting'
                                       : 'Since'
-                                  : branchHeld
-                                    ? 'Held'
-                                    : 'Duration'
+                                  : branchDone
+                                    ? 'Completed (consultation)'
+                                    : branchHeld
+                                      ? 'Held'
+                                      : 'Duration'
                         "
                     >
                         <span
@@ -638,7 +663,10 @@ const triageTextClass = (zone: TriageZone | null) =>
                             }}</span
                         >
                         <span
-                            v-else-if="ownTask && queueTask === 'completed'"
+                            v-else-if="
+                                (ownTask && queueTask === 'completed') ||
+                                branchDone
+                            "
                             class="text-xs tabular-nums"
                             >{{ row.completionLabel ?? 'Not available' }}</span
                         >
@@ -678,7 +706,12 @@ const triageTextClass = (zone: TriageZone | null) =>
                     <td
                         class="px-3 py-2.5 align-middle"
                         data-label="Status"
-                        v-if="!ownTask && !branchTimeline && !branchHeld"
+                        v-if="
+                            !ownTask &&
+                            !branchTimeline &&
+                            !branchHeld &&
+                            !branchDone
+                        "
                         :data-treatment-row="
                             row.treatmentProgress?.state ||
                             row.treatmentProgress?.canManage

@@ -692,7 +692,7 @@ test('badge outcome opt-out preserves default visible and accessible outcome evi
     }
 });
 
-test('own Done shows consultation checkout time without changing default or branch columns', async () => {
+test('own Done shows consultation checkout time without changing default branch columns', async () => {
     const own = await render(
         { queueLayout: 'own', queueTask: 'completed' },
         { completionLabel: '26 Nov 2026, 12:01 AM' },
@@ -714,10 +714,7 @@ test('own Done shows consultation checkout time without changing default or bran
     );
     assert.match(timeCell, /Not available/);
 
-    for (const props of [
-        { queueLayout: 'branch', queueTask: 'completed' },
-        {},
-    ]) {
+    for (const props of [{ queueLayout: 'branch' }, {}]) {
         const html = await render(props, {
             completionLabel: 'CHECKOUT_ONLY_MARKER',
         });
@@ -738,6 +735,7 @@ test('actual Queue mapper formats checkout in current branch timezone and never 
     const presentation = load('resources/js/lib/presentation.ts');
     const live = {
         value: {
+            scope: 'own',
             branch: { timezone: 'Asia/Kuala_Lumpur' },
             operationalDate: '2026-11-26',
         },
@@ -748,6 +746,7 @@ test('actual Queue mapper formats checkout in current branch timezone and never 
         }).outputText,
         {
             ...presentation,
+            activeTab: { value: 'removed' },
             live,
             props: {},
             treatmentMinutes: () => null,
@@ -949,7 +948,7 @@ test('branch Waiting and Serving put existing safety status before truthful timi
         assert.match(html, /Returned/);
     }
 
-    for (const task of [undefined, 'completed']) {
+    for (const task of [undefined]) {
         const html = await render({ queueLayout: 'branch', queueTask: task });
         assert.deepEqual(headers(html), [
             'No.',
@@ -1033,4 +1032,116 @@ test('branch Held preserves triage and safety controls under Patient with one ac
         treatmentProgress: { ...progress, outcome: undefined },
     });
     assert.doesNotMatch(withheld, /Not successful|Patient declined/);
+});
+
+test('branch Done renders historical destination and consultation checkout while retaining patient safety context', async () => {
+    const html = await render(
+        { queueLayout: 'branch', queueTask: 'completed' },
+        {
+            statusLabel: 'Consultation checked out',
+            statusTone: 'removed',
+            checkoutDestination: 'Billing',
+            completionLabel: '27 Nov 2026, 7:56 AM',
+            triage: { triaged: true, zone: 'green' },
+            dispensaryCheckWaiting: true,
+        },
+    );
+    assert.deepEqual(headers(html), [
+        'No.',
+        'Patient',
+        'Doctor',
+        'Sent to',
+        'Completed (consultation)',
+        'Actions',
+    ]);
+    const patient = html.slice(
+        html.indexOf('data-label="Patient"'),
+        html.indexOf('data-label="Doctor"'),
+    );
+    assert.match(patient, /Consultation checked out/);
+    assert.match(patient, /Green zone/);
+    assert.match(patient, /Medicine ready for your check/);
+    assert.match(html, /data-label="Sent to"[\s\S]*?Billing/);
+    assert.match(html, /27 Nov 2026, 7:56 AM/);
+    assert.doesNotMatch(html, /data-label="Status"|Now at|Paid/);
+    const absent = await render({
+        queueLayout: 'branch',
+        queueTask: 'completed',
+    });
+    assert.equal((absent.match(/Not available/g) ?? []).length, 2);
+    const page = readFileSync(
+        'resources/js/pages/Queue/Index.vue',
+        'utf8',
+    ).replace(/\s+/g, ' ');
+    assert.match(page, /not current dispensing or payment progress/);
+    assert.match(page, /consultation checkout time in this branch's timezone/);
+});
+
+test('actual checkout mapper requires completed task and scoped projection and never infers current downstream progress', () => {
+    const source = readFileSync('resources/js/pages/Queue/Index.vue', 'utf8');
+    const mapper = source.slice(
+        source.indexOf('const toBoardRow ='),
+        source.indexOf('const boardRows ='),
+    );
+    const presentation = load('resources/js/lib/presentation.ts');
+    const activeTab = { value: 'removed' },
+        live = {
+            value: {
+                scope: 'branch',
+                branch: { timezone: 'Asia/Kuala_Lumpur' },
+                operationalDate: '2026-11-27',
+            },
+        };
+    const map = runInNewContext(
+        ts.transpileModule(mapper + '\ntoBoardRow;', {
+            compilerOptions: { target: ts.ScriptTarget.ES2022 },
+        }).outputText,
+        {
+            ...presentation,
+            activeTab,
+            live,
+            props: {},
+            treatmentMinutes: () => null,
+            effectiveNowMs: () => 0,
+            compactTime: (value) => value,
+            queuePresentationLabel: () => 'Original status',
+        },
+    );
+    const row = {
+        status: 'removed',
+        operationalDate: '2026-11-27',
+        queueNumber: 1,
+        can: {},
+        queuedTime: '09:00',
+        removedAt: '2026-11-26T23:56:00+00:00',
+        removalReason: 'sent_to_billing',
+    };
+
+    for (const scope of ['own', 'branch']) {
+        live.value.scope = scope;
+
+        for (const [reason, label] of [
+            ['sent_to_billing', 'Billing'],
+            ['sent_to_dispensary', 'Dispensary'],
+        ]) {
+            const result = map({ ...row, removalReason: reason });
+            assert.equal(result.checkoutDestination, label);
+            assert.equal(result.statusLabel, 'Consultation checked out');
+        }
+    }
+
+    const unknown = map({ ...row, removalReason: 'unknown' });
+    assert.equal(unknown.checkoutDestination, null);
+    assert.equal(unknown.statusLabel, 'Original status');
+    assert.equal(map({ ...row, removedAt: null }).completionLabel, null);
+    activeTab.value = 'checks';
+    assert.equal(map(row).checkoutDestination, null);
+    assert.equal(map(row).statusLabel, 'Original status');
+    activeTab.value = 'removed';
+    const without = { ...row };
+    delete without.removedAt;
+    assert.equal(map(without).checkoutDestination, null);
+    assert.equal(map(without).statusLabel, 'Original status');
+    live.value.scope = 'unrecognized';
+    assert.equal(map(row).statusLabel, 'Original status');
 });

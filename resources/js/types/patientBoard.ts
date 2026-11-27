@@ -22,6 +22,7 @@ export type PatientBoardRow = {
     key: string;
     /** Branch-local consultation checkout time; separate from Registration completedAt. */
     completionLabel?: string | null;
+    checkoutDestination?: string | null;
     medicineCheck?: { itemLineCount: number; sentBy: string | null } | null;
     emergency?: { alertLabel: string; takenLabel: string };
     canWhatsapp: boolean;
