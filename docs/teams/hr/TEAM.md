@@ -4,6 +4,37 @@ Status: **set up on 2026-11-05 by the coordinator (B.E.R.N.I.S.S) on the owner's
 the team's memory: what is built, what was decided, the rules, and what to build next. The team reads it before
 every task and updates it in the same PR as the code.
 
+## 0. Handoff to a fresh session (27 Nov 2026) — read this first
+
+The owner moved every team to a fresh session, one slice per session (owner decision 27 Nov 2026, relayed by
+B.E.R.N.I.S.S). State of HR at hand-off:
+
+- **Nothing of HR's is open as a PR.** Merged on 25 to 26 Nov: HR-22e month planner (#1107), HR-22b2 locum doctors
+  without leave and staff claims (#1115), HR-22f locum free times (#1116) and the REL-HR design note (#1118,
+  HR-PLAN section 30).
+- **REL-HR (HR-PLAN 30):** owner-confirmed, 25 Nov 2026 (tick box in the coordinator session). The wording in 30.2 is
+  agreed line by line, the location consent text is final, and **step 2 (the code PR that changes every line at
+  once) waits for go-live**. Build nothing for it until the owner says go-live; then one PR, Daniel's look, Suresh's
+  review, and list the changed assertions (30.3).
+- **Clean Look (owner decision 25 Nov 2026):** the whole frontend moves to the "KPOne Clean Look" canvas
+  (design https://claude.ai/artifact/Jyr8UV231y4roWRyyqxxRJ, clickable demo
+  https://claude.ai/artifact/KUkn7hc8xW9k2REtRUCFbG), restyled IN PLACE with the shared components; no second
+  version, no duplicate pages or components. HR is **Stage 2** (due Sun 29 Nov 18:00 MYT), after Daniel's
+  `docs/design/CLEAN-LOOK-SPEC.md` and Kavitha's token and shell PRs. **First priority:** clock-in with the photo
+  must work in the new look for the live CA test at Puchong on Mon 30 Nov 08:30 MYT.
+- **Clean Look backend gap list:** the CA-facing HR part was sent to B.E.R.N.I.S.S on 25 Nov with **no gaps**
+  (clock-in, clock-out, Done for today and undo; My roster; My leave with MC evidence; payslip; memos and SOPs to
+  read; staff claims). **Still owed:** the HR Manager and Director boards, action by action: HR, HrDashboard,
+  LabourCost, Payroll, StaffClaims, LocumPay, StaffFiles, Credentials, Appraisals, Discipline, Incidents, Letters,
+  Memos, Sops, HrMessages, JobApplications, CareersPublic, OpenShifts, Leave and Attendance (manager tabs). Read the
+  boards from the design artifact's `project/<Board>.dc.html` and check each action against `routes/web.php`,
+  `app/Http/Controllers/HR` and `app/Domain/HR`. Send the list to B.E.R.N.I.S.S as a message, not a PR.
+- **Next slice:** the HR gap list above, then the Stage 2 restyle starting with clock-in and the photo dialog.
+- **Branches:** every HR feature, fix, docs and validation branch is pushed; there are no stashes. Two local
+  branches were pushed at hand-off: `feature/hr-17c-pick-deadline-shown` (3c8ceb2eb, already contained in main) and
+  `backup/review-436` (12137e879, a local review branch of HR-9b's Estimate badge). Untracked `storage/<name>/`
+  folders in old worktrees are test output, not work.
+
 ## 1. Team
 
 | Role | Name | Job |
