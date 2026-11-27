@@ -210,3 +210,40 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 4. **Q-4 Call next.** One button for the doctor (and on the branch board for `queue.call.branch` holders) that
    calls the next eligible patient in the existing order (Urgent first), skipping entries with an active
    not-ready flag; same Call In rules, room requirement and audit as today. Built in #282 (decision 14).
+
+## 10. Hand-off for a fresh session (27 Nov 2026)
+
+The previous Lead and Reviewer sessions are retired (owner decision 27 Nov: one slice per fresh session). Read sections 1 to 9 first, then this one. Sections 5 to 9 are older than the list below.
+
+### Merged since the last recorded history (all on `main`; PR numbers where known)
+- Q-7 staff screens in English, Q-8 recall error position, Q-9 TV room-row buttons, HR-8 cards (earlier docs PRs), V2 queue board work (merged then replaced by the in-place Clean Look decision).
+- Q-11 vitals auto-fill from the doctor's note (#1015) with its range update (#1028); Q-12 vitals "Check" from the triage guideline's red limits (#1058, owner: red only, no new permission, weight and height only if the guideline has limits, unknown age band checks both).
+- Director read-only consultation review (#1026, permission `consultations.view_readonly.organisation`); Q-13 "Medicine ready for your check" chip (#1025); Q-14 Complete Consultation unsaved-work guard (#1029); Q-15 "N to check" count (#1030).
+- **Q-16a zone order (#1121):** one `QueueWaitingOrder` (`app/Domain/Queue`) for Call next and the board: today before carry-over, then red, yellow, the rest (no triage or no guideline ranks as green), then Urgent, then arrival. Zone-neutral on purpose: public QR wait estimate, TV feed, OTC, Registration board, waiting counts.
+- **Q-16b red-zone alert and "I'll take it" (#1123):** derived alert (Waiting consultation, latest zone red, no active not-ready flag); only the claim is stored (`queue_red_zone_claims`, append-only); `GET /queue/red-zone-alerts`, `POST /visits/{visit}/queue/take-red-zone` (assigns the patient to the taker; project lock order; same-doctor retry succeeds). `RedZoneAlertBanner` on the Queue board and consultation page. Audience (owner-confirmed 25 Nov): all the branch's resident doctors plus the triage recorders, a narrow TRI-1c exception (queue number, minutes, "taken by" only). TRI-2 (emergency lane, Syazwan) reuses this alert and claim and adds only a responses table.
+- **Q-16c board details panel (#1126):** `GET /visits/{visit}/queue/details` (`QueueRowDetailsService`), audited with `ReadOnlyReviewAudit` (`queue.details_viewed`), audience CA, CA Supervisor, Medical Assistant and the patient's own doctor (owner-confirmed 25 Nov, no new permission). "Show details" in the Queue board row menu; a right-hand side panel from 1280 px and a full-screen sheet below; focus returns to the row menu button. Daniel's last review asked for: patient and queue number in the panel header, readable vitals with units and no padded decimals, and "Not yet reviewed" allergies as a warning badge, and for the alert row to read "waiting <1 min" like the board. Check on `main` whether those landed (the merged heads were pushed by the coordinator).
+
+### Built, pushed, NO PR yet (backend only; open when the coordinator calls the turn)
+| Branch | SHA | What |
+|---|---|---|
+| `feature/q-16d-rooms-today` | 027bf262c | `GET /queue/rooms-today` (`RoomsTodayService`, `queue.view.branch`): per doctor the room and its source, free/serving/busy elsewhere, waiting and not-ready counts, held of 3. 2 tests. |
+| `feature/q-16e-average-wait` | fc048663a | `GET /queue/average-wait` (`QueueWaitStatsService`): today's average queued-to-called minutes, no figure under 3 samples; a doctor with only `queue.view.own` gets their own. 2 tests. |
+| `feature/q-16f-tv-calls-today` | a698a3057 | `callsToday` prop on the TV settings page (`QueueCallStatsService`): counts by service and room, never on the TV feed. 2 tests plus the QueueDisplay suite. |
+All three branch from the main of 25 Nov; merge `origin/main` in before opening. They touch `routes/web.php` and `QueueController` (16d, 16e), so expect a small conflict between them. Their screens are not built: a Rooms today tab, an average-wait line in the board summary, a "Calls today" card on the TV settings page (see the canvas boards `MyQueue` and `QueueDisplaySettings` in the Clean Look demo).
+
+### Owner decisions not yet recorded elsewhere
+- 25 Nov: build everything on the gap list before Monday 30 Nov: red-zone alert (done), order by zone (done), details panel (done), Rooms today, average wait, TV Calls today (backend done), drop the TV "signed in" line, bulk selection stays selection-only unless Daniel names a real action, TV language stays English, red carry-over waits behind today's patients.
+- 25 Nov: the whole frontend moves to the Clean Look IN PLACE (no second version, no parallel folder); queue board, Call In, Call next and the TV are Stage 1 and the Puchong TV must keep working on Monday (do not change its feed, polling, chime or voice).
+- Rule from MA-1a (#1076): any migration that grants a permission to `ca` must also grant it to `medical_assistant`.
+
+### Next slices, in order
+1. Open #16d, #16e, #16f when called (merge main first), each with a short list of changed assertions (none expected).
+2. Stage 1 restyle in place of the Queue board, consultation queue controls and TV on the Clean Look tokens (spec `docs/design/CLEAN-LOOK-SPEC.md`, tokens #1120). Daniel's notes for it: while an untaken red alert shows, "I'll take it" is the one filled button and "Call next" becomes outline; "Minimise" a quiet 36 px button from 1024 px; the shared `ui/sheet` surface should be `--popover` and its overlay light (Kavitha's components PR).
+3. The screens for 16d, 16e, 16f (Rooms today tab, average wait line, Calls-today card).
+4. The auto-assign idea (owner, 24 Nov, not authorised): survey and tick-box questions are with the coordinator; nothing built.
+
+### Working notes for the new session
+- Cloud container: PHP 8.4 runs through Docker (`kphp`). A fresh worktree needs the session-start hook run once inside it (`CLAUDE_CODE_REMOTE=true CLAUDE_PROJECT_DIR=$PWD bash .claude/hooks/session-start.sh`), or `cp -al` the `vendor` and `node_modules` of a prepared worktree; Passport comes from git sources this way. Backend tests need a task-owned PostgreSQL database named `*_test` and an env file passed to the wrapper (`KPHP_ENV_FILE`).
+- Real-browser checks: preview server with a task-owned database (verify host, port and name before the first request), seeded with `KPOnePresentationSeeder` and `KPOneDemoSetupSeeder`; demo password is in the seeder. `npm run build` needs `php` on `PATH` pointing at the Docker wrapper.
+- Local-only frontend failures, not yours: `nav-02-top-bar` and the logout-surface test (the second only when Wayfinder files are not generated).
+- Queue source-pin tests to keep in mind when editing pages: `q-4-call-next`, `q-4b-held-call-next`, `q-1-waiting-time` (mounts `PatientBoard` with a stubbed import map: add no new import there), `tab-counts-1` (evaluates the Queue `tabs` computed alone), the Registration page tests (stub every import).
