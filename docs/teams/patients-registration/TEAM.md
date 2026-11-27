@@ -11,7 +11,7 @@ updates it in the same PR as the code.
 | Lead | **Nurul** | Plans each piece, builds it (backend, pages, tests), keeps this file current |
 | Reviewer | **Hafiz** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
 | Designer | **Balqis** | Sketches every screen change before it is built and checks the screenshots before hand-off |
-| Triage Lead | **Syazwan** | Builds the triage station (TRI-1a merged in PR #999; TRI-1b screens and TRI-1c next) |
+| Triage Lead | **Syazwan** | Builds the triage station: TRI-1a to TRI-1e merged (PRs #999, #1010, #1047, #1066, #1075, #1093); TRI-2 is in a stacked draft set (see section 7, "Triage handoff") |
 | Triage Reviewer | **Farhana** | Reviews every triage plan and diff for bugs, races, permission or branch-scope gaps, audit leaks and missed rules |
 | Flow notes Lead | **Aqilah** | Writes patient-flow design notes (TRI-2 emergency lane, MA role; PR #998) before anything is built |
 | Flow notes Reviewer | **Imran** | Checks every note's claims against the code, `AGENTS.md`, `docs/BASELINE.md` and the existing notes, and anything unsafe for patients |
@@ -192,7 +192,62 @@ permissions above (catalogue rule at the end of `PermissionCatalogue::roles()`; 
 32. **TRI-1c choices (owner, in this team session, 22 Nov 2026):** the triage zone chip shows only to the CA, the CA Supervisor and the patient's own doctor; the triage readings are copied into the encounter's vitals when the consultation starts, each reading from the latest triage save that has it, labelled "From triage, last taken by <CA> at <time>" until the doctor changes them; Call In and Call next warn with "No triage yet" (a chip on both boards and a note in the Queue Call In and Call next dialogs), never block, and Registration's Call In stays one click; the "No triage yet" warning (no zone, no reading) also shows to anyone who may call the patient, such as the Director. TRI-1c-PLAN sections 0 and 6.
 33. **Medical Assistant (owner, coordinator session, 23 Nov 2026, relayed by B.E.R.N.I.S.S):** "MA: approve all recommended, start MA-1a". Every recommendation in MA-ROLE-DESIGN section 9 is approved (listed in its section 9a); MA-1a is the role, the three permissions, the migrations, the catalogue rule, the role-name sites and the provisioning tests, with no screen.
 
+34. **TRI-1d (owner, in the Triage session, 23 Nov 2026):** "start the edited, not saved follow-up"; the owner approved changing the one TRI-1c pin in `tests/Frontend/tri-1c-triage-chips.test.mjs` (`v-if="clinical.vitals.fromTriage && !vitalsUnsaved"`). Daniel's wording: while the doctor has unsaved vitals the label reads "From triage, last taken by <CA> at <time> (edited)."; "Not saved yet" stays on the summary line. Merged in PR #1075. Daniel's later idea, keeping "(edited)" after a save, needs a server change and is **not** decided (backlog).
+35. **TRI-1e (owner, coordinator session, 24 Nov 2026, relayed by B.E.R.N.I.S.S):** "Doktor di Triage dan Billing... adakan ia", then "ya semua" to all five questions in `TRI-1e-DOCTOR-VIEW.md` section 4: permission `visits.triage.view.own` for the Resident Doctor only; the patient's own doctor only (the attending clinician once a consultation exists, otherwise the assigned doctor); open visits and the doctor's own completed visits at the active branch; a separate read-only page; every open audited (`triage.viewed`). Merged in PR #1093 (`b158ed6`). The "Billing" half of the sentence belongs to the Billing team.
+36. **TRI-2 answers (owner, coordinator session, 25 Nov 2026, tick box):** all nine questions in `TRI-2-DESIGN.md` section 10 answered **A**, including the new permission `queue.emergency.respond.branch` for `resident_doctor` only, sound every 10 s with a per-device mute of at most 2 minutes, and one confirmed "Hold my current patient, then take" action. Written up in section 12 of `TRI-2-DESIGN.md` on branch `docs/tri-2-owner-answers` (`00fccc5b9`, pushed, **not merged to main**): merge it before or with the TRI-2 release so the note on `main` carries the answers.
+
 ## 7. Open items and known limits
+
+### Triage handoff (27 Nov 2026, for a fresh session)
+
+**Merged (Triage, Syazwan and Farhana):**
+- TRI-1a backend (#999);
+- TRI-1b screens (#1010) and the Apply outline (#1047);
+- TRI-1c zone chips, vitals from triage and "No triage yet" (#1066);
+- TRI-1d "(edited)" label (#1075);
+- TRI-1e the doctor's read-only Triage view (#1093, `b158ed6`, migration `2026_11_20_500700`).
+
+The Triage migration range continues from `2026_11_20_500800`. Every Triage feature branch is pushed and has nothing local left. Screenshot branches: `docs/tri-1b-screenshots`, `docs/tri-1c-screenshots` (it also holds the TRI-1d and TRI-1e shots). They are not for merge.
+
+**Open (not merged), as of 27 Nov 2026.** All are drafts, opened by a separate recovery and release session, not this one. Neither this Triage session nor Farhana has reviewed these diffs, so the descriptions below come from their PR bodies.
+
+Treatment room (stacked on main, in order):
+- #1169 `release/treatment-call` (`5025cf3e4`): Queue treatment calls while a consultation is held.
+- #1172 `release/treatment-record-backend` (`7741ab448`): treatment-room records, correction and void, with 25-row read pages. Owner-approved migration, no new permission.
+- #1180 `release/treatment-record-ui` (`fcfe5f302`): the treatment-room page and the doctor's read-only panel. CI was "unstable" at the time; its random-name fixture failure is fixed on main by #1194.
+
+TRI-2 emergency lane (stacked on #1180, in order):
+- #1182 `release/tri2-lifecycle` (`8e640c0b4`): emergency episodes and events, Seen and Take, and the bounded alarm ranking. Owner-approved migration, including `queue.emergency.respond.branch`. Activation defaults to dry-run.
+- #1185 `release/tri2-lane` (`ab044ba15`): the lane backend, with red Waiting consultations taken out of the ordinary rows and 25-row lane pages.
+- #1188 `release/tri2-presence` (`0475a77df`): a bounded count of doctors recently polling.
+- #1193 `release/tri2-shared-ui` (`a83e9e8f3`): one shared alert host, Seen and Take, a 120-second mute, and the Save/Discard/Cancel choice leading into Hold, then Take.
+- #1199 `release/tri2-lane-ui` (`229522c8d`): the lane on Queue and Registration. It also removes the "Mark not ready" offer for a red triage.
+
+Release rules from those PRs:
+- Patient family links #1148 (`feature/patient-family-links-publication`) must merge before the combined workflow.
+- Archive #1142 is **never** merged.
+- Nothing is activated in production.
+- Main is merged in at one coordinated release refresh, so the stack keeps its reviewed bases until then.
+- The emergency lane reuses Q-16b (#1123, merged 26 Nov): `RedZoneAlertService`, `queue_red_zone_claims` and `POST /visits/{visit}/queue/take-red-zone`. It must not add a second alert or claim table (agreed with Amirul, 25 Nov).
+
+**Next slice (when the owner or the coordinator starts it):**
+1. Farhana reviews the TRI-2 stack (#1182 to #1199) against `TRI-2-DESIGN.md` sections 10 to 12, Amirul's Q-16b model and the Triage rules: permission and branch scope, audit ids only, and no second claim table.
+2. Merge `docs/tri-2-owner-answers`.
+3. Daniel looks at the lane and alert screens.
+4. The owner gives the ship-it for each PR, in stack order.
+
+Backlog: "(edited)" kept after a save (decision 34; needs a server change).
+
+**Known limits carried forward:**
+- TRI-1c: an open Call next card is not refreshed when a triage lands while it is open.
+- TRI-1e: `canView` costs about 4 small queries on each consultation page load. The "Sign no longer listed" fallback is untested, because guideline versions are immutable.
+- A doctor's past visit at another branch needs a branch switch.
+
+**Environment notes for a cloud session:**
+- PHP runs through `kphp`.
+- Tests use a task-owned PostgreSQL 18 container started with `-c max_locks_per_transaction=1024`, never the demo database.
+- The Docker daemon in the cloud container has stopped twice. Restart the containers and check the database host, port and name before running tests.
+- Image tests need the GD extension, which the container lacks; they pass in CI.
 
 - ~~The Registration result page is about 567 px wide on a 390 px phone.~~ Fixed by REG-1 (pending merge): the
   page is `/visits/{number}` (`Registration/Show.vue`), not the board; it measured 570 px at 390 px and 793 px at
