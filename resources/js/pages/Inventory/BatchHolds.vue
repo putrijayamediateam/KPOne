@@ -100,7 +100,9 @@ watch(
 
 <template>
     <Head title="Batch safety holds" />
-    <main class="mx-auto w-full max-w-6xl space-y-5 p-4 md:p-7">
+    <main
+        class="mx-auto w-full max-w-6xl space-y-5 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
+    >
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -123,9 +125,13 @@ watch(
                 >Search SKU or batch<input
                     v-model="query"
                     maxlength="100"
-                    class="mt-1 h-11 w-full rounded-md border bg-background px-3"
+                    class="mt-1 h-11 w-full rounded-[10px] border border-input bg-field-fill px-3"
             /></label>
-            <button class="mt-7 min-h-11 rounded-md border px-4">Search</button>
+            <button
+                class="mt-7 inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
+            >
+                Search
+            </button>
         </form>
         <p class="text-sm text-muted-foreground">
             {{ holds.total }} batches · 25 per page. Search includes batches
@@ -135,7 +141,7 @@ watch(
             <article
                 v-for="row in holds.rows"
                 :key="row.public_id"
-                class="min-w-0 space-y-3 rounded-lg border bg-card p-4"
+                class="min-w-0 space-y-3 rounded-xl border bg-card p-4 sm:p-5"
             >
                 <h2 class="font-semibold wrap-anywhere">
                     {{ row.sku_code }} · {{ row.batch_number }}
@@ -157,14 +163,14 @@ watch(
                 <p v-else>No active branch hold</p>
                 <button
                     v-if="row.canPlace"
-                    class="min-h-11 rounded-md border px-4"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     @click="show(row, 'place')"
                 >
                     Place safety hold
                 </button>
                 <button
                     v-if="row.canRelease"
-                    class="min-h-11 rounded-md border px-4"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     @click="show(row, 'release')"
                 >
                     Release hold
@@ -176,14 +182,14 @@ watch(
         </div>
         <nav aria-label="Batch hold pages" class="flex items-center gap-3">
             <button
-                class="min-h-11 rounded-md border px-4"
+                class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                 :disabled="holds.page <= 1"
                 @click="search(holds.page - 1)"
             >
                 Previous</button
             ><span>{{ holds.page }} / {{ holds.lastPage }}</span
             ><button
-                class="min-h-11 rounded-md border px-4"
+                class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                 :disabled="holds.page >= holds.lastPage"
                 @click="search(holds.page + 1)"
             >
@@ -209,7 +215,7 @@ watch(
                         >Controlled reason<select
                             v-model="form.reason"
                             required
-                            class="h-11 w-full rounded-md border bg-background px-3"
+                            class="h-11 w-full rounded-[10px] border border-input bg-field-fill px-3"
                         >
                             <option value="" disabled>Choose a reason</option>
                             <option
@@ -230,7 +236,7 @@ watch(
                     <div class="flex flex-wrap justify-end gap-2">
                         <button
                             type="button"
-                            class="min-h-11 rounded-md border px-4"
+                            class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                             @click="open = false"
                         >
                             Cancel</button
