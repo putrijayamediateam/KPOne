@@ -40,7 +40,10 @@ for (const [path, heading] of [
         assert.equal(h1s.length, 1);
         assert.equal(text(h1s[0]), heading);
 
-        if (path.endsWith('Registration/Index.vue')) {
+        if (
+            path.endsWith('Registration/Index.vue') ||
+            path.endsWith('Queue/Index.vue')
+        ) {
             assert.ok(!attr(h1s[0], 'class')?.split(/\s+/).includes('sr-only'));
             assert.match(attr(h1s[0], 'class'), /text-foreground/);
         } else {
@@ -52,11 +55,21 @@ for (const [path, heading] of [
         assert.ok(main, 'the page keeps its main landmark');
         const first = main.children.find((child) => child.type === 1);
 
-        if (path.endsWith('Registration/Index.vue')) {
+        if (
+            path.endsWith('Registration/Index.vue') ||
+            path.endsWith('Queue/Index.vue')
+        ) {
             assert.equal(first.tag, 'header');
-            assert.equal(elements(first).find((node) => node.tag === 'h1'), h1s[0]);
+            assert.equal(
+                elements(first).find((node) => node.tag === 'h1'),
+                h1s[0],
+            );
         } else {
-            assert.equal(first, h1s[0], 'the h1 is the first thing inside main');
+            assert.equal(
+                first,
+                h1s[0],
+                'the h1 is the first thing inside main',
+            );
         }
     });
 }
