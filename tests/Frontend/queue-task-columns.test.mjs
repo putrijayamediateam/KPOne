@@ -509,7 +509,7 @@ test('Held renders the actual treatment badge once with authorized unsuccessful 
     assert.equal((noCurrentStep.match(/data-dialog-open=/g) ?? []).length, 1);
 });
 
-test('branch Held still uses original status placement and badge even if passed the optional task', async () => {
+test('branch Held uses dedicated step and held columns while retaining one actual badge', async () => {
     const html = await render(
         { queueLayout: 'branch', queueTask: 'held' },
         {
@@ -525,11 +525,16 @@ test('branch Held still uses original status placement and badge even if passed 
         'No.',
         'Patient',
         'Doctor',
-        'Waiting / since',
-        'Status',
+        'Treatment step',
+        'Held',
         'Actions',
     ]);
-    assert.match(html, /data-label="Status"/);
+    assert.doesNotMatch(html, /data-label="Status"/);
+    const patient = html.slice(
+        html.indexOf('data-label="Patient"'),
+        html.indexOf('data-label="Doctor"'),
+    );
+    assert.match(patient, /Existing readiness actions/);
     assert.equal(
         (html.match(/data-testid="treatment-progress-badge"/g) ?? []).length,
         1,
@@ -944,7 +949,7 @@ test('branch Waiting and Serving put existing safety status before truthful timi
         assert.match(html, /Returned/);
     }
 
-    for (const task of [undefined, 'held', 'completed']) {
+    for (const task of [undefined, 'completed']) {
         const html = await render({ queueLayout: 'branch', queueTask: task });
         assert.deepEqual(headers(html), [
             'No.',
@@ -959,4 +964,73 @@ test('branch Waiting and Serving put existing safety status before truthful timi
                 html.indexOf('data-label="Status"'),
         );
     }
+});
+
+test('branch Held preserves triage and safety controls under Patient with one actual step badge and truthful evidence', async () => {
+    const props = { queueLayout: 'branch', queueTask: 'held' };
+    const progress = {
+        state: 'done',
+        label: 'Nebuliser',
+        startedAt: null,
+        doneAt: null,
+        canManage: true,
+        outcome: {
+            procedureLabel: 'Nebuliser',
+            outcomeLabel: 'Not successful',
+            reasonLabel: 'Patient declined',
+        },
+    };
+    const html = await render(props, {
+        statusLabel: 'On Hold',
+        statusTone: 'held',
+        durationLabel: 'Held 17 min',
+        triage: { triaged: true, zone: 'yellow' },
+        treatmentProgress: progress,
+        doctorWarning: { code: 'off_roster', label: 'Off duty now' },
+    });
+    assert.deepEqual(headers(html), [
+        'No.',
+        'Patient',
+        'Doctor',
+        'Treatment step',
+        'Held',
+        'Actions',
+    ]);
+    const patient = html.slice(
+        html.indexOf('data-label="Patient"'),
+        html.indexOf('data-label="Doctor"'),
+    );
+    const step = html.slice(
+        html.indexOf('data-label="Treatment step"'),
+        html.indexOf('data-label="Held"'),
+    );
+    assert.match(patient, /On Hold/);
+    assert.match(patient, /Yellow zone/);
+    assert.match(patient, /Existing readiness actions/);
+    assert.match(patient, /Existing treatment controls/);
+    assert.doesNotMatch(patient, /data-testid="treatment-progress-badge"/);
+    assert.match(step, /data-testid="treatment-progress-badge"/);
+    assert.match(step, /Not successful/);
+    assert.match(html, /Held 17 min/);
+    assert.match(html, /Off duty now/);
+    assert.equal(
+        (html.match(/data-testid="treatment-progress-badge"/g) ?? []).length,
+        1,
+    );
+    assert.equal(
+        (html.match(/data-testid="triage-zone-chip"/g) ?? []).length,
+        1,
+    );
+    assert.equal((html.match(/data-dialog-open=/g) ?? []).length, 1);
+    assert.doesNotMatch(html, /data-label="Status"|Resume/);
+    const unavailable = await render(props, {
+        treatmentProgress: { state: null, label: null, canManage: true },
+        triage: null,
+    });
+    assert.match(unavailable, /Not available/);
+    assert.doesNotMatch(unavailable, /No triage yet|Not successful|>Done</);
+    const withheld = await render(props, {
+        treatmentProgress: { ...progress, outcome: undefined },
+    });
+    assert.doesNotMatch(withheld, /Not successful|Patient declined/);
 });
