@@ -72,7 +72,7 @@ async function render(overrides = {}) {
             }
 
             if (name === '@/components/panel/PanelWorkspaceNav.vue') {
-                return container;
+                return { default: container };
             }
 
             if (name === '@/types/billing') {
@@ -176,7 +176,7 @@ test('filtered empty state remains scoped and keeps authoritative guidance outsi
     assert.match(html, /Paid and rejected claims are not listed/);
     assert.match(
         html,
-        /Prepared claims that have never been submitted are on the Overdue tab/,
+        /Prepared claims that have never been submitted are on Not yet submitted/,
     );
     assert.ok(html.indexOf('never been submitted') < html.indexOf('<details'));
     assert.doesNotMatch(html, /aria-label="Pagination"/);

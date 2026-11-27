@@ -72,7 +72,7 @@ class PanelClaimsController extends Controller
 
         return Inertia::render('PanelClaims/FollowUp', $followUp->page(
             $actor,
-            $request->only(['panel']),
+            $request->only(['panel', 'status']),
             max(1, min(10000, (int) $request->query('page', 1))),
         ));
     }
