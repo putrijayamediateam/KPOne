@@ -77,7 +77,7 @@ const icons: Record<WorkspaceDestination['icon'], Component> = {
                         class="group relative flex min-h-24 cursor-pointer items-start gap-3 rounded-xl border border-border bg-card p-4 text-left transition-[border-color,background-color,box-shadow,transform] hover:-translate-y-px hover:border-foreground/20 hover:bg-muted/35 hover:shadow-sm focus-visible:border-pink-600 focus-visible:ring-2 focus-visible:ring-pink-600/35 focus-visible:ring-offset-2 focus-visible:outline-none dark:hover:border-foreground/30 dark:hover:bg-muted/25"
                     >
                         <span
-                            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground transition-colors group-hover:bg-pink-50 group-hover:text-pink-800 dark:group-hover:bg-pink-950/35 dark:group-hover:text-pink-200"
+                            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground transition-colors group-hover:bg-info-wash group-hover:text-link"
                         >
                             <component
                                 :is="icons[destination.icon]"

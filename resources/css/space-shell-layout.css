@@ -1006,6 +1006,23 @@
 .space-shell[data-classic-frame] .space-main {
     padding: 0;
 }
+/* Homes are a grid of cards: one column on phone, two from 1024 px (spec section 7). */
+@media (min-width: 1024px) {
+    .space-shell[data-classic-frame] .space-main {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+    }
+    .space-shell[data-classic-frame] .space-main > header,
+    .space-shell[data-classic-frame] .space-main > nav,
+    .space-shell[data-classic-frame] .space-main > .space-asof,
+    .space-shell[data-classic-frame] .space-main > .space-recent,
+    .space-shell[data-classic-frame]
+        .space-main
+        > .space-card:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
+}
 /* The shared primary foreground also supplies the dark-theme accent label. */
 .space-shell[data-classic-frame]:is(.dark *) {
     --space-accent-fg: var(--primary-foreground);

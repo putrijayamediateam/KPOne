@@ -106,9 +106,9 @@ const closeTone: Record<string, string> = {
     approved: 'bg-muted-foreground/40',
     open: 'bg-muted-foreground/40',
     before_start: 'bg-muted-foreground/40',
-    waiting: 'bg-amber-500',
-    returned: 'bg-amber-500',
-    not_counted: 'bg-amber-500',
+    waiting: 'bg-warning',
+    returned: 'bg-warning',
+    not_counted: 'bg-warning',
 };
 
 const panelTotal = computed(() =>

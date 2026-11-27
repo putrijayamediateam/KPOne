@@ -455,7 +455,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 />
                 <section
                     v-if="pharmacy.toDispense"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="to-dispense"
                 >
                     <h2 id="to-dispense">
@@ -546,7 +546,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="pharmacy.returnsToCheck"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="returns"
                 >
                     <h2 id="returns">
@@ -561,7 +561,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="pharmacy.stockWatch"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="stock-watch"
                 >
                     <h2 id="stock-watch">Stock watch</h2>
@@ -582,7 +582,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="pharmacyOpenLinks.length"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="open-pages"
                 >
                     <h2 id="open-pages">Open</h2>
@@ -604,7 +604,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                         !pharmacy.returnsToCheck &&
                         !pharmacy.stockWatch
                     "
-                    class="space-card"
+                    class="space-card shadow-card"
                 >
                     <p class="space-muted">
                         Nothing to show here for your role. Your existing
@@ -804,7 +804,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 />
                 <section
                     v-if="billing.payLater"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="bl-paylater"
                 >
                     <h2 id="bl-paylater">
@@ -882,7 +882,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="billing.cashClosing"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="bl-cash"
                 >
                     <h2 id="bl-cash">Cash closing today</h2>
@@ -912,7 +912,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="billing.awaiting"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="bl-awaiting"
                 >
                     <h2 id="bl-awaiting">
@@ -968,7 +968,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="billing.links.length"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="bl-open"
                 >
                     <h2 id="bl-open">Open</h2>
@@ -990,7 +990,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                         !billing.cashClosing &&
                         !billing.awaiting
                     "
-                    class="space-card"
+                    class="space-card shadow-card"
                 >
                     <p class="space-muted">
                         Nothing to show here for your role. Your existing
@@ -1185,7 +1185,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 />
                 <section
                     v-if="panel.toClaim"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="pn-claim"
                 >
                     <h2 id="pn-claim">
@@ -1260,7 +1260,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="panel.followUp"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="pn-follow"
                 >
                     <h2 id="pn-follow">
@@ -1328,7 +1328,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </p>
                 <section
                     v-if="panel.links.length"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="pn-open"
                 >
                     <h2 id="pn-open">Open</h2>
@@ -1348,7 +1348,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                     v-if="
                         !panel.toClaim && !panel.followUp && !panel.links.length
                     "
-                    class="space-card"
+                    class="space-card shadow-card"
                 >
                     <p class="space-muted">
                         Nothing to show here for your role. Your existing
@@ -1373,7 +1373,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                     <section
                         v-for="list in stock.watch.lists"
                         :key="list.key"
-                        class="space-card"
+                        class="space-card shadow-card"
                         :aria-labelledby="`st-${list.key}`"
                     >
                         <h2 :id="`st-${list.key}`">
@@ -1433,7 +1433,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </template>
                 <section
                     v-if="stock.overdueReviews"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="st-overdue"
                 >
                     <h2 id="st-overdue">
@@ -1491,7 +1491,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="stock.readiness"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="st-ready"
                 >
                     <h2 id="st-ready">Pilot readiness</h2>
@@ -1515,7 +1515,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="stock.links.length"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="st-open"
                 >
                     <h2 id="st-open">Open</h2>
@@ -1533,7 +1533,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="!stock.watch && !stock.links.length"
-                    class="space-card"
+                    class="space-card shadow-card"
                 >
                     <p class="space-muted">
                         Nothing to show here for your role. Your existing
@@ -1556,7 +1556,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 />
                 <section
                     v-if="hr.approvals"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="hr-approvals"
                 >
                     <h2 id="hr-approvals">
@@ -1598,7 +1598,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="hr.away"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="hr-away"
                 >
                     <h2 id="hr-away">Away today ({{ hr.away.total }})</h2>
@@ -1643,7 +1643,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="hr.roster"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="hr-roster"
                 >
                     <h2 id="hr-roster">Roster this week</h2>
@@ -1684,7 +1684,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="hr.links.length"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="hr-open"
                 >
                     <h2 id="hr-open">Open</h2>
@@ -1707,7 +1707,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                         !hr.roster &&
                         !hr.links.length
                     "
-                    class="space-card"
+                    class="space-card shadow-card"
                 >
                     <p class="space-muted">
                         Nothing to show here for your role. Your existing
@@ -1730,7 +1730,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 />
                 <section
                     v-if="management.staff"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="mg-staff"
                 >
                     <h2 id="mg-staff">Staff accounts</h2>
@@ -1747,7 +1747,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="management.documents"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="mg-docs"
                 >
                     <h2 id="mg-docs">Letters and footers</h2>
@@ -1763,7 +1763,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="management.links.length"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="mg-open"
                 >
                     <h2 id="mg-open">Open</h2>
@@ -1785,7 +1785,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                         !management.documents &&
                         !management.links.length
                     "
-                    class="space-card"
+                    class="space-card shadow-card"
                 >
                     <p class="space-muted">
                         Nothing to show here for your role. Your existing
@@ -1816,7 +1816,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 />
                 <section
                     v-if="me.credentials"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="me-cred"
                 >
                     <h2 id="me-cred">My credentials</h2>
@@ -1854,7 +1854,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="me.payslip"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="me-pay"
                 >
                     <h2 id="me-pay">Latest payslip</h2>
@@ -1877,7 +1877,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="meLinks.length"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="me-open"
                 >
                     <h2 id="me-open">Open</h2>
@@ -1905,7 +1905,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                         !me.payslip &&
                         !me.links.length
                     "
-                    class="space-card"
+                    class="space-card shadow-card"
                 >
                     <p class="space-muted">
                         Nothing to show here for your role. Your existing
@@ -1919,7 +1919,11 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                     </p>
                 </section>
             </template>
-            <section v-else class="space-card" aria-labelledby="work-now">
+            <section
+                v-else
+                class="space-card shadow-card"
+                aria-labelledby="work-now"
+            >
                 <h2 id="work-now">Work now</h2>
                 <p class="space-muted">
                     This space is being built. Your existing screens are
@@ -1936,7 +1940,10 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 :space="space.key"
                 :questions="questions"
             />
-            <section class="space-card space-recent" aria-labelledby="recent">
+            <section
+                class="space-card space-recent shadow-card"
+                aria-labelledby="recent"
+            >
                 <h2 id="recent">Recent activity</h2>
                 <p class="space-muted">Recent activity will appear here.</p>
             </section>
