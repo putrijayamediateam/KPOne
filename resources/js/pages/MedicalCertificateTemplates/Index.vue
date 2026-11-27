@@ -23,10 +23,7 @@ const selected = computed(() =>
 <template>
     <Head title="MC template previews" />
     <PageFrame>
-        <PageHeader
-            title="MC template previews"
-            description="Clinic management · fixed draft wording"
-        />
+        <PageHeader title="MC template previews" />
         <p
             class="rounded-[12px] bg-warning-wash p-3 text-sm text-warning"
             role="status"
@@ -46,7 +43,7 @@ const selected = computed(() =>
         >
         <div v-if="selected" class="grid gap-5 lg:grid-cols-2">
             <section
-                class="space-y-4 rounded-[14px] border bg-card p-4 shadow-card md:p-5"
+                class="min-w-0 space-y-4 rounded-[14px] border bg-card p-4 md:p-5"
             >
                 <h2 class="font-semibold">
                     Fixed template · Revision {{ selected.revision }}
@@ -55,7 +52,7 @@ const selected = computed(() =>
                     System-controlled layout and plain-text wording. No editor,
                     uploads or price to patient.
                 </p>
-                <p class="break-words whitespace-pre-wrap">
+                <p class="[overflow-wrap:anywhere] whitespace-pre-wrap">
                     {{ selected.wording }}
                 </p>
                 <h3 class="font-medium">Allowlisted fields</h3>
@@ -75,7 +72,7 @@ const selected = computed(() =>
             </section>
             <section
                 aria-label="MC layout preview"
-                class="space-y-6 rounded-[14px] border bg-white p-5 text-black sm:p-8"
+                class="min-w-0 space-y-6 rounded-[14px] border bg-white p-5 text-black sm:p-8"
             >
                 <p class="border-b pb-4 text-sm">
                     Issuing branch letterhead and optional logo<br />Preserved
@@ -85,7 +82,7 @@ const selected = computed(() =>
                     {{ selected.title }}
                 </h2>
                 <p class="text-right text-sm">Date / Tarikh: [issue_date]</p>
-                <p class="text-sm leading-7 break-words">
+                <p class="text-sm leading-7 [overflow-wrap:anywhere]">
                     {{ selected.wording }}
                 </p>
                 <div class="space-y-2 pt-6 text-sm">
