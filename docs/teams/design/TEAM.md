@@ -150,3 +150,20 @@ spec's board table if a Lead's gap list corrects a row, then write the debt rows
 
 **Rules that still bind:** one filled button per view; status as dot plus word; reasons start empty; 44 px targets below
 1024 px; text 12 px minimum; read-only pages render no controls; never open a PR unless the owner types it; never merge.
+
+## 9. Session notes (27 Nov 2026, Clean Look Stage 1 reviews)
+
+Slice: review Stage 1 Clean Look screens for the Puchong CA test against `docs/design/CLEAN-LOOK-SPEC.md`. All verdicts went to B.E.R.N.I.S.S.
+
+**Verdicts given**
+- **#1135 role homes (Kavitha): OK with changes**, from the shots at 1440 and 390 (CA, CA Supervisor and Resident Doctor My day, light and dark; not every file opened).
+  1. Show the branch name once (it appears three times). 2. Make Clock in the one filled blue pill; Add (routine) becomes outline. 3. Replace the blue, green and amber tinted tiles (leave, claims, roster, attendance) with neutral `--card` tiles. 4. "This week" title to 15/600, and stack its right-hand text at 390.
+  Not blocking: the spec section 7 greeting and "Needs you" card are missing (accepted for Monday); confirm that the rail stopping at 900 px in full-page shots is a capture artefact; populated lists unseen (the seed has no visits).
+- **#1139 Dispensary case (Aisyah): OK with changes, from the diff only.** Tokens replace palette classes, row buttons are outline, one filled button, allergy card has icon plus words, the `xl` three-column exception is honoured. Needs shots (1440, 1280, 390, light and dark: normal, allergy recorded, return needed, confirm panel open, OTC allergy card) and a check of the outline "Save all lines" edge on the warning wash. The final OK waits on those shots.
+- **DSP-28 Quarantined chip: OK** (info and info-wash, dot plus word, other outcomes neutral). A 390 shot of the returns table is wanted, not blocking.
+
+**Not yet reviewed:** #1132 Registration (Nurul, shots coming). Q-16c fixes (Amirul) are a later slice and #1253 (Q-16d) is backend only.
+
+**Debt:** DD-119 to DD-122 are on `docs/design-debt-dd119` (`948bdd0a`), written from the handover notes and not re-checked in code. B.E.R.N.I.S.S opens the PR after the Monday merges.
+
+**Process notes:** review from diffs when shots are missing, and say so in the verdict. The cross-session `SendMessage` to the coordinator returned 401; the `mcp__claude-code-remote__send_message` tool works.
