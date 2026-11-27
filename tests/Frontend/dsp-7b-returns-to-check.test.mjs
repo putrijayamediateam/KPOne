@@ -12,7 +12,7 @@ const section = read(
 test('DSP-7b: the Returns to check list is read only and links each row to its case', () => {
     assert.match(page, /<PageHeader title="Returns to check"/);
     assert.match(
-        page,
+        page.replace(/\s+/g, ' '),
         /This list\s+does not check anything\. You cannot check a return you recorded\./,
     );
     assert.match(page, /`\$\{row\.caseUrl\}#medicine-returns`/);
@@ -37,7 +37,7 @@ test('DSP-7b: the Returns to check list is read only and links each row to its c
 test('DSP-7b: a table from 768 px and cards with a 44 px Open case button below it', () => {
     assert.match(page, /<div class="hidden md:block">/);
     assert.match(
-        page,
+        page.replace(/\s+/g, ' '),
         /class="space-y-3 md:hidden" aria-label="Returns to check"/,
     );
     assert.match(page, /class="min-h-11 w-full justify-center"/);
