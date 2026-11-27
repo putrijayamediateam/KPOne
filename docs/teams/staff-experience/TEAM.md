@@ -64,8 +64,9 @@ list route exists (the rail links to the Registration board's Dispensary tab).
 ### Tests that guard the look
 `clean-look-tokens.test.mjs` (contrast of every text and control pair, light and dark; blue accent; self-hosted fonts),
 `clean-look-shell.test.mjs`, `ShellMenuTest`, and the `classic-only-co*-kept*.test.mjs` structure pins (the shell changed
-`classic-only-co10-kept-layouts`: the layouts now render `WorkspaceRail`). B.E.R.N.I.S.S mentioned a "Classic guard test": this session does
-not know which file that means; ask B.E.R.N.I.S.S. Class-string pins will keep changing as pages move; list each one in the PR body.
+`classic-only-co10-kept-layouts`: the layouts now render `WorkspaceRail`). The **Classic guard test** is the owner's decision of 25 Nov: a new test, to be added on Sun 29 Nov after Daniel's sweep, that fails if
+old Classic styles come back (12 px card corners, the pink accent, retired classes). It may not change existing assertions without the owner's
+approval. It does not exist yet. Class-string pins will keep changing as pages move; list each one in the PR body.
 
 ### Working notes for a fresh session
 - Never open or write a `.env`. Cloud sessions use `kphp` for PHP 8.4. The Wayfinder routes need PHP 8.4: with the host PHP 8.3 put a `php` shim
