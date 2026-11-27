@@ -282,7 +282,7 @@ const closeDrawer = () => {
             @mouseleave="scheduleClose"
         >
             <Link
-                href="/dashboard"
+                :href="workspace?.defaultUrl ?? '/workspace'"
                 class="mb-2 flex size-11 items-center justify-center rounded-[10px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 aria-label="Open KPOne Main Menu"
             >
@@ -489,7 +489,7 @@ const closeDrawer = () => {
             <Menu class="size-5" />
         </Button>
         <Link
-            href="/dashboard"
+            :href="workspace?.defaultUrl ?? '/workspace'"
             class="mx-auto flex items-center gap-2 rounded-[10px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             aria-label="Open KPOne Main Menu"
         >

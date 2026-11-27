@@ -34,7 +34,13 @@ export type NextBlock = {
 };
 
 const props = defineProps<{ next: NextBlock }>();
-const block = ref<NextBlock>(props.next);
+const emptyBlock: NextBlock = {
+    live: null,
+    things: [],
+    thingsTotal: 0,
+    sales: null,
+};
+const block = ref<NextBlock>(props.next ?? emptyBlock);
 let timer: ReturnType<typeof setInterval> | undefined;
 let controller: AbortController | undefined;
 
@@ -65,9 +71,14 @@ const read = async () => {
     controller = new AbortController();
 
     try {
-        block.value = await requestJson<NextBlock>('/my-day/next', {
+        const fresh = await requestJson<NextBlock>('/my-day/next', {
             signal: controller.signal,
         });
+
+        // Only a well-formed block replaces the one on screen.
+        if (fresh && Array.isArray(fresh.things)) {
+            block.value = fresh;
+        }
     } catch {
         // Keep the last good list; the next poll tries again.
     }
@@ -87,7 +98,7 @@ onBeforeUnmount(() => {
 
 <template>
     <div
-        v-if="strip.length || next.things.length || block.sales"
+        v-if="strip.length || block.things.length || block.sales"
         class="contents"
     >
         <section
