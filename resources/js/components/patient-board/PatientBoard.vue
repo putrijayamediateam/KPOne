@@ -137,8 +137,8 @@ const triageTextClass = (zone: TriageZone | null) =>
                     <th class="w-[7%] px-3 py-2">Queue</th>
                     <th class="w-[9%] px-3 py-2">Arrived</th>
                     <th class="w-[12%] px-3 py-2">Visit notes</th>
-                    <th class="w-[10%] px-3 py-2">Doctor</th>
-                    <th class="w-[18%] px-3 py-2">Payment</th>
+                    <th class="w-[14%] px-3 py-2">Doctor</th>
+                    <th class="w-[14%] px-3 py-2">Payment</th>
                     <th class="w-[8%] px-3 py-2">Duration</th>
                     <th class="w-[15%] px-3 py-2">Status</th>
                     <th class="w-[112px] px-3 py-2 text-right">Actions</th>

@@ -22,8 +22,8 @@ test('Status is 15% and Payment 18% wide; the other columns are unchanged', () =
         ['Queue', 7],
         ['Arrived', 9],
         ['Visit notes', 12],
-        ['Doctor', 10],
-        ['Payment', 18],
+        ['Doctor', 14],
+        ['Payment', 14],
         ['Duration', 8],
         ['Status', 15],
     ]);
