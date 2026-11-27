@@ -9,6 +9,7 @@ use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Queue\Treatment\TreatmentStepProjection;
 use App\Domain\Queue\Treatment\TreatmentStepService;
+use App\Domain\Visit\Billing\Review\BillingReviewService;
 use App\Domain\Visit\Models\Visit;
 use App\Http\Requests\StartClinicalEncounterRequest;
 use App\Http\Requests\UpdateClinicalEncounterRequest;
@@ -37,6 +38,7 @@ class ClinicalEncounterController extends Controller
         RoomCallService $calls,
         TreatmentStepService $treatment,
         TreatmentStepProjection $treatmentProjection,
+        BillingReviewService $billReview,
     ): Response {
         // detail() authorises the encounter view first; only then may the attending doctor's open acknowledge Q-2.
         $clinical = $directory->detail($request->user(), $visit);
@@ -53,6 +55,9 @@ class ClinicalEncounterController extends Controller
             'clinical' => $clinical,
             'treatmentRooms' => $calls->rooms($visit->branch, BranchRoom::KIND_TREATMENT),
             'treatmentProgress' => $entry ? ($treatmentProjection->rows($request->user(), [$entry])[$entry->id] ?? null) : null,
+            // BIL-37: the doctor's read-only bill of this visit, once a non-draft invoice exists.
+            'billViewUrl' => $request->user()->can(BillingReviewService::PERMISSION) && $billReview->canOpen($request->user(), $visit) && $billReview->hasBill($visit)
+                ? route('billing.review', $visit) : null,
         ]);
     }
 

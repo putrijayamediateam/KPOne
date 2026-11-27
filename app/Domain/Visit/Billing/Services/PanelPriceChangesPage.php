@@ -78,7 +78,7 @@ final class PanelPriceChangesPage
                 ->join('charge_definitions as d', 'd.id', '=', 'c.charge_definition_id')
                 ->where('c.organisation_id', $org)
                 ->select(['c.*', 'p.name as panel_name', 'd.public_id as charge_public_id', 'd.display_name as charge_name']);
-            $waiting = (clone $base)->where('c.status', 'proposed')->orderBy('c.proposed_at')->orderBy('c.id')->limit(100)->get();
+            $waiting = (clone $base)->where('c.status', 'proposed')->orderBy('c.proposed_at')->orderBy('c.id')->limit(PanelPriceProposalService::BULK_LIMIT)->get();
             $waitingCount = DB::table('price_change_proposals')->where('organisation_id', $org)->where('status', 'proposed')->count();
             $decided = (clone $base)->where('c.status', '<>', 'proposed')->orderByDesc('c.updated_at')->orderByDesc('c.id')->paginate(self::PER_PAGE, ['*'], 'decided_page', $decidedPage);
 

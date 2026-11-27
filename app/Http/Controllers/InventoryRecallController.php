@@ -38,7 +38,9 @@ final class InventoryRecallController extends Controller
             throw $e->redirectTo(route('inventory.recalls'));
         }
 
-        return to_route('inventory.recalls')->with('success', 'Recall started. The batches are blocked at every branch.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Recall started. The batches are blocked at every branch.']);
+
+        return to_route('inventory.recalls');
     }
 
     public function lift(Request $request, string $recall, InventoryRecallService $service): RedirectResponse
@@ -52,6 +54,8 @@ final class InventoryRecallController extends Controller
             throw ValidationException::withMessages(['status' => $e->getMessage()])->redirectTo(route('inventory.recalls'));
         }
 
-        return to_route('inventory.recalls', ['tab' => 'lifted'])->with('success', 'Recall lifted. The batches can be used again unless something else blocks them.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Recall lifted. The batches can be used again unless something else blocks them.']);
+
+        return to_route('inventory.recalls', ['tab' => 'lifted']);
     }
 }

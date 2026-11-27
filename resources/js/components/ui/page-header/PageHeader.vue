@@ -1,9 +1,22 @@
 <script setup lang="ts">
-defineProps<{
+import { usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
+const props = defineProps<{
     title: string;
     description?: string;
     eyebrow?: string;
 }>();
+
+// Clean Look: with no top bar, the active branch always shows under the page title (a wrong-branch action is a safety risk).
+const page = usePage();
+const branchName = computed(
+    () => page.props.branchContext?.active?.name ?? null,
+);
+// The branch already has its own marked subline; keep other plain descriptions.
+const description = computed(() =>
+    props.description === branchName.value ? undefined : props.description,
+);
 </script>
 
 <template>
@@ -11,7 +24,7 @@ defineProps<{
         <div class="min-w-0 space-y-1">
             <p
                 v-if="eyebrow"
-                class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                class="text-[12.5px] font-medium text-muted-foreground"
             >
                 {{ eyebrow }}
             </p>
@@ -21,7 +34,7 @@ defineProps<{
                 class="flex flex-wrap items-center gap-2"
             >
                 <h1
-                    class="text-2xl font-semibold tracking-tight text-foreground"
+                    class="text-[26px] font-semibold tracking-[-0.02em] text-foreground lg:text-[30px]"
                 >
                     {{ title }}
                 </h1>
@@ -29,16 +42,23 @@ defineProps<{
             </div>
             <h1
                 v-else
-                class="text-2xl font-semibold tracking-tight text-foreground"
+                class="text-[26px] font-semibold tracking-[-0.02em] text-foreground lg:text-[30px]"
             >
                 {{ title }}
             </h1>
             <!-- UX-15: the description slot is for a line that needs markup; plain text uses the prop. -->
             <p
                 v-if="description || $slots.description"
-                class="text-sm text-muted-foreground"
+                class="text-[13px] text-muted-foreground"
             >
                 <slot name="description">{{ description }}</slot>
+            </p>
+            <p
+                v-if="branchName"
+                class="text-[12.5px] text-muted-foreground"
+                data-test="page-branch"
+            >
+                {{ branchName }}
             </p>
         </div>
         <div v-if="$slots.actions" class="kp-control-group">
