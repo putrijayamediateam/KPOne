@@ -1,0 +1,2 @@
+check-panel-1440-light.png: panel 1; readOnlyNote 1; unavailableBanner 0; overflow 0px; errors none; url http://127.0.0.1:8125/visits/KPV-00000001/encounter
+check-panel-390-dark.png: panel 1; readOnlyNote 1; unavailableBanner 0; overflow 0px; errors none; url http://127.0.0.1:8125/visits/KPV-00000001/encounter
