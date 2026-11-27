@@ -379,7 +379,7 @@ watch(
             {{ actionError }}
         </div>
         <form
-            class="grid gap-5 xl:grid-cols-2"
+            class="grid gap-5 2xl:grid-cols-2"
             @submit.prevent="saveCorrection"
         >
             <Card
@@ -397,7 +397,9 @@ watch(
                             class="h-9 rounded-[10px] border border-input bg-field-fill px-3 max-lg:h-11" /><InputError
                             :message="correction.errors.full_name"
                     /></label>
-                    <div class="grid grid-cols-2 items-start gap-3">
+                    <div
+                        class="grid items-start gap-3 sm:grid-cols-[minmax(11rem,1fr)_minmax(9rem,1fr)]"
+                    >
                         <label class="grid gap-1"
                             ><span class="text-[13px] font-medium"
                                 >Date of birth</span
@@ -445,7 +447,9 @@ watch(
                             " /><InputError
                             :message="correction.errors.nationality_code"
                     /></label>
-                    <div class="grid grid-cols-[8rem_1fr] gap-2">
+                    <div
+                        class="grid gap-2 sm:grid-cols-[minmax(8rem,10rem)_minmax(0,1fr)] md:col-span-2"
+                    >
                         <select
                             v-model="correction.identifier_type"
                             aria-label="Identifier type"

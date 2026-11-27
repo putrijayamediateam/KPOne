@@ -242,7 +242,9 @@ onBeforeUnmount(() => {
                     <p class="text-sm font-semibold text-foreground">
                         KPOne · Klinik Putrijaya
                     </p>
-                    <p class="text-sm text-zinc-600">{{ status.branch }}</p>
+                    <p class="text-sm text-muted-foreground">
+                        {{ status.branch }}
+                    </p>
                 </div>
             </header>
             <div class="space-y-4 text-center">
@@ -277,7 +279,7 @@ onBeforeUnmount(() => {
                     >
                         {{ status.firstName }}
                     </p>
-                    <p class="text-sm font-medium text-zinc-500">
+                    <p class="text-sm font-medium text-muted-foreground">
                         Nombor queue anda
                     </p>
                     <p
@@ -289,9 +291,7 @@ onBeforeUnmount(() => {
                 <h1 v-else class="text-2xl font-semibold">
                     Status pendaftaran
                 </h1>
-                <p
-                    class="mx-auto max-w-sm leading-7 text-zinc-600 dark:text-zinc-300"
-                >
+                <p class="mx-auto max-w-sm leading-7 text-muted-foreground">
                     {{ status.message }}
                 </p>
             </div>
@@ -299,7 +299,7 @@ onBeforeUnmount(() => {
                 v-if="status.ahead !== null"
                 class="rounded-[14px] bg-card-quiet p-4 text-center"
             >
-                <p class="text-sm text-zinc-600 dark:text-zinc-300">
+                <p class="text-sm text-muted-foreground">
                     <template v-if="status.ahead > 0"
                         >Pesakit di hadapan anda:
                         <strong>{{ status.ahead }}</strong></template
@@ -307,7 +307,7 @@ onBeforeUnmount(() => {
                 </p>
                 <p
                     v-if="status.waitRange"
-                    class="mt-1 text-sm text-zinc-600 dark:text-zinc-300"
+                    class="mt-1 text-sm text-muted-foreground"
                 >
                     Anggaran masa menunggu: kira-kira
                     <strong
@@ -316,7 +316,7 @@ onBeforeUnmount(() => {
                         }}
                         minit</strong
                     >
-                    <span class="block text-xs text-zinc-500"
+                    <span class="block text-xs text-muted-foreground"
                         >Anggaran berdasarkan purata terkini, bukan
                         jaminan.</span
                     >
@@ -363,7 +363,7 @@ onBeforeUnmount(() => {
                         :class="
                             i === currentStep
                                 ? 'font-semibold text-zinc-900 dark:text-zinc-100'
-                                : 'text-zinc-500'
+                                : 'text-muted-foreground'
                         "
                         >{{ label
                         }}<span v-if="i < currentStep" class="sr-only">
@@ -413,7 +413,7 @@ onBeforeUnmount(() => {
                 </button>
                 <p
                     v-if="locationMessage"
-                    class="text-xs text-zinc-500"
+                    class="text-xs text-muted-foreground"
                     role="status"
                 >
                     {{ locationMessage }}
@@ -468,18 +468,21 @@ onBeforeUnmount(() => {
                         </div>
                         <p class="shrink-0 text-right">
                             <strong>{{ branch.waiting }}</strong>
-                            <span class="block text-xs text-zinc-500"
+                            <span class="block text-xs text-muted-foreground"
                                 >menunggu</span
                             >
                         </p>
                     </li>
                 </ul>
             </section>
-            <p v-if="patientLocation" class="text-center text-xs text-zinc-500">
+            <p
+                v-if="patientLocation"
+                class="text-center text-xs text-muted-foreground"
+            >
                 Lokasi anda hanya digunakan pada peranti ini untuk mengira jarak
                 dan tidak dihantar atau disimpan.
             </p>
-            <p class="text-center text-xs text-zinc-500">
+            <p class="text-center text-xs text-muted-foreground">
                 Halaman ini tidak menyimpan maklumat anda dalam storan pelayar.
             </p>
         </section>

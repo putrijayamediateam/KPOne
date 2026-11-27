@@ -373,9 +373,7 @@ onBeforeUnmount(() => {
                         <p class="text-sm font-semibold text-foreground">
                             KPOne · Klinik Putrijaya
                         </p>
-                        <p
-                            class="truncate text-sm text-zinc-600 dark:text-zinc-300"
-                        >
+                        <p class="truncate text-sm text-muted-foreground">
                             {{ branchName }}
                         </p>
                     </div>
@@ -408,7 +406,9 @@ onBeforeUnmount(() => {
                             <Building2 class="size-6" aria-hidden="true" />
                         </div>
                         <div>
-                            <p class="text-sm font-medium text-zinc-500">
+                            <p
+                                class="text-sm font-medium text-muted-foreground"
+                            >
                                 Pendaftaran mudah alih
                             </p>
                             <h1
@@ -416,9 +416,7 @@ onBeforeUnmount(() => {
                             >
                                 Daftar untuk lawatan anda
                             </h1>
-                            <p
-                                class="mt-3 leading-7 text-zinc-600 dark:text-zinc-300"
-                            >
+                            <p class="mt-3 leading-7 text-muted-foreground">
                                 Isi maklumat pesakit atau penjaga. Nombor queue
                                 hanya akan diberi selepas staf klinik membuat
                                 semakan.
@@ -426,7 +424,7 @@ onBeforeUnmount(() => {
                         </div>
                     </div>
                     <div
-                        class="flex items-start gap-3 rounded-[14px] border bg-card-quiet p-4 text-sm text-zinc-700"
+                        class="flex items-start gap-3 rounded-[14px] border bg-card-quiet p-4 text-sm text-foreground"
                     >
                         <ShieldCheck
                             class="mt-0.5 size-5 shrink-0 text-primary"
@@ -459,7 +457,7 @@ onBeforeUnmount(() => {
                     </button>
                     <div
                         id="privacy"
-                        class="rounded-[14px] bg-card-quiet p-4 text-xs leading-5 text-zinc-600"
+                        class="rounded-[14px] bg-card-quiet p-4 text-xs leading-5 text-muted-foreground"
                     >
                         <p class="font-semibold">Notis privasi — draf UAT</p>
                         <p class="mt-1">
@@ -480,7 +478,7 @@ onBeforeUnmount(() => {
 
                 <template v-else
                     ><div
-                        class="flex items-center justify-between text-xs font-medium text-zinc-500"
+                        class="flex items-center justify-between text-xs font-medium text-muted-foreground"
                     >
                         <span>Langkah {{ step }} daripada 5</span
                         ><span
@@ -527,7 +525,7 @@ onBeforeUnmount(() => {
                         <h1 class="text-2xl font-semibold">
                             Siapa yang mengisi borang?
                         </h1>
-                        <p class="mt-1 text-sm text-zinc-600">
+                        <p class="mt-1 text-sm text-muted-foreground">
                             Pesakit bawah {{ minorAge }} tahun mesti didaftarkan
                             oleh penjaga.
                         </p>
@@ -546,7 +544,7 @@ onBeforeUnmount(() => {
                         >
                             <UserRound class="size-7 text-primary" /><span
                                 ><strong>Saya pesakit</strong><br /><span
-                                    class="text-sm text-zinc-600"
+                                    class="text-sm text-muted-foreground"
                                     >Saya mengisi maklumat sendiri</span
                                 ></span
                             >
@@ -564,7 +562,7 @@ onBeforeUnmount(() => {
                         >
                             <UsersRound class="size-7 text-primary" /><span
                                 ><strong>Saya penjaga</strong><br /><span
-                                    class="text-sm text-zinc-600"
+                                    class="text-sm text-muted-foreground"
                                     >Saya diberi kuasa untuk membantu
                                     pesakit</span
                                 ></span
@@ -590,7 +588,7 @@ onBeforeUnmount(() => {
                 <section v-if="step === 2" class="space-y-5">
                     <div>
                         <h1 class="text-2xl font-semibold">Maklumat pesakit</h1>
-                        <p class="mt-1 text-sm text-zinc-600">
+                        <p class="mt-1 text-sm text-muted-foreground">
                             Semua medan bertanda * diperlukan.
                         </p>
                     </div>
@@ -859,7 +857,7 @@ onBeforeUnmount(() => {
                 <section v-if="step === 3" class="space-y-5">
                     <div>
                         <h1 class="text-2xl font-semibold">Maklumat penjaga</h1>
-                        <p class="mt-1 text-sm text-zinc-600">
+                        <p class="mt-1 text-sm text-muted-foreground">
                             {{
                                 form.submission_type === 'guardian'
                                     ? 'Lengkapkan pengesahan penjaga.'
@@ -987,7 +985,7 @@ onBeforeUnmount(() => {
                         <h1 class="text-2xl font-semibold">
                             Maklumat perlindungan
                         </h1>
-                        <p class="mt-1 text-sm text-zinc-600">
+                        <p class="mt-1 text-sm text-muted-foreground">
                             Maklumat ini diberikan oleh anda dan akan disahkan
                             oleh staf sebelum pendaftaran.
                         </p>
@@ -1102,7 +1100,7 @@ onBeforeUnmount(() => {
                         <h1 class="text-2xl font-semibold">
                             Persetujuan & hantar
                         </h1>
-                        <p class="mt-1 text-sm text-zinc-600">
+                        <p class="mt-1 text-sm text-muted-foreground">
                             Staf akan menyemak maklumat sekali sebelum
                             pendaftaran dan queue dicipta.
                         </p>
@@ -1114,7 +1112,7 @@ onBeforeUnmount(() => {
                         <h2 id="review-heading" class="font-semibold">
                             Semak maklumat anda
                         </h2>
-                        <p class="mt-1 text-sm text-zinc-600">
+                        <p class="mt-1 text-sm text-muted-foreground">
                             Pastikan semua maklumat betul sebelum dihantar.
                         </p>
                         <dl class="mt-3 divide-y text-sm">
@@ -1124,7 +1122,7 @@ onBeforeUnmount(() => {
                                 class="flex items-start justify-between gap-3 py-2"
                             >
                                 <div class="min-w-0">
-                                    <dt class="text-zinc-500">
+                                    <dt class="text-muted-foreground">
                                         {{ row.label }}
                                     </dt>
                                     <dd class="font-medium break-words">
