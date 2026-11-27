@@ -63,10 +63,11 @@ class PricingControllerTest extends ClinicalTestCase
         ]);
         $book = app(PricingReferenceAdministrationService::class)->createPriceBook($finance, null, ['name' => 'Synthetic publish book']);
 
-        // Director holds pricing.references.manage.organisation (can reach the reference
-        // screen) but not prices.publish.organisation (cannot publish a price) - these are
-        // deliberately distinct permissions per the P0 phase design.
+        // BIL-38: remove publish only from this synthetic fixture so the separate
+        // reference-management permission still cannot authorise publication.
         $director = $this->actor('director');
+        $director->roles()->firstOrFail()->revokePermissionTo('prices.publish.organisation');
+        $director->unsetRelation('roles');
         $this->selectBranch($director);
         $this->actingAs($director);
         $this->get(route('pricing.index'))->assertOk();
@@ -77,6 +78,24 @@ class PricingControllerTest extends ClinicalTestCase
             'expected_branch_id' => $this->branch->id,
         ])->assertForbidden();
         $this->assertDatabaseMissing('price_entries', ['charge_definition_id' => $charge->id]);
+    }
+
+    public function test_director_can_publish_a_price_with_the_existing_publish_boundary(): void
+    {
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $charge = app(PricingReferenceAdministrationService::class)->createConsultationCharge($director, [
+            'code' => 'BIL38-CONSULT', 'display_name' => 'Synthetic Director publication',
+        ]);
+        $book = app(PricingReferenceAdministrationService::class)->createPriceBook($director, null, ['name' => 'Synthetic Director book']);
+
+        $this->post(route('pricing.charges.publish', $charge), [
+            'price_book_public_id' => $book->public_id,
+            'amount_sen' => 1200,
+            'expected_version' => 0,
+            'expected_branch_id' => $this->branch->id,
+        ])->assertRedirect(route('pricing.index'));
+        $this->assertDatabaseHas('price_entries', ['charge_definition_id' => $charge->id, 'unit_price_sen' => 1200, 'version' => 1]);
     }
 
     public function test_happy_path_creates_a_charge_a_price_book_and_publishes_a_price(): void
