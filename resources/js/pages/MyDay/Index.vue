@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
+import { computed } from 'vue';
+import RedZoneAlertBanner from '@/components/queue/RedZoneAlertBanner.vue';
 import MyRoutine from '@/components/MyRoutine.vue';
 import MeHome from '@/components/spaces/MeHome.vue';
+import NextThings from '@/components/spaces/NextThings.vue';
+import type { NextBlock } from '@/components/spaces/NextThings.vue';
 import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
@@ -31,15 +35,26 @@ defineProps<{
         total: number;
         areas: Array<{ area: string; count: number }>;
     } | null;
+    next: NextBlock;
     routine: InstanceType<typeof MyRoutine>['$props']['routine'];
     shortcuts: Array<{ title: string; href: string }>;
 }>();
+
+const page = usePage();
+// Amirul's red-zone alert (Q-16b) is shown here as it is; the home builds no alert of its own.
+const redZone = computed(() => {
+    const perms = (page.props.auth as { permissions: string[] }).permissions;
+    const branch = (page.props.branchContext as { active?: { id: number } | null } | null)?.active;
+
+    return branch && (perms.includes('queue.call.own') || perms.includes('visits.triage.record.branch')) ? branch.id : null;
+});
 </script>
 
 <template>
     <Head title="My day" />
     <PageFrame class="space-shell" data-classic-frame>
         <div class="space-main">
+            <RedZoneAlertBanner v-if="redZone !== null" :branch-id="redZone" />
             <PageHeader
                 title="My day"
                 :description="
@@ -72,6 +87,8 @@ defineProps<{
                 <h2 id="day-today">Today</h2>
                 <p class="space-muted">Nothing is planned for you today.</p>
             </section>
+
+            <NextThings :next="next" />
 
             <section
                 v-if="waiting"
