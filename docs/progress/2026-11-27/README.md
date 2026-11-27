@@ -4,9 +4,11 @@
 
 BIL-38 PR1131 merged as `375f56c39a4a492016cf8c9a9b3472904a1b03f5` after all six named checks passed at exact reviewed head `c7334e3e0c87272d0777b49936e4c7c33d2e13ca`, with current-main ancestry and eleven scoped blobs verified. The approved Director price-publication boundary and additive migration are released to main; no production migration or deployment was performed.
 
-Auth fixture PR1133 merged as `18ab8e772bde6bd31d50410007d832c7863cf150` after all six exact-head checks, independent review and current-main ancestry passed at `ad8077914bc6a941ad1b2bda2fc3bf761066252e`. Its one-line fixture change retains every original assertion. Current main is `18ab8e772`.
+Auth fixture PR1133 merged as `18ab8e772bde6bd31d50410007d832c7863cf150` after all six exact-head checks, independent review and current-main ancestry passed at `ad8077914bc6a941ad1b2bda2fc3bf761066252e`. Its one-line fixture change retains every original assertion.
 
-Trial-clock PR1163 is published at `fac47698542cf553c069059b553baea7e5c2a1ad`, containing current main. Five focused PostgreSQL tests / 76 assertions passed before the final unrelated Auth-fixture integration; the Trial test blob remains identical and final independent parity review is clear. Fresh CI is pending. Triage fixture PR1194 and prescribing phrases PR1117 remain merged; no production operation was performed.
+Trial-clock PR1163 merged as `d0f37b5c1864b796fc7b4224996bd917551af3e7` after all six named CI checks passed at reviewed head `fac47698542cf553c069059b553baea7e5c2a1ad`. Current main is `d0f37b5c1`. The fixture preserves all original assertions and the production midnight guard. No production operation occurred.
+
+Registration foundation PR1132 is now published at `7457a39d90ad0c780bbae2ada79fb044f73bcbc4`, containing current main. All nine approved blobs remain identical to ecadc1125; independent final parity is clear. After upstream integration,106 focused frontend tests/types/build passed at d8c77e296; final refresh adds only the unrelated Trial fixture. Historical browser geometry stays attributed to ecadc1125. Fresh CI is running; no Registration merge is claimed.
 
 New independently reviewed drafts are published below. Publication does not mean merged, deployed or full-demo parity. Their PR bodies and saved review notes distinguish exact final checks from earlier full-suite runs and bounded browser evidence.
 
@@ -35,6 +37,10 @@ New independently reviewed drafts are published below. Publication does not mean
 | [1216](https://github.com/putrijayamediateam/KPOne/pull/1216) | Add optional purchase order delivery date and supplier reference | `c4d7df759180927508a27b0d4c2cae9254bee1fc` | `feature/stock-verified-receiving-demo` |
 | [1217](https://github.com/putrijayamediateam/KPOne/pull/1217) | fix(dispensary): use latest handoff for list count and labels | `c5119da62bcfa8f6deefe2eff09bff2a63dc548e` | `feature/dispensary-queue-search` |
 | [1218](https://github.com/putrijayamediateam/KPOne/pull/1218) | Panel: show actual claims waiting for payment | `c6fe05d46640d8c9514653727aaa225ad622cf3c` | `feature/panel-queried-view` |
+| [1219](https://github.com/putrijayamediateam/KPOne/pull/1219) | fix(registration): distinguish pending search and reject stale responses | `7efdd0786659564e9c35758d18785977a8c4f03f` | `fix/registration-uncertain-summary-copy` |
+| [1220](https://github.com/putrijayamediateam/KPOne/pull/1220) | Queue: connect real workload tabs with safe paging and context resets | `efe71415580ac71b15507522dd62308981c4c884` | `recovery/queue-workload-read` |
+| [1221](https://github.com/putrijayamediateam/KPOne/pull/1221) | feat(registration): add guarded Find and New patient controls | `9ef687db400883a0e013d68bd5cd022599588d9d` | `fix/registration-patient-search-state` |
+| [1222](https://github.com/putrijayamediateam/KPOne/pull/1222) | feat(dispensary): search current saved medicine names | `f2d64c2247737232329ced2e053b65c4c11bea99` | `fix/dispensary-list-latest-handoff` |
 
 Native Registration dialog PR1205 is frozen at the final reviewed immutable-retry implementation. Builder gates: 2,227 frontend tests, 16 backend tests / 96 assertions, final types/build/static checks and actual synthetic lifecycle proof. Independent review verified 12 file hashes, 33 runtime tests and refreshed visuals. Two response-loss/retry exercises each created exactly one visit. Coordinator findings about generic refresh guards, QR-only refresh and paused polling were closed; the later immutable-payload blocker was also closed before publication.
 
@@ -44,11 +50,13 @@ PO metadata PR1216, Panel Waiting-for-payment PR1218 and the Dispensary latest-h
 
 Queue foundation PR1213 is explicitly integration-validation-only and must not replace serial review of its original scoped parents. Visual PR1214 is separately stacked with seven files. Workload endpoint/client PR1215 is separate again; its retained real query-scale tests pass with existing outcome authority batched. Archive1142 is not an ancestor; no production activation or query-ceiling increase is authorized.
 
-Active follow-ons: Registration truthful search/error and stale-response handling; actual Queue workload tab/reset integration; Dispensary latest-handoff medicine search; source mapping of the next bounded Stock and Panel gaps. Staff independently reviews packets and screen-level demo coverage. Root prepared Registration foundation1132 at local d8c77e296 with all nine reviewed blobs unchanged, independent parity and106 focused frontend tests/types/build passing. Its next push waits for the preceding Trial1163 release and resulting main refresh.
+Resume reconciliation confirms PR1219 search-state, PR1220 workload tabs, PR1221 guarded Find/New and PR1222 medicine-name search are already published at the exact heads above; no duplicate implementation was started. Coordinator directly verified all six CI checks green for PRs 1219, 1220, 1221, 1222 at this checkpoint. These remain drafts, not merged or whole-screen parity claims.
+
+Active follow-ons: Queue room/next-patient context using existing server capabilities; Registration local Identity/Contact/Identifiers grouping preserving all field bindings; Stock loaded-window PO worklist composition; Panel first-submission worklist with unchanged due rules; Dispensary exact branch-local calendar-day waiting-return filters. The age filter uses explicit '2 days ago'/'3 days ago', with older returns retained under All. These are bounded delegated technical decisions, not new clinical urgency or financial policies. Staff independently reviews exact packets and screen-level demo gaps.
 
 PR1171 recovered on the unchanged exact head with all six CI checks passing; the original timeout remains unexplained. PR1195 corrected a proven formatting failure, and its latest head subsequently passed all six checks. Root foundation refreshes1132–1139 remain separate published slices with their precise evidence scopes in the chronological record below. No entire-page or whole-system completion is inferred from a navigation, target-size or header slice.
 
-App attachment calls for PRs1196–1218 timed out; their GitHub publication is verified, while app attachment completion remains unconfirmed and tracked in the workspace. The complete demo makeover is unfinished. All work here uses synthetic data; no real environment file, patient/staff data, production activation or kpjaya.com operation is claimed. The earlier checkpoints below are historical and do not override this current status.
+The earlier app-attachment timeouts are resolved: the resumed tool confirmed all23 pending attachments, and PR1219–1222 are attached. GitHub publication and app attachment are now separately verified. The complete demo makeover is unfinished. All work here uses synthetic data; no real environment file, patient/staff data, production activation or kpjaya.com operation is claimed. The earlier checkpoints below are historical and do not override this current status.
 
 ## Earlier checkpoints (historical)
 
