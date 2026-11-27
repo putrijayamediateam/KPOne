@@ -1237,7 +1237,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     @submit.prevent="save"
                 >
                     <div
-                        class="flex min-w-0 items-baseline gap-2 rounded-md border bg-muted/30 px-3 py-2"
+                        class="flex min-w-0 items-baseline gap-2 rounded-md border bg-card-quiet px-3 py-2"
                         data-testid="consultation-visit-bar"
                     >
                         <span
@@ -1250,7 +1250,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                         }}</span>
                     </div>
                     <section
-                        class="space-y-1 rounded-md border bg-muted/15 px-3 py-2"
+                        class="space-y-1 rounded-md border bg-card-quiet px-3 py-2"
                         data-testid="consultation-vitals-bar"
                     >
                         <div
@@ -1500,7 +1500,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                     :message="form.errors['vitals.height_cm']"
                                 />
                             </label>
-                            <div class="rounded-md bg-muted/35 p-3 text-sm">
+                            <div class="rounded-md bg-card-quiet p-3 text-sm">
                                 <div class="text-xs text-muted-foreground">
                                     Derived BMI
                                 </div>
@@ -1538,7 +1538,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 role="status"
                                 aria-live="polite"
                                 data-testid="note-vitals-suggestion"
-                                class="space-y-2 border-t bg-muted/40 px-3 py-2 text-xs"
+                                class="space-y-2 border-t bg-card-quiet px-3 py-2 text-xs"
                             >
                                 <div
                                     v-if="filledFromNote.length"

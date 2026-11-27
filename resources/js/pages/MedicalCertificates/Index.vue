@@ -175,7 +175,7 @@ const days = computed(() => {
         <p
             v-if="certificates.canIssue && !certificates.credentialVerified"
             role="alert"
-            class="rounded-lg border border-amber-500 p-4"
+            class="rounded-xl border border-warning/25 bg-warning-wash p-4"
         >
             Verified professional name and MMC registration are required. Ask
             the authorised credential manager; you cannot verify yourself.
@@ -183,7 +183,7 @@ const days = computed(() => {
         <p
             v-if="saved"
             role="status"
-            class="rounded-lg border border-emerald-500 p-4"
+            class="rounded-xl border border-success/25 bg-success-wash p-4"
         >
             MC evidence saved. Review the document before printing.
         </p>

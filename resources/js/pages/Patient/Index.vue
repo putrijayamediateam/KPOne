@@ -185,7 +185,7 @@ const identifierLabel = (result: Result) =>
             <div v-if="results.length" class="overflow-x-auto">
                 <table class="block w-full text-left text-sm md:table">
                     <thead
-                        class="hidden border-b bg-muted/40 text-xs text-muted-foreground uppercase md:table-header-group"
+                        class="hidden border-b bg-card-quiet text-[13px] font-semibold text-muted-foreground md:table-header-group"
                     >
                         <tr>
                             <th class="px-5 py-3">Patient</th>
