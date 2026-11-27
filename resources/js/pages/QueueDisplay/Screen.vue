@@ -140,6 +140,13 @@ const videoUrl = computed(() =>
 const posters = computed(() => feed.value.settings.posters);
 // Q-3: the branch's call display mode decides whether a call shows "A-012 · Ahmad Ismail".
 const displayMode = computed(() => feed.value.settings.callDisplayMode);
+// Daniel's 1366 px finding: a queue number is never cut. In number modes the first column is as wide as the number
+// (type size by breakpoint); a full name keeps the flexible column and may truncate.
+const callColumns = computed(() =>
+    displayMode.value === 'name'
+        ? 'grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]'
+        : 'grid-cols-[8.5rem_minmax(0,1fr)_auto] lg:grid-cols-[minmax(11rem,auto)_minmax(0,1fr)_auto]',
+);
 const poster = computed(
     () => posters.value[posterIndex.value % Math.max(posters.value.length, 1)],
 );
@@ -620,14 +627,14 @@ onBeforeUnmount(() => {
                             :class="
                                 current.name
                                     ? 'text-5xl leading-tight font-black lg:text-8xl'
-                                    : 'font-mono text-7xl leading-none font-black tabular-nums lg:text-[9rem]'
+                                    : 'font-mono text-7xl leading-none font-black tabular-nums lg:text-[clamp(4.5rem,min(8vw,16vh),9rem)]'
                             "
                             data-testid="current-label"
                         >
                             {{ callLabel(current) }}
                         </p>
                         <p
-                            class="mt-3 text-3xl font-bold text-balance break-words lg:text-5xl"
+                            class="mt-3 text-3xl font-bold text-balance break-words lg:text-[clamp(1.75rem,4.5vh,3rem)]"
                             data-testid="current-room"
                             ref="currentRoom"
                             :style="
@@ -654,12 +661,13 @@ onBeforeUnmount(() => {
                     ]"
                 >
                     <div
-                        class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] gap-3 border-b px-5 py-3 text-sm font-semibold lg:text-lg"
-                        :class="
+                        class="grid gap-3 border-b px-5 py-3 text-sm font-semibold lg:text-lg"
+                        :class="[
+                            callColumns,
                             theme === 'dark'
                                 ? 'border-zinc-700 text-zinc-300'
-                                : 'border-zinc-200 text-zinc-600'
-                        "
+                                : 'border-zinc-200 text-zinc-600',
+                        ]"
                     >
                         <span>Number</span>
                         <span>Room</span>
@@ -675,8 +683,9 @@ onBeforeUnmount(() => {
                         <li
                             v-for="call in previous"
                             :key="call.id"
-                            class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] items-center gap-3 border-b px-5 last:border-0"
+                            class="grid items-center gap-3 border-b px-5 last:border-0"
                             :class="[
+                                callColumns,
                                 displayMode === 'short_name' ? 'py-2' : 'py-3',
                                 highlightId === call.id
                                     ? theme === 'dark'
@@ -707,7 +716,7 @@ onBeforeUnmount(() => {
                             >
                             <span
                                 v-else
-                                class="truncate text-3xl font-bold lg:text-5xl"
+                                class="truncate text-3xl font-bold lg:text-[clamp(1.75rem,5vh,3rem)]"
                                 :class="
                                     call.name ? '' : 'font-mono tabular-nums'
                                 "
