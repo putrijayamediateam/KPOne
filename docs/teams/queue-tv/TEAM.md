@@ -261,3 +261,13 @@ Open ChatGPT PRs that overlap these slices, for the coordinator to close as dupl
 - #1204 `release/q16f-calls-today` (Q-16f).
 Not overlapping, left alone: the workload and column PRs #1151, #1153, #1156, #1215, #1220, #1229, #1233, #1234, #1238, #1242, #1244, #1246, #1247, and #1169 (treatment call while held).
 Q-16c gaps found on `main`: the details panel header shows `patientName` only (no queue number), and vitals are returned as a raw string cast so padded decimals can show. Units, the "Not yet reviewed" warning badge and "waiting <1 min" did land.
+
+### Q-16d/e/f outcome and next slice (27 Nov 2026, Amirul)
+- Q-16d merged as PR #1253 (`1fac2781`), Q-16e as PR #1254 (`29a1d265`). Q-16f is PR #1255, head `201ed5d4` with main `29a1d265` merged in; it merges on the coordinator's call. All three are backend only: no migration, no permission, no changed assertion.
+- Mira's reviews are on each PR (same session, not independent). Non-blocking notes to carry:
+  - 16d: `HELD_CAP = 3` duplicates `ConsultationHoldService::MAX_HELD_PATIENTS_PER_DOCTOR` (private); per-doctor `resolve()` and `doctorBusy()` queries; no tests for `busy_elsewhere`, `held` or carry-over.
+  - 16e: the `visits` join is needed only for the own-doctor filter; the average is computed in PHP; the label should read "average wait today".
+  - 16f: the screen needs display names for the service keys; a room renamed mid-day counts under both names, so the card should say "as called".
+- Screens for 16d/e/f (Rooms today tab, average-wait line, Calls today card) are still not built.
+- **Next slice (Q-16c follow-up, frontend plus a small service change):** the details panel header shows `patientName` only, so add the queue number (`QueueRowDetailsDialog.vue` header, `Queue/Index.vue` `detailsPatientLabel`); vitals come from `QueueRowDetailsService` as a raw `(string)` cast, so padded decimals such as `37.50` can show, so format them without padding, and add unit labels for weight and height if the guideline has them. Existing source-pin tests to watch: `q-1-waiting-time`, `tab-counts-1`.
+- Local test setup used: PostgreSQL 16 in a task-owned cluster (PG18 is not installed in the cloud container), `KPHP_ENV_FILE` with `DB_SSLMODE=prefer`, and `kphp -d memory_limit=-1` for the full Feature suite (the default 256 MB runs out). PG18 validation of each frozen SHA is still required before merge.
