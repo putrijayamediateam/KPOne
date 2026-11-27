@@ -37,10 +37,10 @@ test('STK-30: Reorder suggestions shows the maximum, or Not set, on every card',
     );
     assert.match(
         page,
-        /<dd v-else class="text-muted-foreground">Not set<\/dd>/,
+        /<dd v-else class="text-muted-foreground">\s*Not set\s*<\/dd>/,
     );
     assert.match(
-        page,
+        page.replace(/\s+/g, ' '),
         /Where\s+a\s+maximum is set, the maximum is used instead of the reorder level\./,
     );
 });

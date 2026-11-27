@@ -19,7 +19,7 @@ test('STK-43: each reorder card shows what was sold (dispensed) over 7, 14 and 3
     assert.match(flat, /data-testid="reorder-sold"/);
     assert.match(
         flat,
-        /<dt class="text-muted-foreground">Sold \(dispensed\)<\/dt>/,
+        /<dt class="text-muted-foreground">\s*Sold \(dispensed\)\s*<\/dt>/,
     );
     assert.match(flat, /const soldWindows = \[7, 14, 30\] as const;/);
     assert.match(flat, /return value === null \? '—' : trimQuantity\(value\);/);

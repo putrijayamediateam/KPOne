@@ -54,6 +54,7 @@ const props = defineProps<{
     };
 }>();
 
+const helpVisible = ref(true);
 const q = ref(props.suggestions.filters.q);
 const need = ref(props.suggestions.filters.need);
 const visit = (page = 1) =>
@@ -115,25 +116,57 @@ const requestThese = () => {
             title="Reorder suggestions"
             :description="`${suggestions.branchName} · Stock at or below its reorder level, with a suggested order. Nothing is ordered from this page.`"
         />
-        <p
-            class="rounded-lg border bg-muted/40 p-3 text-sm"
-            data-testid="reorder-method"
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <p class="text-sm text-muted-foreground">
+                Each row is one SKU at one location. A suggestion never places
+                an order.
+            </p>
+            <Button
+                type="button"
+                variant="outline"
+                class="min-h-11 lg:min-h-9"
+                aria-controls="reorder-help"
+                :aria-expanded="helpVisible"
+                @click="helpVisible = !helpVisible"
+            >
+                {{ helpVisible ? 'Hide helpful info' : 'Show helpful info' }}
+            </Button>
+        </div>
+        <aside
+            id="reorder-help"
+            v-show="helpVisible"
+            aria-label="Reorder calculation help"
+            class="rounded-2xl border border-border bg-card p-4"
         >
-            Suggested = reorder level − on hand − on order − incoming +
-            {{ suggestions.lookBackDays }}-day average use × lead time, rounded
-            up to whole packs and at least the supplier's minimum order. Where a
-            maximum is set, the maximum is used instead of the reorder level.
-        </p>
-        <p
-            class="text-sm text-muted-foreground"
-            data-testid="reorder-sold-note"
-        >
-            Sold counts what was dispensed to patients from this location, OTC
-            included. Treatment-room use is not a sale and is not counted.
-            Medicine returned after dispensing is not taken off. The suggested
-            quantity still uses the {{ suggestions.lookBackDays }}-day average
-            of dispensing and treatment use, as before.
-        </p>
+            <details open>
+                <summary
+                    class="min-h-11 cursor-pointer text-sm font-semibold focus-visible:ring-2 focus-visible:ring-ring lg:min-h-9"
+                >
+                    How it is worked out
+                </summary>
+                <p
+                    class="rounded-lg border bg-muted/40 p-3 text-sm"
+                    data-testid="reorder-method"
+                >
+                    Suggested = reorder level − on hand − on order − incoming +
+                    {{ suggestions.lookBackDays }}-day average use × lead time,
+                    rounded up to whole packs and at least the supplier's
+                    minimum order. Where a maximum is set, the maximum is used
+                    instead of the reorder level.
+                </p>
+                <p
+                    class="text-sm text-muted-foreground"
+                    data-testid="reorder-sold-note"
+                >
+                    Sold counts what was dispensed to patients from this
+                    location, OTC included. Treatment-room use is not a sale and
+                    is not counted. Medicine returned after dispensing is not
+                    taken off. The suggested quantity still uses the
+                    {{ suggestions.lookBackDays }}-day average of dispensing and
+                    treatment use, as before.
+                </p>
+            </details>
+        </aside>
         <p
             v-if="!suggestions.canSeeCost"
             class="text-sm text-muted-foreground"
@@ -152,16 +185,17 @@ const requestThese = () => {
                 >Search SKU, item or location
                 <Input v-model="q" maxlength="100" class="h-11 lg:h-9" />
             </label>
-            <label class="grid gap-1 text-sm"
-                >Show
+            <div class="grid gap-1 text-sm">
+                <label for="reorder-need">Show</label>
                 <select
+                    id="reorder-need"
                     v-model="need"
                     class="h-11 rounded-md border bg-background px-3 lg:h-9"
                 >
                     <option value="order">Only rows that need ordering</option>
                     <option value="all">All low-stock rows</option>
                 </select>
-            </label>
+            </div>
             <Button type="submit" variant="outline" class="h-11 lg:h-9"
                 >Search</Button
             >
@@ -189,6 +223,14 @@ const requestThese = () => {
             </p>
             <Button
                 type="button"
+                variant="outline"
+                class="min-h-11 lg:min-h-9"
+                :disabled="ticked.length === 0"
+                @click="ticked = []"
+                >Clear ticks</Button
+            >
+            <Button
+                type="button"
                 class="min-h-11 w-full sm:w-auto lg:min-h-9"
                 :disabled="!ticked.length || !oneLocation"
                 data-testid="reorder-request-these"
@@ -202,22 +244,37 @@ const requestThese = () => {
             class="text-sm text-muted-foreground"
         >
             {{
-                suggestions.filters.need === 'order'
-                    ? 'Nothing needs ordering at this branch.'
-                    : 'No stock is at or below its reorder level at this branch.'
+                suggestions.filters.q !== ''
+                    ? 'No reorder suggestions match this search.'
+                    : suggestions.filters.need === 'order'
+                      ? 'Nothing needs ordering at this branch.'
+                      : 'No stock is at or below its reorder level at this branch.'
             }}
         </p>
-        <ul v-else class="space-y-3" aria-label="Reorder suggestions">
+        <ul
+            v-else
+            class="overflow-hidden rounded-2xl border border-border bg-card"
+            aria-label="Reorder suggestions"
+        >
+            <li
+                aria-hidden="true"
+                class="hidden grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)] gap-4 border-b border-border bg-muted/40 px-4 py-3 text-xs font-medium text-muted-foreground lg:grid"
+            >
+                <span>ITEM / LOCATION</span><span>ON HAND</span
+                ><span>REORDER AT</span><span>SUGGESTED</span>
+            </li>
             <li
                 v-for="row in suggestions.rows"
                 :key="row.key"
-                class="space-y-3 rounded-lg border bg-card p-4"
+                class="space-y-3 border-b border-border p-4 last:border-b-0"
             >
-                <div class="flex flex-wrap items-start justify-between gap-2">
+                <div
+                    class="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)]"
+                >
                     <div class="flex min-w-0 items-start gap-3">
                         <label
                             v-if="suggestions.canRequest && needsOrder(row)"
-                            class="-m-3 flex size-11 shrink-0 items-center justify-center lg:-m-2 lg:size-8"
+                            class="-m-3 flex size-11 shrink-0 items-center justify-center lg:-m-2 lg:size-9"
                         >
                             <input
                                 v-model="ticked"
@@ -242,7 +299,19 @@ const requestThese = () => {
                             </p>
                         </div>
                     </div>
-                    <div class="sm:text-right">
+                    <dl class="text-sm">
+                        <dt class="text-muted-foreground">On hand (usable)</dt>
+                        <dd class="tabular-nums">
+                            {{ quantity(row.onHand, row.stockUnit) }}
+                        </dd>
+                    </dl>
+                    <dl class="text-sm">
+                        <dt class="text-muted-foreground">Reorder level</dt>
+                        <dd class="tabular-nums">
+                            {{ quantity(row.reorderLevel, row.stockUnit) }}
+                        </dd>
+                    </dl>
+                    <div>
                         <p
                             v-if="row.coveredByOrders"
                             class="rounded border px-2 py-0.5 text-sm"
@@ -285,149 +354,172 @@ const requestThese = () => {
                         </template>
                     </div>
                 </div>
-                <dl
-                    class="grid gap-x-6 gap-y-1 text-sm min-[480px]:grid-cols-2 lg:grid-cols-4"
-                >
-                    <div>
-                        <dt class="text-muted-foreground">On hand (usable)</dt>
-                        <dd class="tabular-nums">
-                            {{ quantity(row.onHand, row.stockUnit) }}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-muted-foreground">Reorder level</dt>
-                        <dd class="tabular-nums">
-                            {{ quantity(row.reorderLevel, row.stockUnit) }}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-muted-foreground">Maximum</dt>
-                        <dd v-if="row.maxLevel !== null" class="tabular-nums">
-                            {{ quantity(row.maxLevel, row.stockUnit) }}
-                        </dd>
-                        <dd v-else class="text-muted-foreground">Not set</dd>
-                    </div>
-                    <div>
-                        <dt class="text-muted-foreground">On order</dt>
-                        <dd class="tabular-nums">
-                            {{ quantity(row.onOrder, row.stockUnit) }}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-muted-foreground">
-                            Incoming transfers
-                        </dt>
-                        <dd class="tabular-nums">
-                            {{ quantity(row.incoming, row.stockUnit) }}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-muted-foreground">
-                            Average use a day ({{ suggestions.lookBackDays }}
-                            days)
-                        </dt>
-                        <dd class="tabular-nums">
-                            {{ quantity(row.averageDailyUse, row.stockUnit) }}
-                        </dd>
-                    </div>
-                    <div data-testid="reorder-sold">
-                        <dt class="text-muted-foreground">Sold (dispensed)</dt>
-                        <dd
-                            v-if="row.sold30 === null"
-                            class="text-muted-foreground"
-                        >
-                            None in the last 30 days
-                        </dd>
-                        <dd v-else class="tabular-nums">
-                            <!-- Daniel's review: days spelled out; stacked below 640 px so a figure never wraps. -->
-                            <ul
-                                class="sm:hidden"
-                                data-testid="reorder-sold-lines"
-                            >
-                                <li
-                                    v-for="days in soldWindows"
-                                    :key="days"
-                                    class="flex gap-3"
-                                >
-                                    <span class="w-16 text-muted-foreground"
-                                        >{{ days }} days</span
-                                    ><span
-                                        >{{ soldText(row, days) }}
-                                        {{ row.stockUnit }}</span
-                                    >
-                                </li>
-                            </ul>
-                            <span class="hidden sm:inline"
-                                ><template
-                                    v-for="(days, index) in soldWindows"
-                                    :key="days"
-                                    ><template v-if="index > 0"> · </template
-                                    >{{ days }} days:
-                                    {{ soldText(row, days) }}</template
-                                >
-                                {{ row.stockUnit }}</span
-                            >
-                        </dd>
-                    </div>
-                    <template v-if="row.supplier">
-                        <div>
-                            <dt class="text-muted-foreground">
-                                Preferred supplier
-                            </dt>
-                            <dd class="break-words">
-                                {{ row.supplier.name }}
-                            </dd>
-                        </div>
-                        <div>
-                            <dt class="text-muted-foreground">
-                                Lead time and pack
-                            </dt>
-                            <dd>
-                                {{ row.supplier.leadTimeDays }}
-                                {{
-                                    row.supplier.leadTimeDays === 1
-                                        ? 'day'
-                                        : 'days'
-                                }}
-                                ·
-                                {{
-                                    packLabel(
-                                        row.supplier.packDescription,
-                                        row.supplier.packQuantity,
-                                        row.stockUnit,
-                                    )
-                                }}
-                            </dd>
-                        </div>
-                    </template>
-                    <div
-                        v-if="
-                            suggestions.canSeeCost &&
-                            row.supplier &&
-                            row.suggestedPacks !== null
-                        "
+                <details class="border-t border-border pt-2">
+                    <summary
+                        class="min-h-11 cursor-pointer text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring lg:min-h-9"
                     >
-                        <dt class="text-muted-foreground">
-                            Estimated cost (supplier price list)
-                        </dt>
-                        <dd class="tabular-nums">
-                            {{
-                                row.estimateSen === null ||
-                                row.estimateSen === undefined
-                                    ? 'No price recorded'
-                                    : `RM ${formatRinggit(row.estimateSen)}`
-                            }}
-                        </dd>
-                    </div>
-                </dl>
-                <p v-if="!row.supplier" class="text-sm text-muted-foreground">
-                    No preferred supplier: set one in
-                    <a
-                        href="/inventory/supplier-terms"
-                        class="underline underline-offset-4"
-                        >Supplier price list</a
-                    >. The suggestion is in whole stock units with no lead time.
-                </p>
+                        Usage and supplier details
+                    </summary>
+                    <dl
+                        class="grid gap-x-6 gap-y-1 text-sm min-[480px]:grid-cols-2 lg:grid-cols-4"
+                    >
+                        <div>
+                            <dt class="text-muted-foreground">Maximum</dt>
+                            <dd
+                                v-if="row.maxLevel !== null"
+                                class="tabular-nums"
+                            >
+                                {{ quantity(row.maxLevel, row.stockUnit) }}
+                            </dd>
+                            <dd v-else class="text-muted-foreground">
+                                Not set
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-muted-foreground">On order</dt>
+                            <dd class="tabular-nums">
+                                {{ quantity(row.onOrder, row.stockUnit) }}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-muted-foreground">
+                                Incoming transfers
+                            </dt>
+                            <dd class="tabular-nums">
+                                {{ quantity(row.incoming, row.stockUnit) }}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-muted-foreground">
+                                Average use a day ({{
+                                    suggestions.lookBackDays
+                                }}
+                                days)
+                            </dt>
+                            <dd class="tabular-nums">
+                                {{
+                                    quantity(row.averageDailyUse, row.stockUnit)
+                                }}
+                            </dd>
+                        </div>
+                        <div data-testid="reorder-sold">
+                            <dt class="text-muted-foreground">
+                                Sold (dispensed)
+                            </dt>
+                            <dd
+                                v-if="row.sold30 === null"
+                                class="text-muted-foreground"
+                            >
+                                None in the last 30 days
+                            </dd>
+                            <dd v-else class="tabular-nums">
+                                <!-- Daniel's review: days spelled out; stacked below 640 px so a figure never wraps. -->
+                                <ul
+                                    class="sm:hidden"
+                                    data-testid="reorder-sold-lines"
+                                >
+                                    <li
+                                        v-for="days in soldWindows"
+                                        :key="days"
+                                        class="flex gap-3"
+                                    >
+                                        <span class="w-16 text-muted-foreground"
+                                            >{{ days }} days</span
+                                        ><span
+                                            >{{ soldText(row, days) }}
+                                            {{ row.stockUnit }}</span
+                                        >
+                                    </li>
+                                </ul>
+                                <span class="hidden sm:inline"
+                                    ><template
+                                        v-for="(days, index) in soldWindows"
+                                        :key="days"
+                                        ><template v-if="index > 0">
+                                            · </template
+                                        >{{ days }} days:
+                                        {{ soldText(row, days) }}</template
+                                    >
+                                    {{ row.stockUnit }}</span
+                                >
+                            </dd>
+                        </div>
+                        <template v-if="row.supplier">
+                            <div>
+                                <dt class="text-muted-foreground">
+                                    Preferred supplier
+                                </dt>
+                                <dd class="break-words">
+                                    {{ row.supplier.name }}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-muted-foreground">
+                                    Lead time and pack
+                                </dt>
+                                <dd>
+                                    {{ row.supplier.leadTimeDays }}
+                                    {{
+                                        row.supplier.leadTimeDays === 1
+                                            ? 'day'
+                                            : 'days'
+                                    }}
+                                    ·
+                                    {{
+                                        packLabel(
+                                            row.supplier.packDescription,
+                                            row.supplier.packQuantity,
+                                            row.stockUnit,
+                                        )
+                                    }}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-muted-foreground">
+                                    Minimum order
+                                </dt>
+                                <dd>
+                                    {{
+                                        row.supplier.minimumOrderPacks === null
+                                            ? 'Not specified'
+                                            : `${row.supplier.minimumOrderPacks} ${row.supplier.minimumOrderPacks === 1 ? 'pack' : 'packs'}`
+                                    }}
+                                </dd>
+                            </div>
+                        </template>
+                        <div
+                            v-if="
+                                suggestions.canSeeCost &&
+                                row.supplier &&
+                                row.suggestedPacks !== null
+                            "
+                        >
+                            <dt class="text-muted-foreground">
+                                Estimated cost (supplier price list)
+                            </dt>
+                            <dd class="tabular-nums">
+                                {{
+                                    row.estimateSen === null ||
+                                    row.estimateSen === undefined
+                                        ? 'No price recorded'
+                                        : `RM ${formatRinggit(row.estimateSen)}`
+                                }}
+                            </dd>
+                        </div>
+                    </dl>
+                    <p
+                        v-if="!row.supplier"
+                        class="text-sm text-muted-foreground"
+                    >
+                        No preferred supplier: set one in
+                        <a
+                            href="/inventory/supplier-terms"
+                            class="underline underline-offset-4"
+                            >Supplier price list</a
+                        >. The suggestion is in whole stock units with no lead
+                        time.
+                    </p>
+                </details>
             </li>
         </ul>
         <CompactPagination
