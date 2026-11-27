@@ -1643,6 +1643,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                     </span>
                                     <Button
                                         type="submit"
+                                        variant="outline"
                                         :disabled="
                                             form.processing ||
                                             clinical.hold.isHeld ||
