@@ -425,7 +425,7 @@ migration, validation, money or test-assertion change in any of the PRs below.
 | PR | Branch @ head | Scope | State (27 Nov, 16:30 UTC) |
 |---|---|---|---|
 | #1268 (1/2) | `feature/cl2-stock-b-1` @ `c3b54818` | `PurchaseRequests`, `SupplierInvoices`, `SupplierReturns`, `SupplierTerms`, `ReorderSuggestions`, `BranchReplenishment`, `Skus`, `OpeningImport`; components `VerifiedReceivingForm`, `ReceivingReviews`, `TransferReceiptForm`, `TransferDifferences`, `MyDifferenceReports`, `ReportDifferenceSheet`, `PackConversionBlock` | CI green, auto-merge on, in the merge queue |
-| PR 2 (not opened yet) | `feature/cl2-stock-b-2` @ `2cfc47f4` | Only the "Purchase Orders & Receiving" and "Stock Requests & Transfers" sections of `InventoryOperationsPanel.vue` (13 lines) | Held by B.E.R.N.I.S.S until stock-a's #1270 merges (it edits the rest of the same file); then merge main in, re-run the gate, open, subscribe |
+| #1284 (2/2) | `feature/cl2-stock-b-2` @ `547b451f` | Only the "Purchase Orders & Receiving" and "Stock Requests & Transfers" sections of `InventoryOperationsPanel.vue` (13 lines) | Opened 27 Nov at the owner's request, ahead of the coordinator's hold for stock-a's #1270 (a merge-tree check showed no conflict: different lines of the same file). Main merged in; gate green (2220/2220 frontend tests); auto-merge on |
 | PR 3 | `feature/cl2-stock-b-3` @ `7fc631a9` | `InventoryServicesSettings/Suppliers.vue`, `MedicineDetails.vue` | **Dropped** (coordinator): Adlina restyled both in #1264. Branch left unused; do not open it |
 
 **File ownership agreed through B.E.R.N.I.S.S (27 Nov):** stock-a owns `Inventory/Index.vue` and
