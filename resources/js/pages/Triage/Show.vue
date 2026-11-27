@@ -289,7 +289,7 @@ const submit = () => {
 <template>
     <Head title="Triage" />
     <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 p-4 pb-28 md:px-8 md:pt-6"
+        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pt-5 pb-28 sm:px-6 lg:px-8 lg:pt-6"
     >
         <PageHeader
             title="Triage"
@@ -307,7 +307,7 @@ const submit = () => {
         <p
             v-if="readOnly"
             role="status"
-            class="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning-strong"
+            class="rounded-xl border border-warning/25 bg-warning-wash px-4 py-3 text-sm text-warning-strong"
         >
             {{ readOnly }}
         </p>
@@ -315,18 +315,18 @@ const submit = () => {
         <section
             v-if="latest"
             aria-labelledby="latest-triage"
-            class="rounded-lg border bg-card px-4 py-3 text-sm"
+            class="rounded-xl border bg-card px-4 py-4 text-sm shadow-card sm:px-5"
         >
-            <h2 id="latest-triage" class="font-medium">
+            <h2 id="latest-triage" class="text-[15px] font-semibold">
                 Latest triage (save {{ latest.sequence }})
             </h2>
-            <p class="mt-1 text-xs text-muted-foreground">
+            <p class="mt-1 text-[12.5px] text-muted-foreground">
                 {{ latest.recordedAt
                 }}<span v-if="latest.recordedBy">
                     · {{ latest.recordedBy }}</span
                 >
             </p>
-            <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
                 <StatusBadge
                     v-if="latest.chosenZone"
                     status="zone"
@@ -345,33 +345,42 @@ const submit = () => {
 
         <form
             v-if="!readOnly"
-            class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]"
+            class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-5"
             novalidate
             @submit.prevent="submit"
         >
             <div class="space-y-4">
                 <p
                     v-if="!guideline"
-                    class="rounded-lg border px-3 py-2 text-sm text-muted-foreground"
+                    class="rounded-xl border bg-card-quiet px-4 py-3 text-sm text-muted-foreground"
                 >
                     No triage guideline is approved yet, so triage records the
                     readings only and suggests no zone.
                 </p>
-                <fieldset class="rounded-lg border bg-card p-4">
-                    <legend class="px-1 text-sm font-medium">Readings</legend>
-                    <p class="mb-3 text-xs text-muted-foreground">
+                <fieldset
+                    class="rounded-xl border bg-card p-4 shadow-card sm:p-5"
+                >
+                    <legend class="float-left w-full text-[15px] font-semibold">
+                        Readings
+                    </legend>
+                    <p
+                        class="clear-left mt-1 mb-4 text-[12.5px] text-muted-foreground"
+                    >
                         No reading is required. A blank reading never counts as
                         normal.
                     </p>
-                    <div class="grid gap-3 sm:grid-cols-2">
+                    <div class="grid gap-x-4 gap-y-3 sm:grid-cols-2">
                         <div
                             v-for="f in fields"
                             :key="f.key"
-                            class="grid gap-1"
+                            class="grid gap-1.5"
                         >
-                            <label :for="`triage-${f.key}`" class="text-sm"
+                            <label
+                                :for="`triage-${f.key}`"
+                                class="text-[13px] font-medium"
                                 >{{ f.label }}
-                                <span class="text-xs text-muted-foreground"
+                                <span
+                                    class="text-xs font-normal text-muted-foreground"
                                     >({{ f.unit }})</span
                                 ></label
                             >
@@ -380,13 +389,13 @@ const submit = () => {
                                 v-model="form[f.key]"
                                 :inputmode="f.decimal ? 'decimal' : 'numeric'"
                                 autocomplete="off"
-                                class="h-11 rounded-md border bg-background px-3 text-sm tabular-nums outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 lg:h-9"
+                                class="h-11 rounded-md border bg-field-fill px-3 text-sm tabular-nums outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 lg:h-9"
                                 :class="
                                     crossedZone(f.key) === 'red'
                                         ? 'border-2 border-destructive font-semibold'
                                         : crossedZone(f.key) === 'yellow'
                                           ? 'border-2 border-warning font-semibold'
-                                          : ''
+                                          : 'border-input'
                                 "
                                 :aria-invalid="
                                     errorFor(f.key) ? 'true' : undefined
@@ -438,10 +447,14 @@ const submit = () => {
 
                 <fieldset
                     v-if="guideline && guideline.redFlags.length"
-                    class="rounded-lg border bg-card p-4"
+                    class="rounded-xl border bg-card p-4 shadow-card sm:p-5"
                 >
-                    <legend class="px-1 text-sm font-medium">Red flags</legend>
-                    <p class="mb-2 text-xs text-muted-foreground">
+                    <legend class="float-left w-full text-[15px] font-semibold">
+                        Red flags
+                    </legend>
+                    <p
+                        class="clear-left mt-1 mb-2 text-[12.5px] text-muted-foreground"
+                    >
                         Any red flag puts the patient in the red zone.
                     </p>
                     <label
@@ -458,9 +471,11 @@ const submit = () => {
                 </fieldset>
                 <fieldset
                     v-if="guideline && guideline.yellowSigns.length"
-                    class="rounded-lg border bg-card p-4"
+                    class="rounded-xl border bg-card p-4 shadow-card sm:p-5"
                 >
-                    <legend class="px-1 text-sm font-medium">
+                    <legend
+                        class="float-left mb-2 w-full text-[15px] font-semibold"
+                    >
                         Yellow signs
                     </legend>
                     <label
@@ -479,10 +494,13 @@ const submit = () => {
 
             <aside class="space-y-4 lg:sticky lg:top-4 lg:self-start">
                 <section
-                    class="rounded-lg border bg-card p-4"
+                    class="rounded-xl border bg-card p-4 shadow-card sm:p-5"
                     aria-labelledby="triage-zone-heading"
                 >
-                    <h2 id="triage-zone-heading" class="text-sm font-medium">
+                    <h2
+                        id="triage-zone-heading"
+                        class="text-[15px] font-semibold"
+                    >
                         Zone
                     </h2>
                     <template v-if="assessment && form.chosen_zone">
@@ -505,7 +523,7 @@ const submit = () => {
                         <div
                             v-if="offered?.heldBy"
                             role="status"
-                            class="mt-3 flex gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-strong"
+                            class="mt-3 flex gap-2 rounded-lg border border-warning/25 bg-warning-wash px-3 py-2.5 text-[12.5px] text-warning-strong"
                         >
                             <TriangleAlert
                                 aria-hidden="true"
@@ -519,7 +537,9 @@ const submit = () => {
                             </div>
                         </div>
                         <fieldset class="mt-3">
-                            <legend class="text-xs text-muted-foreground">
+                            <legend
+                                class="text-[12.5px] font-medium text-muted-foreground"
+                            >
                                 Zone to save
                             </legend>
                             <div class="mt-1 grid grid-cols-3 gap-2">
@@ -531,11 +551,11 @@ const submit = () => {
                                     ] as TriageZone[]"
                                     :key="zone"
                                     type="button"
-                                    class="flex min-h-11 items-center justify-center gap-1.5 rounded-md px-2 text-sm"
+                                    class="flex min-h-11 items-center justify-center gap-1.5 rounded-full px-2 text-sm lg:min-h-9"
                                     :class="
                                         form.chosen_zone === zone
                                             ? 'border-2 border-foreground bg-muted font-semibold text-foreground'
-                                            : 'border text-muted-foreground'
+                                            : 'border border-input text-foreground'
                                     "
                                     :aria-pressed="form.chosen_zone === zone"
                                     @click="choose(zone)"
@@ -557,16 +577,19 @@ const submit = () => {
                         <button
                             v-if="zoneTouched"
                             type="button"
-                            class="mt-2 min-h-11 text-xs underline lg:min-h-0"
+                            class="mt-2 min-h-11 text-[12.5px] font-medium text-link underline lg:min-h-0"
                             @click="resetZone"
                         >
                             Use the suggested zone
                         </button>
                         <div
                             v-if="reasonOptions.length"
-                            class="mt-3 grid gap-1"
+                            class="mt-3 grid gap-1.5"
                         >
-                            <label for="triage-reason" class="text-xs">
+                            <label
+                                for="triage-reason"
+                                class="text-[13px] font-medium"
+                            >
                                 {{
                                     direction < 0
                                         ? 'Reason for a lower zone (required)'
@@ -582,7 +605,7 @@ const submit = () => {
                                         : undefined
                                 "
                                 aria-describedby="triage-zone-error"
-                                class="h-11 rounded-md border bg-background px-2 text-sm lg:h-9"
+                                class="h-11 rounded-md border border-input bg-field-fill px-3 text-sm lg:h-9"
                             >
                                 <option :value="null">Choose a reason</option>
                                 <option
@@ -597,7 +620,7 @@ const submit = () => {
                         <p
                             v-if="refusal"
                             aria-live="polite"
-                            class="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                            class="mt-3 rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2.5 text-[12.5px] text-destructive"
                         >
                             {{ refusal }}
                         </p>
@@ -615,13 +638,13 @@ const submit = () => {
                     <p
                         v-if="tellDoctor"
                         role="alert"
-                        class="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive"
+                        class="mt-3 rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2.5 text-sm font-semibold text-destructive"
                     >
                         Tell the doctor now
                     </p>
                     <p
                         v-if="missingNames.length"
-                        class="mt-3 text-xs text-muted-foreground"
+                        class="mt-3 text-[12.5px] text-muted-foreground"
                     >
                         Not entered: {{ missingNames.join(', ') }}
                     </p>
