@@ -181,6 +181,22 @@ const help = computed(() =>
         class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 px-4 py-6 md:px-6 lg:[&_a[href]]:min-h-9 lg:[&_button]:min-h-9"
     >
         <PageHeader title="Returns to check" :description="help" />
+        <nav
+            aria-label="Dispensary workspace"
+            class="flex w-fit items-center gap-1 rounded-full bg-muted p-1"
+        >
+            <ActionLink
+                href="/dispensary"
+                variant="ghost"
+                class="min-h-11 rounded-full px-4 text-sm text-muted-foreground hover:bg-card lg:min-h-9"
+                >Dispensing</ActionLink
+            >
+            <span
+                aria-current="page"
+                class="inline-flex min-h-11 items-center rounded-full bg-card px-4 text-sm font-semibold shadow-sm lg:min-h-9"
+                >Returns</span
+            >
+        </nav>
         <OperationalTabs
             :model-value="view"
             label="Medicine returns"
