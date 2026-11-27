@@ -283,6 +283,7 @@ const toBoardRow = (row: QueueRow): PatientBoardRow => ({
     triageViewUrl: row.triageViewUrl ?? null,
     treatmentProgress: row.treatmentProgress ?? null,
     treatmentMinutes: treatmentMinutes(row.treatmentProgress, effectiveNowMs()),
+    medicineCheck: row.medicineCheck ?? null,
     completionLabel: row.removedAt
         ? formatDateTime(row.removedAt, live.value.branch.timezone)
         : null,
@@ -1124,23 +1125,34 @@ onBeforeUnmount(() => {
                             : undefined
                     "
                 >
+                    <p
+                        v-if="activeTab === 'checks'"
+                        class="mb-3 text-sm text-muted-foreground"
+                    >
+                        The Item lines count includes every line awaiting
+                        review, including intentionally not-dispensed lines. It
+                        is not a supplied medicine quantity. Sent by identifies
+                        the latest sender for this check.
+                    </p>
                     <PatientBoard
                         v-if="activeTab === 'waiting' || workload.page.value"
                         :branch-id="live.branch.id"
                         from="queue"
                         :queue-layout="live.scope"
                         :queue-task="
-                            activeTab === 'removed'
-                                ? 'completed'
-                                : activeTab === 'treatment'
-                                  ? 'treatment'
-                                  : activeTab === 'held'
-                                    ? 'held'
-                                    : activeTab === 'waiting'
-                                      ? 'waiting'
-                                      : activeTab === 'serving'
-                                        ? 'seeing'
-                                        : undefined
+                            activeTab === 'checks'
+                                ? 'checks'
+                                : activeTab === 'removed'
+                                  ? 'completed'
+                                  : activeTab === 'treatment'
+                                    ? 'treatment'
+                                    : activeTab === 'held'
+                                      ? 'held'
+                                      : activeTab === 'waiting'
+                                        ? 'waiting'
+                                        : activeTab === 'serving'
+                                          ? 'seeing'
+                                          : undefined
                         "
                         :rows="boardRows"
                         :busy-key="busyKey"

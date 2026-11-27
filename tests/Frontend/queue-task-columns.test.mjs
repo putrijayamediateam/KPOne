@@ -768,3 +768,48 @@ test('actual Queue mapper formats checkout in current branch timezone and never 
     delete withoutTimestamp.removedAt;
     assert.equal(toBoardRow(withoutTimestamp).completionLabel, null);
 });
+
+test('own Medicine checks show only supplied review-line count and current sender with unavailable and escaping semantics', async () => {
+    const props = { queueLayout: 'own', queueTask: 'checks' };
+    const html = await render(props, {
+        medicineCheck: { itemLineCount: 3, sentBy: 'Synthetic Sender' },
+    });
+    assert.deepEqual(headers(html), [
+        'No.',
+        'Patient',
+        'Zone',
+        'Item lines',
+        'Sent by',
+        'Actions',
+    ]);
+    assert.match(html, /data-label="Item lines"[^>]*>[\s\S]*?>3<\/span>/);
+    assert.match(html, /data-label="Sent by"[^>]*>[\s\S]*?Synthetic Sender/);
+    const missing = await render(props, { medicineCheck: null });
+    assert.equal((missing.match(/Not available/g) ?? []).length, 2);
+    const zero = await render(props, {
+        medicineCheck: { itemLineCount: 0, sentBy: '<img src=x>' },
+    });
+    assert.match(zero, />0<\/span>/);
+    assert.match(zero, /&lt;img src=x&gt;/);
+    assert.doesNotMatch(zero, /<img src=x>/);
+
+    for (const normal of [{ queueLayout: 'branch' }, {}]) {
+        const unchanged = await render(normal, {
+            medicineCheck: {
+                itemLineCount: 99,
+                sentBy: 'PRIVATE_SENDER_MARKER',
+            },
+        });
+        assert.doesNotMatch(
+            unchanged,
+            /PRIVATE_SENDER_MARKER|data-label="Item lines"|data-label="Sent by"/,
+        );
+    }
+
+    const page = readFileSync('resources/js/pages/Queue/Index.vue', 'utf8');
+    assert.match(
+        page.replace(/\s+/g, ' '),
+        /including intentionally not-dispensed lines/,
+    );
+    assert.match(page.replace(/\s+/g, ' '), /not a supplied medicine quantity/);
+});
