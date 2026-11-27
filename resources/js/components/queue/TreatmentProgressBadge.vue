@@ -13,11 +13,15 @@ import type { TreatmentProgress } from '@/types';
 
 // Q-2: neutral while a step runs (icon and word carry it), success once done. Tokens only (DARK-1 lesson).
 // The board passes server-anchored minutes; with `live` the badge ticks its own clock (consultation page).
-const props = defineProps<{
-    progress?: TreatmentProgress | null;
-    minutes?: number | null;
-    live?: boolean;
-}>();
+const props = withDefaults(
+    defineProps<{
+        progress?: TreatmentProgress | null;
+        minutes?: number | null;
+        live?: boolean;
+        showOutcomes?: boolean;
+    }>(),
+    { showOutcomes: true },
+);
 const now = ref(Date.now());
 let timer: ReturnType<typeof setInterval> | undefined;
 // Q-2c (Mira): tick only when needed: the consultation page (`live`) or a chip with waiting lines.
@@ -60,7 +64,7 @@ const outcomes = computed(() =>
     ].filter((outcome) => outcome !== undefined),
 );
 const outcomeLines = computed(() =>
-    outcomes.value.map(
+    (props.showOutcomes ? outcomes.value : []).map(
         (outcome) =>
             `${outcome.procedureLabel}: ${outcome.outcomeLabel}${outcome.reasonLabel ? `: ${outcome.reasonLabel}` : ''}`,
     ),

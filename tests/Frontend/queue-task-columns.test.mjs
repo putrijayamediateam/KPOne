@@ -55,6 +55,14 @@ function load(file) {
                     };
                 }
 
+                if (name === './PatientBoardTreatmentResults.vue') {
+                    return {
+                        default: load(
+                            'resources/js/components/patient-board/PatientBoardTreatmentResults.vue',
+                        ).default,
+                    };
+                }
+
                 if (name === '@/lib/waiting-time') {
                     return load('resources/js/lib/waiting-time.ts');
                 }
@@ -387,6 +395,10 @@ test('actual renderer forwards readiness once and retains only one actionable tr
     active('readiness')[0].emit('changed');
     await Vue.nextTick();
     assert.equal(readiness, 2);
+    props.queueTask = 'treatment';
+    await Vue.nextTick();
+    assert.equal(active('treatment').length, 1);
+    assert.equal(active('treatment')[0].props.open, true);
     app.unmount();
     assert.equal(active('treatment').length, 0);
     assert.equal(active('readiness').length, 0);
@@ -515,4 +527,155 @@ test('branch Held still uses original status placement and badge even if passed 
         (html.match(/data-testid="treatment-progress-badge"/g) ?? []).length,
         1,
     );
+});
+
+test('Treatment columns pair each planned step with its exact recorded procedure and outcome without duplicate outcome text', async () => {
+    const progress = {
+        state: 'done',
+        label: 'Nebuliser',
+        startedAt: null,
+        doneAt: null,
+        outcome: {
+            procedureLabel: 'Wound dressing',
+            outcomeLabel: 'Not successful',
+            reasonLabel: 'Patient declined',
+        },
+        waiting: [
+            {
+                label: 'Observation',
+                doneAt: null,
+                outcome: {
+                    procedureLabel: 'Observation',
+                    outcomeLabel: 'Done',
+                    reasonLabel: null,
+                },
+            },
+        ],
+    };
+    const html = await render(
+        { queueLayout: 'own', queueTask: 'treatment' },
+        { treatmentProgress: progress },
+    );
+    assert.deepEqual(headers(html), [
+        'No.',
+        'Patient',
+        'Zone',
+        'Treatment',
+        'Result',
+        'Actions',
+    ]);
+    assert.match(html, /data-label="Treatment"/);
+    assert.match(html, /data-label="Result"/);
+    assert.doesNotMatch(html, /data-label="Duration"|data-label="Since"/);
+    assert.equal(
+        (html.match(/data-testid="treatment-progress-badge"/g) ?? []).length,
+        1,
+    );
+    assert.equal((html.match(/Not successful/g) ?? []).length, 1);
+    assert.equal((html.match(/Patient declined/g) ?? []).length, 1);
+    const result = html.slice(
+        html.indexOf('data-label="Result"'),
+        html.indexOf('data-label="Actions"'),
+    );
+    assert.ok(
+        result.indexOf('Step: Nebuliser') <
+            result.indexOf('Recorded procedure: Wound dressing'),
+    );
+    assert.ok(
+        result.indexOf('Recorded procedure: Wound dressing') <
+            result.indexOf('Step: Observation'),
+    );
+    assert.match(result, /aria-label="Recorded treatment outcomes"/);
+    assert.match(result, /Recorded procedure: Observation/);
+    assert.doesNotMatch(result, /Resume|acknowledge/);
+});
+
+test('running current and completed waiting steps keep unavailable and recorded outcomes separately ordered', async () => {
+    const html = await render(
+        { queueLayout: 'own', queueTask: 'treatment' },
+        {
+            treatmentProgress: {
+                state: 'started',
+                label: 'IV drip',
+                startedAt: null,
+                doneAt: null,
+                waiting: [
+                    {
+                        label: 'Nebuliser',
+                        doneAt: null,
+                        outcome: {
+                            procedureLabel: 'Nebuliser',
+                            outcomeLabel: 'Not successful',
+                            reasonLabel: 'Patient declined',
+                        },
+                    },
+                    { label: 'Observation', doneAt: null },
+                ],
+            },
+        },
+    );
+    const result = html.slice(
+        html.indexOf('data-label="Result"'),
+        html.indexOf('data-label="Actions"'),
+    );
+    assert.equal((result.match(/Outcome not available/g) ?? []).length, 2);
+    assert.ok(
+        result.indexOf('Step: IV drip') < result.indexOf('Step: Nebuliser'),
+    );
+    assert.ok(
+        result.indexOf('Step: Nebuliser') < result.indexOf('Step: Observation'),
+    );
+    assert.equal((result.match(/Not successful/g) ?? []).length, 1);
+    const empty = await render({ queueLayout: 'own', queueTask: 'treatment' });
+    assert.match(empty, /Outcome not available/);
+    assert.doesNotMatch(empty, /Recorded procedure:|Not successful|>Done</);
+    const escaped = await render(
+        { queueLayout: 'own', queueTask: 'treatment' },
+        {
+            treatmentProgress: {
+                state: 'done',
+                label: '<img src=x>',
+                startedAt: null,
+                doneAt: null,
+            },
+        },
+    );
+    assert.match(escaped, /Step: &lt;img src=x&gt;/);
+    assert.doesNotMatch(escaped, /<img src=x>/);
+});
+
+test('badge outcome opt-out preserves default visible and accessible outcome evidence plus unsuccessful warning tone', async () => {
+    const Badge = load(
+        'resources/js/components/queue/TreatmentProgressBadge.vue',
+    ).default;
+    const progress = {
+        state: 'done',
+        label: 'Nebuliser',
+        startedAt: null,
+        doneAt: null,
+        outcome: {
+            procedureLabel: 'Nebuliser',
+            outcomeLabel: 'Not successful',
+            reasonLabel: 'Patient declined',
+        },
+    };
+    const normal = await renderToString(Vue.createSSRApp(Badge, { progress }));
+    const hidden = await renderToString(
+        Vue.createSSRApp(Badge, { progress, showOutcomes: false }),
+    );
+    assert.match(normal, /data-testid="treatment-record-outcome"/);
+    assert.match(
+        normal,
+        /aria-label="[^"]*Not successful[^"]*Patient declined/,
+    );
+    assert.doesNotMatch(
+        hidden,
+        /Not successful|Patient declined|data-testid="treatment-record-outcome"/,
+    );
+    assert.match(hidden, /aria-label="[^"]*Nebuliser/);
+    assert.match(hidden, /data-treatment-state="done"/);
+
+    for (const html of [normal, hidden]) {
+        assert.match(html, /text-warning-strong/);
+    }
 });
