@@ -210,14 +210,10 @@ const triageTextClass = (zone: TriageZone | null) =>
                             <Tooltip>
                                 <TooltipTrigger as-child>
                                     <span
-                                        class="flex max-w-full items-center gap-1.5 rounded-md bg-muted/70 px-2 py-0.5 font-normal transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:outline-none"
+                                        class="flex max-w-full items-start rounded-md bg-muted/70 px-2 py-0.5 font-normal transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:outline-none"
                                         tabindex="0"
                                     >
-                                        <UserRound
-                                            class="size-3 shrink-0 text-muted-foreground"
-                                            aria-hidden="true"
-                                        />
-                                        <span class="truncate">{{
+                                        <span class="line-clamp-2">{{
                                             row.doctorName ?? 'Unassigned'
                                         }}</span>
                                     </span>
@@ -302,7 +298,14 @@ const triageTextClass = (zone: TriageZone | null) =>
                         "
                     >
                         <div class="flex flex-wrap items-center gap-1.5">
+                            <!-- The duration chip already reads "Waiting N min": show one Waiting chip, not two. -->
                             <span
+                                v-if="
+                                    !(
+                                        row.statusTone === 'waiting' &&
+                                        row.durationLabel.startsWith('Waiting')
+                                    )
+                                "
                                 class="inline-flex rounded-md border px-2 py-0.5 text-[11px] font-normal"
                                 :class="statusClass(row.statusTone)"
                                 >{{ row.statusLabel }}</span
@@ -637,13 +640,17 @@ const triageTextClass = (zone: TriageZone | null) =>
     .patient-board thead {
         display: none;
     }
+    /* Rows are separated by dividers inside the list surface: no card inside the card. */
     .patient-board tbody > tr {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        margin-bottom: 12px;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 8px;
+        border: 0;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
+        padding: 12px 8px;
+    }
+    .patient-board tbody > tr:last-child {
+        border-bottom: 0;
     }
     /* The empty message sits on the board's own surface: no card inside the card. */
     .patient-board tbody > tr.board-empty-row {
