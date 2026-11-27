@@ -524,3 +524,48 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 ## BIL-38 continuation (26 Nov 2026, Codex)
 
 Owner clarified Director price publication with staff-account administration unchanged. The three original existing-test changes and the additional IMP-1 fixture change were approved individually in this chat. See [BIL-38-DESIGN.md](BIL-38-DESIGN.md). Local implementation adds the existing publish permission to Director and an additive migration; no other role or authority definition changes. Focused PostgreSQL 18.1 validation: 39 tests, 1,087 assertions, all passed, including StaffAuthorityBoundaryTest. Full gate and independent review remain release requirements; no commit, push or PR yet. Sunday's importer remains a named Administrator.
+
+## Handoff for the next Billing session (27 Nov 2026, Farah)
+
+The old Billing session is retired; each new slice starts in a fresh session. Read this section first.
+
+**Merged since the last TEAM.md update**
+- BIL-36 (Finance Officer and Director print, `billing.print.patient_identity.branch`, `billing.document_viewed`): PR #1112.
+- BIL-37 (doctor's read-only bill, `billing.view_readonly.branch`, `billing.reviewed`): PR #1113.
+- BIL-38 (Director publishes prices): merged through Codex's PR #1131 (migration `2026_11_26_250100`). My branch
+  `feature/bil-38-director-publish-prices` (`2c2f952f3`) is **superseded; do not open a PR from it**. It also held
+  two more approved test changes (`UnifiedCatalogueSetupTest:253-272` and `ClinicalServiceCatalogueControllerTest:228-251`). The
+  owner approved them via relay but never typed it, so they were not applied. Check whether main's CI still
+  needs them before doing anything.
+
+**Open design notes (pushed; no code yet; no PR)**
+
+| Slice | Branch | SHA | State |
+|---|---|---|---|
+| BIL-33 void approval | `feature/bil-33-void-approval` | `391d23c01` | Note with the owner's answers (section 7). Waiting for Kumar's review. |
+| BIL-34 refund approval | `feature/bil-34-refund-approval` | `ca57a7b69` | Note with the owner's answers (section 7). Waiting for Kumar's review. |
+| BIL-39 family bill | `feature/bil-39-family-bill` | `8bcd31f3d` | Model agreed with Nurul. The owner's questions (section 8) have **not been sent**. The note path has **not been sent to Nurul**. Waiting for Kumar. |
+
+**Owner decisions of 25 Nov 2026 (tick boxes in the coordinator session; recorded in the notes)**
+- BIL-33:
+  - Finance Officer and CA Supervisor may ask for a void (`invoices.void.branch` also goes to `ca_supervisor`).
+  - The branch's Branch Manager approves; the Director is the fallback.
+  - A pending void does not block payment; a payment makes the request stale.
+  - New `invoices.void.approve.branch` for `branch_manager` and `director`.
+- BIL-34:
+  - Finance Officer and Director keep approving; nothing is revoked.
+  - The review threshold is a per-branch Approval Limits setting (default and missing = RM 300.00); an amount exactly
+    at the threshold needs no review.
+  - Every refund is covered, including after-completion refunds.
+  - `payments.refunds.approve.branch` goes to `branch_manager`; new `payments.refunds.review.branch` goes to
+    `finance_officer`.
+- For both: Kumar reviews first, then the owner gets the exact changed-assertion list. Nothing is built until both are done.
+
+**Next, in order**
+1. Clean Look Stage 1 Billing restyle (deadline Sat 28 Nov 20:00), once Daniel's `docs/design/CLEAN-LOOK-SPEC.md`
+   lands. Partials 1–3 of the gap list come after Monday.
+2. BIL-33, then BIL-34, then BIL-39. BIL-39 needs Nurul's `visits.family_group_id` migration merged first.
+3. The REL-BIL release note, later.
+
+**Environment reminders:** use a task-owned PG18 container; PHPStan runs in CI only; the GD image tests and the HR and
+Website contention tests are known cloud noise.
