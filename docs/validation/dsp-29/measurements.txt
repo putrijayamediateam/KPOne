@@ -1,0 +1,4 @@
+check-panel-1440-light.png: panel 1; marks 1; overflow 0px; errors none; url http://127.0.0.1:8124/visits/KPV-00000001/encounter
+check-panel-1440-dark.png: panel 1; marks 1; overflow 0px; errors none; url http://127.0.0.1:8124/visits/KPV-00000001/encounter
+check-panel-390-light.png: panel 1; marks 1; overflow 0px; errors none; url http://127.0.0.1:8124/visits/KPV-00000001/encounter
+check-panel-390-dark.png: panel 1; marks 1; overflow 0px; errors none; url http://127.0.0.1:8124/visits/KPV-00000001/encounter
