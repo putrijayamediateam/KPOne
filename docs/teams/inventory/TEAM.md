@@ -131,7 +131,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | STK-33 | Stock health (`/inventory/stock-health`): days on hand, turnover and expiry loss per SKU and location, quantities only | #626 |
 | DD-75, DD-76 | Inventory task links: three groups side by side from 1024 px, folding groups with a count on phones (44 px summaries); a two-line Pilot readiness card pointing to the pharmacist review pack | #629 |
 | DD tiles | Inventory summary tiles (SKUs with stock, Total batches, Expired batches) stay in one row at every width, sentence case; fits 320 px | #633 (in batch #634) |
-| CL2-STOCK-A | Clean Look Stage 2, restyled in place (classes only): Inventory hub, the hub's operations panel outside the purchasing and transfer sections, Stock health, Stock count and Write-off, Batch holds, Recalls, Treatment room usage, Controlled register and its detail, Stock review | #1270 (open, 27 Nov) |
+| CL2-STOCK-A | Clean Look Stage 2, restyled in place (classes only): Inventory hub, the hub's operations panel outside the purchasing and transfer sections, Stock health, Stock count and Write-off, Batch holds, Recalls, Treatment room usage, Controlled register and its detail, Stock review | #1270, merged 27 Nov as `228446747` |
 | CL2-STOCK-A2 | Clean Look for Pilot readiness, Medicine sales and the difference row menu (classes only) | #1275 (open, 27 Nov) |
 
 ## 6. Owner decisions already made (never ask again)
@@ -506,8 +506,9 @@ lists (the branch's 50 newest); a store-wide request list is a follow-up. RFQ pr
 
 ### Clean Look Stage 2, stock pages (Mei Ling, 27 Nov 2026)
 
-**PRs:** #1270 (`feature/cl2-stock-a`, head `bc9f5131`) and #1275 (`feature/cl2-stock-a-2`, head `132c9a81`), both
-open with CI running on 27 Nov; the coordinator auto-merges under the owner's standing approval (look only). Shots:
+**PRs:** #1270 (`feature/cl2-stock-a`) merged 27 Nov 16:59 UTC as `228446747` (head `7574bab6`, CI green on that
+head). #1275 (`feature/cl2-stock-a-2`, head `c6652b91`) has CI green and waits for its turn in the coordinator's queue;
+the coordinator updates branches from main from here on (do not merge main in yourself). Shots:
 `validation/cl2-stock-a-shots`, folders `docs/validation/cl2-stock-a/` and `docs/validation/cl2-stock-a-2/` (1440
 light, 1440 dark, 390 light; synthetic data from `KPOneInventoryWalkSeeder`).
 
