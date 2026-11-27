@@ -1,6 +1,6 @@
 # DSP-CARD-1 medicine card screenshots (synthetic preview data)
 
-Code head: `b1562466` on `feature/dsp-card-1`. 1440, 1280 and 390 px, light and dark, deviceScaleFactor 2.
+Code head: `8df679eb` on `feature/dsp-card-1` (shots refreshed; first set was `b1562466`). 1440, 1280 and 390 px, light and dark, deviceScaleFactor 2.
 Evidence only; not for merge. Task-owned PostgreSQL 18.7 database `kpone_dspcard_shots`, seeded with synthetic
 fixtures through the real services (start, edit, add, send for doctor check); no real data.
 
@@ -17,5 +17,6 @@ Checks for Daniel:
 - DD-125: Batch select width at 1280 px is 514 px (full card width), Frequency 251 px (153 px in the #1139 set);
   1440: 674 and 331 px; 390: 324 px each (measurements.txt).
 - Sideways overflow is 0 px at every width and theme.
-- Question: on a line the CA has not changed, the doctor's directions show both in the direction line and under
-  "Doctor ordered". Keep both, or show "Same directions" under "Doctor ordered" when they match?
+- Owner decision (27 Nov): "You give" says "Same directions" when the CA's directions match the doctor's order;
+  a changed line shows what is given (Domperidone). A changed precaution or route is always named after it
+  ("Same directions · Precaution: ..."; Hakim notes this reads slightly oddly, for Daniel's view). Not in this seed.
