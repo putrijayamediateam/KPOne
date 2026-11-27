@@ -10,13 +10,14 @@ import type { NextBlock } from '@/components/spaces/NextThings.vue';
 import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
+import { greetingFor, hourFromAsOf, hourInZone } from '@/lib/greeting';
 
 type Ring = InstanceType<typeof MeHome>['$props']['ring'];
 type Week = InstanceType<typeof MeHome>['$props']['week'];
 type Station = InstanceType<typeof MeHome>['$props']['station'];
 type Tiles = InstanceType<typeof MeHome>['$props']['tiles'];
 
-defineProps<{
+const props = defineProps<{
     header: { date: string; branchName: string | null };
     today: {
         ring: Ring;
@@ -56,18 +57,13 @@ const redZone = computed(() => {
 });
 
 // Clean Look greeting: the signed-in user's own first name (already a shared page prop) and the browser clock.
-const greetingText = computed(() => {
-    const name = (page.props.auth?.user?.name ?? '').trim().split(/\s+/)[0];
-    const hour = new Date().getHours();
-    const part =
-        hour < 12
-            ? 'Good morning'
-            : hour < 18
-              ? 'Good afternoon'
-              : 'Good evening';
-
-    return name ? `${part}, ${name}` : part;
-});
+const greetingText = computed(() =>
+    greetingFor(
+        page.props.auth?.user?.name,
+        hourInZone(props.today.time?.timezone) ??
+            hourFromAsOf(props.today.asOf),
+    ),
+);
 </script>
 
 <template>
