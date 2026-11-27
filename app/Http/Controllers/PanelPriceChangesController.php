@@ -24,7 +24,8 @@ class PanelPriceChangesController extends Controller
             is_string($request->query('panel')) ? $request->query('panel') : null,
             is_string($request->query('charge')) ? $request->query('charge') : null,
             max(1, min(10000, (int) $request->query('decided_page', 1))),
-        ));
+            $request->query('decided_status'),
+        ) + ['decidedContext' => $request->hasAny(['decided_status', 'decided_page'])]);
     }
 
     public function store(Request $request, PanelPriceProposalService $service): RedirectResponse

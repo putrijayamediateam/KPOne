@@ -8,6 +8,8 @@ use App\Domain\Visit\Billing\Models\PriceChangeProposal;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 /**
  * Read side of the Panel price changes page: what each Panel pays today, what is waiting for a decision and what
@@ -23,9 +25,14 @@ final class PanelPriceChangesPage
     ) {}
 
     /** @return array<string, mixed> */
-    public function page(User $actor, ?string $panelKey, ?string $chargePublicId, int $decidedPage = 1): array
+    public function page(User $actor, ?string $panelKey, ?string $chargePublicId, int $decidedPage = 1, mixed $decidedStatus = null): array
     {
-        return DB::transaction(function () use ($actor, $panelKey, $chargePublicId, $decidedPage): array {
+        $validated = Validator::make(['decided_status' => $decidedStatus], [
+            'decided_status' => ['nullable', 'string', Rule::in(['approved', 'rejected', 'withdrawn'])],
+        ])->validate();
+        $decidedStatus = ($validated['decided_status'] ?? null) ?: null;
+
+        return DB::transaction(function () use ($actor, $panelKey, $chargePublicId, $decidedPage, $decidedStatus): array {
             $branch = $this->branches->activeBranch($actor);
             abort_unless($branch && $branch->organisation_id === $actor->organisation_id, 404);
             $canPropose = $actor->can(PanelPriceProposalService::PROPOSE_PERMISSION);
@@ -80,7 +87,7 @@ final class PanelPriceChangesPage
                 ->select(['c.*', 'p.name as panel_name', 'd.public_id as charge_public_id', 'd.display_name as charge_name']);
             $waiting = (clone $base)->where('c.status', 'proposed')->orderBy('c.proposed_at')->orderBy('c.id')->limit(PanelPriceProposalService::BULK_LIMIT)->get();
             $waitingCount = DB::table('price_change_proposals')->where('organisation_id', $org)->where('status', 'proposed')->count();
-            $decided = (clone $base)->where('c.status', '<>', 'proposed')->orderByDesc('c.updated_at')->orderByDesc('c.id')->paginate(self::PER_PAGE, ['*'], 'decided_page', $decidedPage);
+            $decided = (clone $base)->where('c.status', '<>', 'proposed')->when($decidedStatus !== null, fn ($query) => $query->where('c.status', $decidedStatus))->orderByDesc('c.updated_at')->orderByDesc('c.id')->paginate(self::PER_PAGE, ['*'], 'decided_page', $decidedPage);
 
             $all = $waiting->concat($decided->items());
             $userIds = $all->pluck('proposed_by_user_id')->merge($all->pluck('decided_by_user_id'))->filter()->unique()->all();
@@ -129,6 +136,7 @@ final class PanelPriceChangesPage
                 'waiting' => $waiting->map($map)->all(),
                 'waitingCount' => $waitingCount,
                 'decided' => collect($decided->items())->map($map)->all(),
+                'decidedStatus' => $decidedStatus,
                 'decidedPagination' => ['page' => $decided->currentPage(), 'lastPage' => $decided->lastPage(), 'total' => $decided->total()],
                 'rejectReasons' => PriceChangeProposal::REJECT_REASONS,
             ];
