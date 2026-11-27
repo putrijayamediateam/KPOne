@@ -478,7 +478,7 @@ const occupancyMax = computed(() =>
         </nav>
 
         <form
-            class="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4"
+            class="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4 shadow-card"
             @submit.prevent="applyFilters"
         >
             <label class="grid gap-1 text-xs font-medium">
@@ -517,7 +517,7 @@ const occupancyMax = computed(() =>
 
         <div
             v-if="section === 'sales' && summaryDownloadUrl"
-            class="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4 shadow-card"
             aria-label="Sales summary download"
         >
             <div class="min-w-0 text-sm">
@@ -543,7 +543,7 @@ const occupancyMax = computed(() =>
         <section
             v-if="dailyDownloadUrl"
             aria-label="Daily aggregate download"
-            class="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4 shadow-card"
         >
             <div class="min-w-0 text-sm">
                 <h2 class="font-semibold">
@@ -582,7 +582,7 @@ const occupancyMax = computed(() =>
         <section
             v-if="report.kind === 'payments'"
             aria-label="Receipt-date reconciliation"
-            class="min-w-0 rounded-xl border bg-card p-4"
+            class="min-w-0 rounded-xl border bg-card p-4 shadow-card"
         >
             <h2 class="font-semibold">
                 Receipts by local business date and payment method
@@ -642,7 +642,7 @@ const occupancyMax = computed(() =>
             <article
                 v-for="card in cardRows"
                 :key="card.label"
-                class="min-h-28 rounded-xl border bg-card p-4"
+                class="min-h-28 rounded-xl border bg-card p-4 shadow-card"
             >
                 <p class="text-xs text-muted-foreground">{{ card.label }}</p>
                 <p class="mt-2 text-2xl font-semibold tabular-nums">
@@ -670,7 +670,7 @@ const occupancyMax = computed(() =>
 
         <section
             v-if="chartPoints.length"
-            class="rounded-xl border bg-card p-4 md:p-5"
+            class="rounded-xl border bg-card p-4 shadow-card md:p-5"
         >
             <h2 class="font-semibold">
                 {{
@@ -738,7 +738,7 @@ const occupancyMax = computed(() =>
 
         <section
             v-if="hourlyPatients.length"
-            class="rounded-xl border bg-card p-4 md:p-5"
+            class="rounded-xl border bg-card p-4 shadow-card md:p-5"
         >
             <h2 class="font-semibold">Average hourly patients</h2>
             <div
@@ -773,7 +773,7 @@ const occupancyMax = computed(() =>
             <article
                 v-for="trend in timeTrends"
                 :key="trend.title"
-                class="rounded-xl border bg-card p-4"
+                class="rounded-xl border bg-card p-4 shadow-card"
             >
                 <h2 class="font-semibold">{{ trend.title }}</h2>
                 <div
@@ -810,7 +810,7 @@ const occupancyMax = computed(() =>
             v-if="report.kind === 'in-clinic'"
             class="grid gap-4 xl:grid-cols-2"
         >
-            <article class="rounded-xl border bg-card p-4">
+            <article class="rounded-xl border bg-card p-4 shadow-card">
                 <h2 class="font-semibold">Visit priority</h2>
                 <p class="mt-2 text-sm text-muted-foreground">
                     Urgent {{ report.priority.urgent }} · Normal
@@ -818,7 +818,7 @@ const occupancyMax = computed(() =>
                 </p>
             </article>
             <article
-                class="overflow-x-auto rounded-xl border bg-card p-4 xl:col-span-2"
+                class="overflow-x-auto rounded-xl border bg-card p-4 shadow-card xl:col-span-2"
             >
                 <h2 class="font-semibold">
                     Clinic activity by weekday and hour
@@ -862,7 +862,7 @@ const occupancyMax = computed(() =>
             v-if="report.kind === 'patients'"
             class="grid gap-4 xl:grid-cols-2"
         >
-            <article class="rounded-xl border bg-card p-4">
+            <article class="rounded-xl border bg-card p-4 shadow-card">
                 <h2 class="font-semibold">Gender</h2>
                 <dl class="mt-3 space-y-2 text-sm">
                     <div
@@ -875,7 +875,7 @@ const occupancyMax = computed(() =>
                     </div>
                 </dl>
             </article>
-            <article class="rounded-xl border bg-card p-4">
+            <article class="rounded-xl border bg-card p-4 shadow-card">
                 <h2 class="font-semibold">Visits per patient</h2>
                 <dl class="mt-3 space-y-2 text-sm">
                     <div
@@ -904,7 +904,7 @@ const occupancyMax = computed(() =>
             <article
                 v-for="group in visibleGroups"
                 :key="group.title"
-                class="min-w-0 overflow-hidden rounded-xl border bg-card"
+                class="min-w-0 overflow-hidden rounded-xl border bg-card shadow-card"
             >
                 <div
                     class="flex flex-wrap items-center justify-between gap-3 border-b p-4"

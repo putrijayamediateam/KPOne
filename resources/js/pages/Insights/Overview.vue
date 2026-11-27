@@ -290,7 +290,7 @@ const firstRow = computed(() => props.overview.branches[0]);
 
         <div class="grid gap-5 xl:grid-cols-2">
             <section
-                class="min-w-0 rounded-xl border bg-card p-4"
+                class="min-w-0 rounded-xl border bg-card p-4 shadow-card"
                 aria-labelledby="overview-targets"
                 data-testid="overview-targets"
             >
@@ -374,7 +374,7 @@ const firstRow = computed(() => props.overview.branches[0]);
             </section>
 
             <section
-                class="min-w-0 rounded-xl border bg-card p-4"
+                class="min-w-0 rounded-xl border bg-card p-4 shadow-card"
                 aria-labelledby="overview-waiting"
                 data-testid="overview-waiting"
             >
@@ -445,7 +445,7 @@ const firstRow = computed(() => props.overview.branches[0]);
             </section>
 
             <section
-                class="min-w-0 rounded-xl border bg-card p-4"
+                class="min-w-0 rounded-xl border bg-card p-4 shadow-card"
                 aria-labelledby="overview-panel"
                 data-testid="overview-panel"
             >
@@ -542,7 +542,7 @@ const firstRow = computed(() => props.overview.branches[0]);
             </section>
 
             <section
-                class="min-w-0 rounded-xl border bg-card p-4"
+                class="min-w-0 rounded-xl border bg-card p-4 shadow-card"
                 aria-labelledby="overview-month"
                 data-testid="overview-month"
             >
