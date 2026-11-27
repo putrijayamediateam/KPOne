@@ -614,10 +614,14 @@ const visitTypeLabel = (value: string) =>
 
 <template>
     <Head title="Panel Claims" />
-    <main class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-6">
+    <main
+        class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
+    >
         <header class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <h1 class="text-2xl font-semibold text-foreground">
+                <h1
+                    class="text-[26px] font-semibold tracking-[-0.02em] text-foreground lg:text-[30px]"
+                >
                     Panel Claims
                 </h1>
                 <p class="mt-1 text-sm text-muted-foreground">

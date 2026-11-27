@@ -182,7 +182,9 @@ watch(
 
 <template>
     <Head title="Treatment room usage" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto w-full max-w-6xl space-y-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
+    >
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -225,11 +227,11 @@ watch(
                         v-model="stockQ"
                         maxlength="100"
                         type="search"
-                        class="mt-1 min-h-11 w-full rounded border bg-background px-3"
+                        class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3"
                 /></label>
                 <button
                     type="submit"
-                    class="min-h-11 rounded bg-primary px-4 text-primary-foreground"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                 >
                     Search stock
                 </button>
@@ -243,7 +245,7 @@ watch(
             <article
                 v-for="row in usage.stock.rows"
                 :key="row.id"
-                class="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
+                class="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4"
             >
                 <div class="min-w-0 flex-1 basis-64 text-sm">
                     <p class="font-medium break-words">
@@ -269,7 +271,7 @@ watch(
                 </div>
                 <button
                     v-if="row.usable"
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     @click="showRecord(row)"
                 >
                     Record use or waste
@@ -283,14 +285,14 @@ watch(
             </article>
             <div v-if="usage.stock.lastPage > 1" class="flex gap-2">
                 <button
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     :disabled="usage.stock.page <= 1"
                     @click="search(usage.entries.page, usage.stock.page - 1)"
                 >
                     Previous
                 </button>
                 <button
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     :disabled="usage.stock.page >= usage.stock.lastPage"
                     @click="search(usage.entries.page, usage.stock.page + 1)"
                 >
@@ -312,11 +314,11 @@ watch(
                         v-model="q"
                         maxlength="100"
                         type="search"
-                        class="mt-1 min-h-11 w-full rounded border bg-background px-3"
+                        class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3"
                 /></label>
                 <button
                     type="submit"
-                    class="min-h-11 rounded bg-primary px-4 text-primary-foreground"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                 >
                     Search entries
                 </button>
@@ -330,7 +332,7 @@ watch(
             <article
                 v-for="row in usage.entries.rows"
                 :key="row.id"
-                class="space-y-2 rounded-lg border p-3"
+                class="space-y-2 rounded-xl border bg-card p-4"
             >
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <span class="font-mono text-sm">{{
@@ -374,7 +376,7 @@ watch(
                 </p>
                 <button
                     v-if="row.canReverse"
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     @click="showReverse(row)"
                 >
                     Reverse
@@ -382,14 +384,14 @@ watch(
             </article>
             <div v-if="usage.entries.lastPage > 1" class="flex gap-2">
                 <button
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     :disabled="usage.entries.page <= 1"
                     @click="search(usage.entries.page - 1, usage.stock.page)"
                 >
                     Previous
                 </button>
                 <button
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     :disabled="usage.entries.page >= usage.entries.lastPage"
                     @click="search(usage.entries.page + 1, usage.stock.page)"
                 >
@@ -431,7 +433,7 @@ watch(
                         <label class="block text-sm"
                             >Reason<select
                                 v-model="form.reason"
-                                class="mt-1 min-h-11 w-full rounded border bg-background px-2"
+                                class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-2"
                             >
                                 <option
                                     v-for="reason in usage.reasons[form.kind] ??
@@ -449,7 +451,7 @@ watch(
                                 v-model="form.quantity"
                                 inputmode="decimal"
                                 required
-                                class="mt-1 min-h-11 w-full rounded border bg-background px-3"
+                                class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3"
                         /></label>
                         <InputError
                             :message="form.errors.quantity ?? form.errors.unit"
@@ -459,7 +461,7 @@ watch(
                             class="block text-sm"
                             >Treatment room (optional)<select
                                 v-model="form.room_id"
-                                class="mt-1 min-h-11 w-full rounded border bg-background px-2"
+                                class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-2"
                             >
                                 <option value="">Not recorded</option>
                                 <option
@@ -482,7 +484,7 @@ watch(
                         <label class="block text-sm"
                             >Why are you reversing it?<select
                                 v-model="form.reversal_reason"
-                                class="mt-1 min-h-11 w-full rounded border bg-background px-2"
+                                class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-2"
                             >
                                 <option
                                     v-for="reason in usage.reversalReasons"
@@ -504,7 +506,7 @@ watch(
                     />
                     <button
                         type="submit"
-                        class="min-h-11 rounded bg-primary px-4 text-primary-foreground"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground lg:min-h-9"
                         :disabled="form.processing"
                     >
                         {{
