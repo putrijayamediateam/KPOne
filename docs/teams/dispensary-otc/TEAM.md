@@ -442,3 +442,7 @@ order, each its own PR:
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
+
+### Read-only review context — 26 November 2026 (in review)
+
+Owner-authorized F27 presentation slice recomposes the existing patient/visit/case-branch facts and Case/Allergies cards. Case branch stays explicitly distinct from active shell branch during organisation-authorized review. Only the existing Back link remains; unknown/allergy/null-time predicates and all clinical projection/audit policy are unchanged. Script differs only by a decorative icon import. Medicine/service/return contents remain outside this bounded slice.

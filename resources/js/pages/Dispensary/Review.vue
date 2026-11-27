@@ -5,7 +5,7 @@
  * no action bar, and the data carries no URL or version a form could post (Daniel: render nothing disabled).
  */
 import { Head } from '@inertiajs/vue3';
-import { ArrowLeft } from '@lucide/vue';
+import { ArrowLeft, UserRound } from '@lucide/vue';
 import ReadOnlyBanner from '@/components/ReadOnlyBanner.vue';
 import { PageHeader } from '@/components/ui/page-header';
 
@@ -122,11 +122,11 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
 
 <template>
     <Head title="Dispensary case (read only)" />
-    <main class="mx-auto grid w-full max-w-5xl gap-4 px-4 py-6">
+    <main class="mx-auto grid w-full max-w-5xl min-w-0 gap-4 px-4 py-6 md:px-6">
         <ReadOnlyBanner>
             <a
                 :href="visitUrl"
-                class="inline-flex h-11 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+                class="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
                 data-testid="review-back"
                 ><ArrowLeft class="size-4" aria-hidden="true" />Back to visit</a
             >
@@ -134,15 +134,65 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
 
         <PageHeader
             title="Dispensary case"
-            :description="`${review.patient.name} · ${review.patient.patientNumber} · ${review.visit.visitNumber} · ${review.branch}`"
+            description="Read-only case review"
         />
 
         <section
-            class="grid gap-2 rounded-md border p-4 text-sm dark:border-foreground/20"
+            class="flex min-w-0 items-start gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm"
+            aria-labelledby="review-patient"
+        >
+            <span
+                class="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted"
+                aria-hidden="true"
+            >
+                <UserRound class="size-5 text-muted-foreground" />
+            </span>
+            <div class="min-w-0 flex-1">
+                <h2
+                    id="review-patient"
+                    class="text-base font-semibold break-words"
+                >
+                    {{ review.patient.name }}
+                </h2>
+                <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+                    <div class="min-w-0">
+                        <dt class="text-xs text-muted-foreground">
+                            Patient number
+                        </dt>
+                        <dd class="mt-1 font-mono break-words">
+                            {{ review.patient.patientNumber }}
+                        </dd>
+                    </div>
+                    <div class="min-w-0">
+                        <dt class="text-xs text-muted-foreground">Visit</dt>
+                        <dd class="mt-1 font-mono break-words">
+                            {{ review.visit.visitNumber }}
+                        </dd>
+                    </div>
+                    <div class="min-w-0">
+                        <dt class="text-xs text-muted-foreground">
+                            Case branch
+                        </dt>
+                        <dd
+                            class="mt-1 break-words"
+                            data-testid="review-case-branch"
+                        >
+                            {{ review.branch }}
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+        </section>
+
+        <section
+            class="grid min-w-0 gap-3 rounded-2xl border border-border bg-card p-5 text-sm shadow-sm"
             aria-labelledby="review-case"
         >
             <h2 id="review-case" class="font-semibold">Case</h2>
-            <p class="flex items-center gap-2" data-testid="review-status">
+            <p
+                class="flex flex-wrap items-center gap-2"
+                data-testid="review-status"
+            >
                 <span
                     class="size-2 rounded-full bg-foreground/60"
                     aria-hidden="true"
@@ -159,7 +209,7 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
                     }}</span
                 >
             </p>
-            <p v-if="review.doctor" class="text-muted-foreground">
+            <p v-if="review.doctor" class="break-words text-muted-foreground">
                 Doctor: {{ review.doctor }}
             </p>
             <p v-if="review.receivedAt" class="text-muted-foreground">
@@ -171,7 +221,7 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
         </section>
 
         <section
-            class="grid gap-2 rounded-md border p-4 text-sm dark:border-foreground/20"
+            class="grid min-w-0 gap-3 rounded-2xl border border-border bg-card p-5 text-sm shadow-sm"
             aria-labelledby="review-allergies"
         >
             <h2 id="review-allergies" class="font-semibold">Allergies</h2>
@@ -185,7 +235,10 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
                     review.allergies.status
                 }}
             </p>
-            <ul v-if="review.allergies.records.length" class="list-disc pl-5">
+            <ul
+                v-if="review.allergies.records.length"
+                class="list-disc space-y-1 pl-5 break-words"
+            >
                 <li
                     v-for="(allergy, index) in review.allergies.records"
                     :key="index"
