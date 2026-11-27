@@ -61,5 +61,8 @@ test('every row shows the size of the change and a start that has passed, and sh
 
 test('a Panel with no price list yet says the list is created when someone else approves', () => {
     assert.match(page, /This Panel has no price list yet\./);
-    assert.match(page, /It is created when someone\s+else approves this\./);
+    assert.match(
+        page.replace(/\s+/g, ' '),
+        /It is created when someone else approves this\./,
+    );
 });
