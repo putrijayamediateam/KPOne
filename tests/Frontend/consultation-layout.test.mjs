@@ -130,9 +130,9 @@ test('Payment badge is read-only, Panel note is conditional, and visit metadata 
     assert.ok(show.includes('data-testid="consultation-payment-method"'));
     assert.ok(show.includes('data-testid="consultation-panel-note"'));
     assert.ok(show.includes('data-testid="consultation-visit-bar"'));
-    assert.ok(show.includes('height: 30px'));
+    assert.ok(show.includes('height: 36px'));
     assert.ok(show.includes(':deep(button[class])'));
-    assert.ok(show.includes('font-size: 12px'));
+    assert.ok(show.includes('font-size: 14px'));
     assert.equal(
         (treatment.match(/space-y-1 border-b border-border\/60 py-2/g) ?? [])
             .length,
@@ -186,7 +186,11 @@ test('Focus mode retains branch/account access and a one-line name while hiding 
     assert.ok(show.includes('aria-label="Open user menu"'));
     assert.ok(show.includes('class="truncate text-[14px] font-semibold"'));
     assert.ok(show.includes(':title="clinical.patient.name"'));
-    assert.ok(show.includes('const panelNote = computed(() => props.clinical.visit.panelNote)'));
+    assert.ok(
+        show.includes(
+            'const panelNote = computed(() => props.clinical.visit.panelNote)',
+        ),
+    );
     assert.ok(show.includes('data-testid="consultation-vitals-bar"'));
     assert.ok(show.includes('title="Record vital signs"'));
 });
