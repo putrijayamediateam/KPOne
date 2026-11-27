@@ -132,7 +132,7 @@ const turnPage = (value: number) =>
 <template>
     <Head title="Correct a Panel payment" />
     <main
-        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
     >
         <PageHeader
             title="Correct a Panel payment"
