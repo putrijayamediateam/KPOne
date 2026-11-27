@@ -42,7 +42,9 @@ const statusTone = (row: Row) =>
 
 <template>
     <Head title="Controlled register" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto w-full max-w-6xl space-y-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
+    >
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -55,7 +57,7 @@ const statusTone = (row: Row) =>
             :description="`Controlled medicines at ${register.branchName}, from the stock records.`"
         />
         <p
-            class="rounded-md border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
+            class="rounded-xl border border-warning/25 bg-warning-wash p-3 text-sm font-medium text-warning-strong"
             data-testid="cd-draft-banner"
         >
             Draft register — pending pharmacist review. Not a statutory register
@@ -70,7 +72,7 @@ const statusTone = (row: Row) =>
 
         <p
             v-if="!register.rows.length"
-            class="rounded-md border p-4 text-sm text-muted-foreground"
+            class="rounded-xl border bg-card p-4 text-sm text-muted-foreground"
         >
             No medicine is marked controlled. A medicine appears here once it is
             marked controlled in the Medicine catalogue and linked to a SKU.
@@ -81,7 +83,7 @@ const statusTone = (row: Row) =>
                 <li
                     v-for="row in register.rows"
                     :key="row.skuPublicId"
-                    class="space-y-2 rounded-md border p-3"
+                    class="space-y-2 rounded-xl border bg-card p-4"
                 >
                     <div class="min-w-0">
                         <p class="font-medium break-words">
@@ -120,12 +122,16 @@ const statusTone = (row: Row) =>
                     >
                 </li>
             </ul>
-            <div class="hidden overflow-x-auto rounded-md border lg:block">
+            <div
+                class="hidden overflow-x-auto rounded-xl border bg-card lg:block"
+            >
                 <table class="w-full text-sm">
                     <caption class="sr-only">
                         Controlled medicines
                     </caption>
-                    <thead class="bg-muted/50 text-left">
+                    <thead
+                        class="bg-card-quiet text-left text-muted-foreground"
+                    >
                         <tr>
                             <th scope="col" class="p-3 font-medium">
                                 Medicine
