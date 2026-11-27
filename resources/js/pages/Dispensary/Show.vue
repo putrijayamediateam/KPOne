@@ -17,6 +17,7 @@ import {
     Undo2,
 } from '@lucide/vue';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
+import AllergyMatchMark from '@/components/dispensary/AllergyMatchMark.vue';
 import DoctorCheckActions from '@/components/dispensary/DoctorCheckActions.vue';
 import PackQuantityField from '@/components/dispensary/PackQuantityField.vue';
 import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
@@ -2089,6 +2090,16 @@ const exceptionStatusLabels: Record<string, string> = {
                             v-model="allergyChecks[checkKey(item)]"
                             :matches="matchesFor(item)"
                             :field-id="`allergy-check-${item.publicId}`"
+                            class="sm:ml-12"
+                        />
+                        <!-- DSP-29 part A: whoever cannot change the line (the Resident Doctor's view-only page, or a CA before Start) sees the same
+                             match, read only: no tick box, and it never says anyone checked it. -->
+                        <AllergyMatchMark
+                            v-else-if="matchesFor(item).length"
+                            :allergens="
+                                matchesFor(item).map((match) => match.allergen)
+                            "
+                            :medicine="item.name"
                             class="sm:ml-12"
                         />
                         <p

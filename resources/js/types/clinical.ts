@@ -53,6 +53,8 @@ export type ClinicalAllergySafety = {
     } | null;
     canUpdate: boolean;
     canReview: boolean;
+    // DSP-30: set while the doctor's check of prepared medicine is waiting; the list is then read only.
+    readOnlyReason?: 'doctor_check';
 };
 
 export type ClinicalProblemRecord = {
