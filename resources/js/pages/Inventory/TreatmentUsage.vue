@@ -231,7 +231,7 @@ watch(
                 /></label>
                 <button
                     type="submit"
-                    class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                 >
                     Search stock
                 </button>
@@ -271,7 +271,7 @@ watch(
                 </div>
                 <button
                     v-if="row.usable"
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium hover:bg-accent"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     @click="showRecord(row)"
                 >
                     Record use or waste
@@ -285,14 +285,14 @@ watch(
             </article>
             <div v-if="usage.stock.lastPage > 1" class="flex gap-2">
                 <button
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium hover:bg-accent"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     :disabled="usage.stock.page <= 1"
                     @click="search(usage.entries.page, usage.stock.page - 1)"
                 >
                     Previous
                 </button>
                 <button
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium hover:bg-accent"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     :disabled="usage.stock.page >= usage.stock.lastPage"
                     @click="search(usage.entries.page, usage.stock.page + 1)"
                 >
@@ -318,7 +318,7 @@ watch(
                 /></label>
                 <button
                     type="submit"
-                    class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                 >
                     Search entries
                 </button>
@@ -376,7 +376,7 @@ watch(
                 </p>
                 <button
                     v-if="row.canReverse"
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium hover:bg-accent"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     @click="showReverse(row)"
                 >
                     Reverse
@@ -384,14 +384,14 @@ watch(
             </article>
             <div v-if="usage.entries.lastPage > 1" class="flex gap-2">
                 <button
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium hover:bg-accent"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     :disabled="usage.entries.page <= 1"
                     @click="search(usage.entries.page - 1, usage.stock.page)"
                 >
                     Previous
                 </button>
                 <button
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium hover:bg-accent"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     :disabled="usage.entries.page >= usage.entries.lastPage"
                     @click="search(usage.entries.page + 1, usage.stock.page)"
                 >
@@ -506,7 +506,7 @@ watch(
                     />
                     <button
                         type="submit"
-                        class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground lg:min-h-9"
                         :disabled="form.processing"
                     >
                         {{

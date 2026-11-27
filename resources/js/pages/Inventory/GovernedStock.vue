@@ -465,7 +465,7 @@ const caseKindLabel = (kind: string) =>
             >
                 <button
                     type="button"
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-40 lg:min-h-9"
                     :disabled="stock.cycle.page <= 1"
                     @click="
                         search(
@@ -478,7 +478,7 @@ const caseKindLabel = (kind: string) =>
                     Previous counts due</button
                 ><button
                     type="button"
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-40 lg:min-h-9"
                     :disabled="stock.cycle.page >= stock.cycle.lastPage"
                     @click="
                         search(
@@ -515,7 +515,7 @@ const caseKindLabel = (kind: string) =>
                     </option>
                 </select></label
             ><button
-                class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
+                class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                 type="submit"
             >
                 Search
@@ -554,7 +554,7 @@ const caseKindLabel = (kind: string) =>
                 </div>
                 <button
                     v-if="stock.canPropose"
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium hover:bg-accent"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     type="button"
                     @click="showTarget(row)"
                 >
@@ -568,13 +568,13 @@ const caseKindLabel = (kind: string) =>
             <p v-if="!stock.targets.rows.length">No matching targets.</p>
             <div class="flex justify-between gap-2">
                 <button
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-40 lg:min-h-9"
                     :disabled="stock.targets.page <= 1"
                     @click="search(stock.cases.page, stock.targets.page - 1)"
                 >
                     Previous targets</button
                 ><button
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-40 lg:min-h-9"
                     :disabled="stock.targets.page >= stock.targets.lastPage"
                     @click="search(stock.cases.page, stock.targets.page + 1)"
                 >
@@ -643,7 +643,7 @@ const caseKindLabel = (kind: string) =>
                 <div class="flex flex-wrap gap-2">
                     <button
                         v-if="row.canCount"
-                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium hover:bg-accent"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                         @click="
                             showCase(
                                 row,
@@ -660,13 +660,13 @@ const caseKindLabel = (kind: string) =>
                         }}</button
                     ><button
                         v-if="row.canApprove"
-                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium hover:bg-accent"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                         @click="showCase(row, 'approved')"
                     >
                         Approve and post</button
                     ><button
                         v-if="row.canReverse"
-                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium hover:bg-accent"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                         @click="showCase(row, 'reversal')"
                     >
                         Propose reversal</button
@@ -682,13 +682,13 @@ const caseKindLabel = (kind: string) =>
             <p v-if="!stock.cases.rows.length">No matching cases.</p>
             <div class="flex justify-between gap-2">
                 <button
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-40 lg:min-h-9"
                     :disabled="stock.cases.page <= 1"
                     @click="search(stock.cases.page - 1, stock.targets.page)"
                 >
                     Previous cases</button
                 ><button
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-40 lg:min-h-9"
                     :disabled="stock.cases.page >= stock.cases.lastPage"
                     @click="search(stock.cases.page + 1, stock.targets.page)"
                 >
@@ -775,13 +775,13 @@ const caseKindLabel = (kind: string) =>
                     <div class="flex flex-wrap gap-2">
                         <button
                             type="button"
-                            class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
+                            class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                             @click="open = false"
                         >
                             Cancel</button
                         ><button
                             type="submit"
-                            class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-40"
+                            class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground disabled:opacity-40 lg:min-h-9"
                             :disabled="form.processing"
                         >
                             {{
@@ -834,7 +834,7 @@ const caseKindLabel = (kind: string) =>
                     </p>
                 </article>
                 <button
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     @click="history = null"
                 >
                     Close history

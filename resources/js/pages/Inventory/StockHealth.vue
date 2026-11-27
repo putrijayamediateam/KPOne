@@ -59,7 +59,7 @@ const plural = (count: number, one: string, many: string) =>
 <template>
     <Head title="Stock health" />
     <main
-        class="mx-auto grid w-full max-w-7xl items-start gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-8 lg:py-6 lg:[&>*]:col-start-1"
+        class="mx-auto grid w-full max-w-7xl items-start gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-8 lg:py-6 lg:[&>*]:col-start-1 [&>a]:justify-self-start"
     >
         <ActionLink
             href="/inventory"

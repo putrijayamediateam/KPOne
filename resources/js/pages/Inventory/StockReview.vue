@@ -251,7 +251,7 @@ watch(
                     type="search"
             /></label>
             <button
-                class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
+                class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                 type="submit"
             >
                 Search
@@ -304,7 +304,7 @@ watch(
                         <button
                             v-if="review.canManage"
                             type="button"
-                            class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium hover:bg-accent"
+                            class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                             @click="show(k, row)"
                         >
                             Acknowledge
@@ -364,14 +364,14 @@ watch(
             </article>
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <button
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-40 lg:min-h-9"
                     type="button"
                     :disabled="review.lists[k].page <= 1"
                     @click="search(k, review.lists[k].page - 1)"
                 >
                     Previous</button
                 ><button
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-40 lg:min-h-9"
                     type="button"
                     :disabled="review.lists[k].page >= review.lists[k].lastPage"
                     @click="search(k, review.lists[k].page + 1)"
@@ -522,14 +522,14 @@ watch(
             </article>
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <button
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-40 lg:min-h-9"
                     type="button"
                     :disabled="atRisk.page <= 1"
                     @click="search('at_risk', atRisk.page - 1)"
                 >
                     Previous</button
                 ><button
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-40 lg:min-h-9"
                     type="button"
                     :disabled="atRisk.page >= atRisk.lastPage"
                     @click="search('at_risk', atRisk.page + 1)"
@@ -590,13 +590,13 @@ watch(
                     />
                     <div class="flex flex-wrap gap-2">
                         <button
-                            class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
+                            class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                             type="button"
                             @click="dialog = false"
                         >
                             Cancel</button
                         ><button
-                            class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-40"
+                            class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground disabled:opacity-40 lg:min-h-9"
                             type="submit"
                             :disabled="form.processing"
                         >
@@ -641,7 +641,7 @@ watch(
                 </article>
                 <button
                     type="button"
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     @click="history = null"
                 >
                     Close history

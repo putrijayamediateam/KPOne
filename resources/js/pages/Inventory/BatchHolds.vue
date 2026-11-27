@@ -128,7 +128,7 @@ watch(
                     class="mt-1 h-11 w-full rounded-[10px] border border-input bg-field-fill px-3"
             /></label>
             <button
-                class="mt-7 inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
+                class="mt-7 inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
             >
                 Search
             </button>
@@ -163,14 +163,14 @@ watch(
                 <p v-else>No active branch hold</p>
                 <button
                     v-if="row.canPlace"
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     @click="show(row, 'place')"
                 >
                     Place safety hold
                 </button>
                 <button
                     v-if="row.canRelease"
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     @click="show(row, 'release')"
                 >
                     Release hold
@@ -182,14 +182,14 @@ watch(
         </div>
         <nav aria-label="Batch hold pages" class="flex items-center gap-3">
             <button
-                class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
+                class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                 :disabled="holds.page <= 1"
                 @click="search(holds.page - 1)"
             >
                 Previous</button
             ><span>{{ holds.page }} / {{ holds.lastPage }}</span
             ><button
-                class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
+                class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                 :disabled="holds.page >= holds.lastPage"
                 @click="search(holds.page + 1)"
             >
@@ -236,7 +236,7 @@ watch(
                     <div class="flex flex-wrap justify-end gap-2">
                         <button
                             type="button"
-                            class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
+                            class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                             @click="open = false"
                         >
                             Cancel</button
