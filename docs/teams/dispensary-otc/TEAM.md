@@ -4,6 +4,43 @@ Status: **set up with the owner on 2026-11-05.** This folder is the team's memor
 built, what the owner decided, the rules, and what to build next. The team reads it before every task and
 updates it in the same PR as the code.
 
+
+## 0. Handoff for the next session (written 2026-11-27, when this session was retired)
+
+Owner decision 27 Nov: a fresh session on a new model, one slice per session. Read this first, then sections 6 to 9.
+
+**Open work**
+- **DSP-28 (Returns history and controlled filter)** is built and reviewed (Hakim OK, Daniel OK) on
+  `feature/dsp-28-returns-history`, pushed, head `51d316cf7`. Not yet merged with `main`; no PR. Next steps: merge
+  `origin/main` in (no rebase), rerun the gate, open the PR **only after the owner's ship-it**, then B.E.R.N.I.S.S merges.
+  Full backend suite on `51d316cf7` (local, 26-27 Nov): every error and failure was the known local-only gap
+  (no GD extension: `imagecreatetruecolor`, "GD extension is not installed"; Passport `api` guard: Connector and
+  AskThroughClaude tests). CI has both, so expect green there.
+- Shots branches (pushed, evidence only, never merged): `validation/dsp-22-shots`, `validation/dsp-23-doctor-check-shots`,
+  `validation/dsp-24-shots`, `validation/dsp-25-director-readonly-shots`, `validation/dsp-26-shots`,
+  `validation/dsp-27-shots`, `validation/dsp-28-shots`, `validation/rel-dsp-shot`, `validation/v2-dispensary-labels-shots`.
+- Merged recently: DSP-26 doctor's view-only Dispensary (#1086), REL-DSP label confirmed (#1102), DSP-27 Dispensary list (#1127).
+
+**Next slice (decision 43 order):** B6 search the Dispensary list by medicine name, then B7 (age, sex and paid
+status in the row details), B9 (label print log shown on the label preview), B4 (an inline check button that simply
+opens the case page), then B8 (counts for all branches) and B10 (last BP). One slice per PR, each with Daniel's look,
+Hakim's review and the owner's ship-it.
+
+**Also waiting**
+- Clean Look Stage 1 restyle of the Dispensary case pages, Daniel's notes: sentence-case 13 px/600 field labels, card
+  titles 15 px/600, the allergy card in the warning wash token with an icon and words (never colour alone), and one
+  filled "Complete Dispensary" button (all others outline).
+- Pharmacy space link: the "Returns to check" link stays on Registration because `tests/Feature/PharmacySpaceTest.php:73`
+  pins it; pointing it at `/dispensary` needs the owner's approval of that assertion change. Offered, not answered.
+
+**No owner decisions are unrecorded**: decisions up to 43 are in section 6.
+
+**Working notes for the new session**
+- Full suite: `kphp artisan test --parallel --processes=4 --testsuite=Unit,Feature` (plain paratest shares one database
+  and fails). Task-owned PostgreSQL only; never the real `.env`.
+- Screenshots go on a `validation/*` branch through a scratchpad worktree, never on a feature branch.
+- Pinned strings: DSP-7b, CO-5 and CO-10 tests pin text in `ReturnsToCheck.vue`; keep it.
+
 ## 1. Team
 
 | Role | Name | Job |
@@ -110,7 +147,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-16 | Two-process race test: two CA Supervisors splitting two returns of one line at once; the loser waits on the case lock, then is refused over a batch's remaining capacity or succeeds when it fits. Fails with the case, item and location locks removed. Tests only | #439 (merged) |
 | DSP-26 | The Resident Doctor sees the Dispensary pages at their active branch, view only: the Registration board's Dispensary tab and "Open Dispensary" row action, a case in any status, the Completed page with its returns read only, and the label preview of a completed or waiting case (no print token, no row locks, no print row). A muted "View only. You cannot change this case." banner; every action removed, not disabled; "View in Dispensary" on the doctor's check panel with "Back to consultation" for the attending doctor. A separate read gate (`DispensaryDirectoryService::canView`), so every write path and the print log keep their checks. New permission `dispensary.view_readonly.branch` (Resident Doctor), migration `2026_11_06_200900` | #1086 (merged `477a252`) |
 | REL-DSP | The drug label size 100 × 62 mm is confirmed and the pharmacist review recorded as "owner-confirmed, verbal, 25 Nov 2026" (no names). "(provisional). Confirm printer and sticker stock." comes off the label preview line; the pilot pack, the Malay CA and CA Supervisor guides and the layout comment drop "provisional" and the pharmacist checks. No behaviour change. Note: [REL-DSP.md](REL-DSP.md) | #1102 (merged `f0d55e9`) |
-| DSP-27 | The branch's Dispensary list at `/dispensary` (Clean Look gap list B1 and B2): three status tabs with counts (To prepare: pending and dispensing; Waiting for doctor's check; Done today since branch-local midnight), search by name, KP or visit number, 25 a page, oldest first (Done today newest first), "Open case" per row and "Reprint labels" (or the doctor's "View labels") on Done today; refreshes every 15 s while visible. Read only, the case page's read gate (`DispensaryDirectoryService::canView`), no migration or permission | (PR to come) |
+| DSP-27 | The branch's Dispensary list at `/dispensary` (Clean Look gap list B1 and B2): three status tabs with counts (To prepare: pending and dispensing; Waiting for doctor's check; Done today since branch-local midnight), search by name, KP or visit number, 25 a page, oldest first (Done today newest first), "Open case" per row and "Reprint labels" (or the doctor's "View labels") on Done today; refreshes every 15 s while visible. Read only, the case page's read gate (`DispensaryDirectoryService::canView`), no migration or permission | Merged in #1127 |
+| DSP-28 | Returns to check gains a "Checked this month" tab (branch-local month, newest first: outcome, refuse reason, who checked and when; never the notes) and a controlled-medicine filter (All, Controlled, Not controlled) on both tabs (Clean Look gap list B3 and B5). `DispensaryReturnService::waitingList()` takes `view` and `controlled`; new `waitingTotal()` feeds the Pharmacy space count. Read only, no migration or permission, no existing assertion changed. Hakim OK (changes applied), Daniel OK; shots on `validation/dsp-28-shots` | Built, pushed on `feature/dsp-28-returns-history` at `51d316cf7`; no PR yet (waits for the owner's ship-it) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -439,6 +477,12 @@ order, each its own PR:
 18. **DSP-24 Whole bottles at Dispensary — built 2026-11-21 (branch `feature/dsp-24-unit-conversion`).** Decisions 38
     and 39. Owner questions still open in the design note: price per ml or per bottle (9a), default unit (9b), label
     wording (9c); built as recommended.
+
+19. **DSP-26 Doctor's view-only Dispensary — merged in #1086.**
+20. **REL-DSP Label size confirmed — merged in #1102.** Decision 42.
+21. **DSP-27 Dispensary list (B1, B2) — merged in #1127.** Decision 43.
+22. **DSP-28 Returns history and controlled filter (B3, B5) — built, pushed on `feature/dsp-28-returns-history` (`51d316cf7`), PR after ship-it.** Decision 43.
+23. **Next, in order (decision 43):** B6, B7, B9, B4, then B8 and B10. See section 0.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
