@@ -23,8 +23,11 @@ test('the phone number box can shrink inside a narrow column', () => {
 
 test('below sm the country list stacks above the number box', () => {
     assert.match(phone, /<div class="flex flex-col gap-2 sm:flex-row">/);
-    const select = phone.match(/<select[\s\S]*?>/)?.[0] ?? '';
-    const classes = select.match(/class="([^"]+)"/)?.[1].split(/\s+/) ?? [];
+    // The country list is the shared OperationalSelect; its trigger carries the width classes.
+    const select = phone.match(/<OperationalSelect[\s\S]*?\/>/)?.[0] ?? '';
+    assert.ok(select, 'the country list is the shared OperationalSelect');
+    const classes =
+        select.match(/trigger-class="([^"]+)"/)?.[1].split(/\s+/) ?? [];
 
     for (const name of ['w-full', 'sm:w-36', 'min-w-0']) {
         assert.ok(classes.includes(name), `country list has ${name}`);
