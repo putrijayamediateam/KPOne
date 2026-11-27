@@ -1327,6 +1327,7 @@ onBeforeUnmount(() => {
         >
             <QueueRoomsToday
                 v-if="live.scope === 'branch'"
+                presentation="table"
                 :open="true"
                 :key="live.branch.id"
                 :stats="roomsToday.stats.value"
