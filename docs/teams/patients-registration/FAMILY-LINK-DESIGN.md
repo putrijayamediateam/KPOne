@@ -3,6 +3,16 @@
 Status: built on `feature/fam-1-family-link` from the owner's tick-box answers of 27 Nov 2026, relayed by the
 coordinator. Synthetic data only. Not production-approved.
 
+## Owner approvals (tick box, 27 Nov 2026, about 17:20 UTC, relayed by the coordinator)
+
+1. **Migrations approved as described:** `2026_11_06_100330_create_patient_families` and
+   `2026_11_06_100340_add_family_group_id_to_visits`.
+2. **Model:** the `patient_families` + `patient_family_members` model below. Draft PR #1148 (direct pairs) is superseded.
+3. **Decision 4, option (a):** a visit keeps the family key it was given; Billing's "Remove from family bill" covers a
+   patient who left that family the same day. The key is never rewritten.
+4. **Decision 5, option (c):** a merged-away record stays a family member for now, as built. Follow-up item after Monday
+   30 Nov (see the end of this note).
+
 ## Owner answers (27 Nov 2026)
 
 - **F1:** linking uses the existing `patients.update.organisation` permission. No new permission or role grant.
@@ -67,19 +77,28 @@ that more than two members share, which pairs cannot give without inferring rela
   with role, name, Patient No., queue number and a Patient details link. Carry-over, OTC, serving, other branches and
   relatives the viewer may not see are excluded and never counted.
 
-## Open questions for the owner and Billing (from Hafiz's review)
+## Questions the owner settled (from Hafiz's review; answers above)
 
 1. **A visit keeps the key of a family the patient left the same day.** If P is linked to the wrong family, its visit
    today carries that family's key; removing P and linking P elsewhere does not move it, so the family bill would group
    P with the old family until "Remove from family bill" is used. Options: (a) Billing's exclusion covers it (current
    build, simplest); (b) on join, re-stamp a visit whose key belongs to a family the patient has left, while it has no
    finalised invoice (needs a read of Billing tables). A family closed and rebuilt the same day also gets a new key.
+   **Owner: (a).**
 2. **A merged-away record stays a family member.** Options: (a) the merge ends the merged-away record's membership in
    the same transaction (touches `PatientMergeService`); (b) the merge is refused while the merged-away record is in a
    family; (c) leave it (current build): the record can be removed from another member's panel, and it never gets new
-   visits.
+   visits. **Owner: (c) for now.**
 
 ## Not in this slice
 
 Part 2 (relatives' conditions), the Billing family bill (BIL-39, Billing team), Patient details management, any
 suggestion from shared contact details, legal guardian authority, transitive inference across families.
+
+## Follow-up after Monday 30 Nov (owner, 27 Nov)
+
+- FAM-1b: decide how a patient merge treats family membership (end the merged-away record's membership in the merge,
+  or refuse the merge while that record is in a family). Today it stays a member and can be removed from another
+  member's Family panel.
+- FAM-2: Consultation Family card part 2 (relatives' conditions) behind an OFF-by-default setting, only after a named
+  doctor's sign-off and a PDPA review.
