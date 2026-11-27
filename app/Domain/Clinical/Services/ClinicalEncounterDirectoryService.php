@@ -11,6 +11,7 @@ use App\Domain\Clinical\Triage\TriageGuidelineService;
 use App\Domain\Clinical\Triage\TriageService;
 use App\Domain\Clinical\Triage\TriageViewProjection;
 use App\Domain\Clinical\Triage\TriageZoneProjection;
+use App\Domain\Patient\Family\FamilyWaitingProjection;
 use App\Domain\Patient\Services\PatientMergeLinks;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
@@ -77,6 +78,8 @@ class ClinicalEncounterDirectoryService
         $dispensaryCheck = $this->dispensaryAttention->checkForEncounter($actor, $encounter);
 
         return [
+            // FAM-1 part 1: relatives waiting today, with a link to each; never their conditions.
+            'familyWaiting' => app(FamilyWaitingProjection::class)->forEncounter($actor, $encounter),
             'branch' => $encounter->visit->branch->only(['id', 'code', 'name', 'timezone']),
             'patient' => [
                 'patientNumber' => $encounter->visit->patient->patient_number,
