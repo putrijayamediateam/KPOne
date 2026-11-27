@@ -5,6 +5,7 @@ import {
     computed,
     nextTick,
     onBeforeUnmount,
+    onBeforeUpdate,
     onMounted,
     ref,
     watch,
@@ -20,6 +21,7 @@ import { OperationalTable } from '@/components/ui/table';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
 import { waitingTone, waitingToneDescription } from '@/lib/waiting-time';
 import type { WaitingTone } from '@/lib/waiting-time';
+import DispensaryRowContext from './partials/DispensaryRowContext.vue';
 
 /**
  * DSP-27 (owner, 25 Nov 2026, Clean Look gap list B1 and B2): the branch's Dispensary list in three status tabs with
@@ -35,6 +37,10 @@ type Row = {
     caseType: 'consultation' | 'otc';
     status: string;
     doctorName: string | null;
+    context?: {
+        visitReasonExcerpt: string | null;
+        coverageLabel: string | null;
+    };
     medicineCount: number;
     receivedAt: string;
     waitingMinutes: number | null;
@@ -245,6 +251,30 @@ onBeforeUnmount(() => {
     doctorRequest?.abort();
 });
 
+const casesRegion = ref<HTMLElement | null>(null);
+onBeforeUpdate(() => {
+    if (typeof document === 'undefined') {
+        return;
+    }
+
+    const active = document.activeElement;
+
+    if (
+        !(active instanceof HTMLElement) ||
+        !casesRegion.value?.contains(active) ||
+        !active.closest('[data-case-id]')
+    ) {
+        return;
+    }
+
+    void nextTick(() => {
+        // Restore only when this update removed the focused case, never on an ordinary poll.
+        if (!active.isConnected && document.activeElement === document.body) {
+            casesRegion.value?.focus({ preventScroll: true });
+        }
+    });
+});
+
 const medicines = (n: number) => (n === 1 ? '1 medicine' : `${n} medicines`);
 const from = (row: Row) =>
     row.caseType === 'otc' ? 'Medicine only' : (row.doctorName ?? 'Doctor');
@@ -342,8 +372,10 @@ onBeforeUnmount(() => timer && clearInterval(timer));
             :class="showHelpfulInfo ? 'xl:grid-cols-[minmax(0,1fr)_280px]' : ''"
         >
             <section
+                ref="casesRegion"
+                tabindex="-1"
                 aria-label="Dispensary cases"
-                class="flex min-w-0 flex-col gap-4"
+                class="flex min-w-0 flex-col gap-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
                 <div
                     class="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3"
@@ -672,6 +704,7 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                                 <tr
                                     v-for="row in list.rows"
                                     :key="row.publicId"
+                                    :data-case-id="row.publicId"
                                     data-testid="dispensary-list-row"
                                 >
                                     <td class="font-mono whitespace-nowrap">
@@ -687,6 +720,11 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                                             >{{ row.patientNumber }} ·
                                             {{ row.visitNumber }}</span
                                         >
+                                        <DispensaryRowContext
+                                            v-if="row.context"
+                                            :context="row.context"
+                                            :patient-name="row.patientName"
+                                        />
                                     </td>
                                     <td class="whitespace-nowrap">
                                         {{ medicines(row.medicineCount) }}
@@ -780,6 +818,7 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                             v-for="row in list.rows"
                             :key="row.publicId"
                             class="rounded-xl border bg-card p-4 text-sm"
+                            :data-case-id="row.publicId"
                             data-testid="dispensary-list-card"
                         >
                             <div class="flex items-start justify-between gap-3">
@@ -830,6 +869,11 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                                 {{ medicines(row.medicineCount) }} ·
                                 {{ from(row) }}
                             </p>
+                            <DispensaryRowContext
+                                v-if="row.context"
+                                :context="row.context"
+                                :patient-name="row.patientName"
+                            />
                             <div class="mt-3 flex flex-wrap gap-2">
                                 <ActionLink
                                     :href="row.caseUrl"
