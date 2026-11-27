@@ -15,6 +15,7 @@ use App\Domain\Queue\Services\QueueDirectoryService;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Queue\Services\QueueRowDetailsService;
 use App\Domain\Queue\Services\QueueWaitingCountService;
+use App\Domain\Queue\Services\QueueWaitStatsService;
 use App\Domain\Queue\Services\RedZoneAlertService;
 use App\Domain\Queue\Services\RoomsTodayService;
 use App\Domain\Visit\Billing\Services\SalesTargetService;
@@ -154,6 +155,14 @@ class QueueController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Patient called in.')]);
 
         return to_route('queue.index');
+    }
+
+    /** Q-16e: today's average queued-to-called minutes for the board's summary. Read only, no patient data. */
+    public function averageWait(Request $request, QueueWaitStatsService $stats): JsonResponse
+    {
+        $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1']]);
+
+        return response()->json($stats->forActiveBranch($request->user(), (int) $validated['expected_branch_id']));
     }
 
     /** Q-16d: the Rooms today view for the board holders. Read only, no patient data. */
