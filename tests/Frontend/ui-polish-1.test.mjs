@@ -149,7 +149,7 @@ test('D003 search-first instruction is visible beside the unchanged duplicate-gu
     );
     assert.match(
         source,
-        /<p[^>]*id="patient-search-help"[^>]*> Search for the patient first\. Quick create appears when no match is found\. <\/p>/,
+        /<p[^>]*id="patient-search-help"[^>]*> Search for an existing patient\. If none are listed, Quick create can open a new patient draft\. <\/p>/,
     );
     assert.match(source, /aria-describedby="patient-search-help"/);
     assert.match(

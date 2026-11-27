@@ -535,6 +535,26 @@ const startQuickCreate = () => {
             ?.focus(),
     );
 };
+const canStartQuickCreate = computed(
+    () =>
+        !selectedPatient.value &&
+        !quickMode.value &&
+        ((!searching.value &&
+            patientResults.value.length === 0 &&
+            patientQuery.value.trim().length > 0) ||
+            (showingRecent.value && patientResults.value.length === 0)),
+);
+const choosePatientMode = (mode: 'find' | 'new') => {
+    if (draftLocked.value || (mode === 'new') === quickMode.value) {
+        return;
+    }
+
+    if (mode === 'find') {
+        changePatient();
+    } else if (canStartQuickCreate.value) {
+        startQuickCreate();
+    }
+};
 const visitReady = computed(
     () => selectedPatient.value !== null || quickMode.value,
 );
@@ -704,12 +724,48 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
 <template>
     <section class="overflow-hidden rounded-lg border bg-card shadow-card">
         <fieldset :disabled="draftLocked" class="contents">
-            <div class="flex items-center justify-between px-4 pt-4 pb-2">
+            <div
+                class="flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-2"
+            >
                 <div>
                     <h2 class="font-semibold">1. Patient</h2>
                     <p class="text-xs text-muted-foreground">
                         Select an existing Patient or create a new one quickly.
                     </p>
+                </div>
+                <div
+                    role="group"
+                    aria-label="Patient mode"
+                    aria-describedby="patient-mode-help"
+                    class="inline-flex shrink-0 gap-1 rounded-full bg-muted/50 p-1"
+                >
+                    <button
+                        type="button"
+                        :aria-pressed="!quickMode"
+                        class="min-h-9 rounded-full px-4 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-lg:min-h-11"
+                        :class="
+                            !quickMode
+                                ? 'bg-card text-foreground shadow-sm'
+                                : 'text-muted-foreground'
+                        "
+                        @click="choosePatientMode('find')"
+                    >
+                        Find
+                    </button>
+                    <button
+                        type="button"
+                        :aria-pressed="quickMode"
+                        :disabled="!quickMode && !canStartQuickCreate"
+                        class="min-h-9 rounded-full px-4 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-lg:min-h-11"
+                        :class="
+                            quickMode
+                                ? 'bg-card text-foreground shadow-sm'
+                                : 'text-muted-foreground'
+                        "
+                        @click="choosePatientMode('new')"
+                    >
+                        New
+                    </button>
                 </div>
                 <Button
                     v-if="visitReady"
@@ -720,6 +776,13 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     >Change patient</Button
                 >
             </div>
+            <p
+                id="patient-mode-help"
+                class="px-4 pb-3 text-xs text-muted-foreground"
+            >
+                Find an existing patient first. New is available when no
+                patients are listed.
+            </p>
             <div
                 v-if="selectedPatient"
                 class="mx-4 mb-4 flex items-center gap-3 rounded-md border border-success/25 bg-success-wash px-3 py-3"
@@ -758,8 +821,8 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     id="patient-search-help"
                     class="text-sm text-muted-foreground"
                 >
-                    Search for the patient first. Quick create appears when no
-                    match is found.
+                    Search for an existing patient. If none are listed, Quick
+                    create can open a new patient draft.
                 </p>
                 <form class="relative" @submit.prevent="searchPatients">
                     <label class="relative block"
