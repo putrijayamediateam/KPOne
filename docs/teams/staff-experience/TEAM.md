@@ -29,6 +29,38 @@ INS-1 Insights decoupling (#1092), DisclosureText clamp fix (#586), HR-22d roste
 separate `stationHref` prop), **Clean Look tokens, fonts and ui components (#1120)**, **Clean Look shell: icon rail, hover panel, phone drawer,
 server-built `ShellMenu` (#1125)**. Fonts are self-hosted in `public/fonts` (Geist and Inter, OFL licences beside them).
 
+### CL2-HOMES2 (Clean Look stage 2, area homes and Insights; 27 Nov 2026, Kavitha and Aiman)
+Brief: restyle the area homes and Insights in place to match the demo; frontend only; no PHP, route, permission, migration, payload or
+assertion change. State at the time of writing: **#1260, #1278 and #1280 were open, not merged; check their state first.**
+- **#1260** `feature/cl2-homes2` (frozen at `b10de601`): `shadow-card` on every `space-card` (`Spaces/Show.vue`, `SpaceAskPanel.vue`,
+  `MyRoutine.vue`); Insights cards get the soft shadow; Dashboard pink hover and Overview amber dots use tokens; the routine tick uses
+  `--primary`; a greeting line ("Good morning, <first name>") on the department homes and My day; up to four count tiles under the greeting,
+  built only from totals already in the props; and, from 1024 px, **balanced two-column CSS columns** (`column-count: 2`) with the header,
+  tabs, greeting, tiles, as-of line, Me home and recent activity spanning both. Why columns and not a grid: a row grid with
+  `align-items: start` left holes under short cards (Daniel's "right column ends early"). Cards use `break-inside: avoid`.
+  The change also restyles the #1135 CA, supervisor and doctor homes; Daniel re-checked them.
+- **#1278** `fix/shell-locum-home`: the rail logo and phone-header logo link to `workspace.defaultUrl` (`/workspace`, which redirects via
+  `WorkspaceLandingService`) instead of `/dashboard`, which is 403 for a locum. `WorkspaceHeader.vue` still has `/dashboard` but nothing
+  imports it and `r1c4-main-menu-navigation.test.mjs` pins it. Also hardens `NextThings.vue` (only a well-formed poll payload replaces the
+  block). The console error `reading 'live'` was **not reproduced** on 11 of 12 roles; the hardening is not a proven root cause.
+- **#1280** `fix/greeting-timezone` (stacked on #1260; the coordinator retargets it to `main` after #1260 merges): the greeting follows the
+  branch clock, not the device clock (`resources/js/lib/greeting.ts`; My day uses `today.time.timezone`, department homes parse the
+  server's `asOf` text, both fall back to the browser clock), with `tests/Frontend/cl2-greeting-timezone.test.mjs`. It changes behaviour,
+  so it was taken to the owner separately from the look-only approval.
+- **Demo-only, not built** (the demo shows them, KPOne has no data or feature for them): the Director "Needs your approval" card with
+  Approve buttons; Finance "Today's money by branch"; the BM live and "My week" cards; the routine ring, tiles, "My week" and "For you"
+  cards on the other demo homes; expandable "Are you sure?" confirms. Card re-ordering was not done: each home's first card is already
+  its action card.
+- **Not done:** no per-page layout parity beyond the shared card style; no 1440 light, 1440 dark and 390 light screenshots from this
+  session (Daniel shot the homes from the branch); the dark-mode contrast of the white tick on the dark `--primary` was not measured.
+- **Test environment lessons:** this container's `php` is 8.3 and the project needs 8.4. Put a `php` script that execs `kphp` first on the
+  `PATH` for `node --test tests/Frontend/*.mjs`, `npm run build` and `types:check`. `kphp` starts Docker on demand; a task-owned
+  `postgres:18` on port 55432 plus an env file passed through `KPHP_ENV_FILE` (never `.env`) runs the app, and the demo users
+  (`demo.<role>@kpone.test`) come from `KPOnePresentationSeeder`. The DB needs `DB_SSLMODE=prefer` for a local container. Docker and the
+  server stop when the session resumes, so restart them.
+- **Rules that held:** no existing assertion was changed; a push to a new branch needed the owner's word in the session each time; after the
+  coordinator froze #1260, further changes went in new PRs.
+
 ### Open PRs (not built by this session; check their state first)
 - **#1135** "Restyle homes with shared Clean Look components" (branch `feature/clean-look-homes-publication`, head `e3b14e164` on 26 Nov).
 - **#1138** "Fix Queue and Registration filter control sizes" (branch `fix/clean-look-filter-targets`, head `fae04b354` on 26 Nov).
@@ -170,6 +202,7 @@ usability aid only and must follow the permission the backend already enforces.
 | CO-10a | The agent office's V2 control-room look removed | #1052 |
 | CO-10b | The V2 machinery removed: `components/v2`, the V2 shell, `V2Layout`, `useUiVersion`, `lib/v2-*`, `v2.css`, `UiVersionResolver`, `V2ShellNavigation`, `config/v2-pages.php`, the Geist font and the V2 shared props | #1056 |
 | CO-10c | The last V2 leftovers: unused V2-only props and options, seven backend fields and the inline "add a Panel" route (`POST /catalogue-panels`), and stale V2 comments | #1059 |
+| CL2-HOMES2 | Clean Look stage 2 for the area homes and Insights: card shadow, balanced two-column card flow, greeting, count tiles; logo to the role's landing page; branch-clock greeting (see section 0) | #1260, #1278, #1280 |
 
 **Classic only: done (2026-11-22).** Every slice of `docs/design/CLASSIC-ONLY-PLAN.md` is merged (its section 8 lists them). Each slice listed its changed or deleted test assertions and had the owner's approval before the commit that changed them. Owner, 22 Nov 2026: keep the unused `user_space_preferences` table (plan Q4), so there is no CO-11. The Classic leave warning (section 7, item 17) remains its own later slice.
 
