@@ -329,3 +329,47 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
   stays the one filled button (one filled button per view). The owner approved, in this team session, changing
   the one existing assertion that pinned the TRI-1b rule (`tests/Frontend/tri-1b-triage-zone.test.mjs`, the
   Apply variant line). Frontend only.
+
+## 10. Patient flow handoff (27 Nov 2026)
+
+Owner decision 27 Nov 2026 (relayed by B.E.R.N.I.S.S): to save usage, each team continues in a fresh session, one
+slice per session. This is what a fresh Patient flow session (Aqilah, Lead; Imran, Reviewer) needs.
+
+**Merged:**
+- **MA-1a**, PR #1076, merge `c1270b31`, on 23 Nov 2026 (branch `feature/ma-1a-medical-assistant-role`, head
+  `496753d7`).
+  - It adds the `medical_assistant` role and the three treatment-room permissions, with no screen.
+  - The design note, the owner's 11 decisions (section 9a) and what was built are in `MA-ROLE-DESIGN.md`. The owner
+    approved the 42 test changes and asked for the three ROLE-1 roles in the HR checks migration.
+  - Existing databases need `php artisan migrate`.
+
+**Open draft PRs (built by an earlier session of this team; not merged, not reviewed by this session):**
+- **Emergency contact:** PR #1147, branch `feature/patient-emergency-contact-publication`, head `c791e6d9`, pushed.
+  It is 70 commits behind `main` on 27 Nov, so merge `main` in before CI. Design:
+  `docs/teams/patients-registration/EMERGENCY-CONTACT-STAGE1-DRAFT.md` (on that branch). Optional emergency contact
+  per patient (name, relationship and phone together), encrypted, staged with the visit, never on boards, the TV,
+  public pages or search.
+- **Family links:** PR #1148, branch `feature/patient-family-links-publication`, head `d3f814f1`, pushed. Also 70
+  commits behind `main`. Design: `docs/teams/patients-registration/FAMILY-LINK-DESIGN.md` (on that branch). Direct
+  links with five relationship labels, an explicit inverse, one active pair and manual selection. Merges suppress
+  links and unmerge restores them. The consultation page shows only authorised direct relatives waiting today.
+- Both say: no new permission, no existing assertion change, and remote CI on the updated head is still needed. Each
+  needs its own review (Imran), the Lead UI/UX Designer's look for the screens, and a ship-it before it leaves draft.
+
+**Next slices:**
+- **MA-1b:** `treatment_room_records`, `TreatmentRoomService`, the Q-2 link, the treatment-room call under
+  `queue.treatment_call.branch` (held patients allowed, decision 10) and the races in MA-ROLE-DESIGN section 8. It
+  needs the owner's start.
+- **MA-1c:** the treatment-room page, the consultation panel and the visit-history section. It needs the owner's
+  start and the Lead UI/UX Designer's look. It includes Syazwan's wording point: the consultation page's "From triage,
+  last taken by …" falls back to "a clinic assistant" when the recorder's name is missing. "A staff member" is more
+  accurate now that MAs record triage (`resources/js/pages/Clinical/Show.vue`).
+- **TRI-2** (emergency lane): still waits for the owner's answers in `TRI-2-DESIGN.md`.
+
+**Rules learned in MA-1a:**
+- **Drift rule:** a migration that grants a permission to `ca` must grant it to `medical_assistant` too. A source test
+  in `MedicalAssistantRoleTest` catches only the plain form.
+- **GD:** the cloud container has no GD extension, so about 150 image tests run only in CI.
+- **Running PostgreSQL tests in the cloud container:** add `DB_SSLMODE=disable` to the env file. For `npm run build`
+  and the nav-02 frontend test, put PHP 8.4 (`kphp`) first on the PATH.
+- **Commits and pushes:** this session's permission guard refused a commit until the owner asked for one directly.
