@@ -366,6 +366,57 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 
 ## 7. Open items and known limits
 
+### Handoff, 27 Nov 2026 (Zulkifli's session retired; owner decision: one slice per fresh session)
+
+**Next slice: Clean Look Stage 1 restyle** of the Inventory pages in place (stock, receiving, count, Report a
+difference), due Sat 28 Nov 20:00 MYT, for the Puchong live test on Mon 30 Nov. Stage 0 (tokens #1120, shell #1125,
+card and sheet tokens #1129, spec #1119) is on main. Shared components only, no duplicate pages; fast process (Daniel
+OK + Mei Ling OK + green CI on the exact head with main contained). B.E.R.N.I.S.S put it FIRST, before the HQ slices.
+
+**Merged since 24 Nov:** REL-STK (#1105), STK-45 Report a difference (#1110), TOAST-INV (#1111), IMP-1 catalogue
+import (#1122; decision 51).
+
+**Open branches (all pushed; no PR open for any of them; each was built on main of 25 Nov and needs main merged in
+only when B.E.R.N.I.S.S calls its turn):**
+
+| Slice | Branch | Head | State |
+|---|---|---|---|
+| STK-50 + STK-51 (Director-only PO approval, close and short-close; Finance-only supplier bill decisions) | `feature/stk-50-51-approver-narrowing` | `4e1bed537` | Built; Mei Ling code OK. Owner ticked it and every listed assertion. **Open:** owner tick for `tests/Feature/InventoryWalkSeederTest.php:87-90` (approver Finance Officer → Director); that one test fails until then. Adds TEAM.md decision 52 on the branch. Pre-deploy check: `model_has_permissions` has no rows for the two narrowed permissions. |
+| STK-47 + STK-60 (central store HQ page, Thursday request day) | `feature/stk-47-60-central-store` | `a3d41c388` | Built; Mei Ling code OK. **To do:** change "No dispensing data" to Daniel's "No use in 30 days" (muted, no colour); shots 1440 and 390, light and dark; owner answers (below); TEAM.md decision. |
+| STK-48 (RFQ before the PO) | `feature/stk-48-rfq` | `caf642d0c` | Built incl. Mei Ling's fixes (edit form keeps estimates for cost-view holders, two-process races). **To do:** Mei Ling's re-check of `a4852e0e8..caf642d0c` (cut off by the usage limit); shots; owner link answer; TEAM.md decision. |
+| STK-46 (cost typed by hand, second-person check) | `feature/stk-46-hand-typed-cost` | `b62d84357` | Design note final (rev 2 + Daniel); **not built** (the build was cut off before any commit). |
+| STK-49 (payment terms, bill due dates, Paid in Bukku) | `feature/stk-49-supplier-bill-due-dates` | `92408ed5a` | Design note final (rev 2 + Daniel); **not built**. Merge after STK-51. |
+| STK-61 (Return on a waiting write-off; Change quantity / Not sent at dispatch) | `feature/stk-61-writeoff-return-dispatch-quantity` | `55eca2fd8` | Design note final (rev 2, Daniel's conditions and three settled points); **not built**. Send the exact changed-assertion lines for the dispatch rule to B.E.R.N.I.S.S when built. |
+
+Design notes for all six live on their branches as `docs/teams/inventory/STK-<n>-DESIGN.md` (STK-47-60 and STK-61
+as named). Backup branches pushed on 27 Nov: `backup/feature-stk-52-pack-conversion-local`,
+`backup/validation-stk-43-reorder-sold-shots-local`, plus several old `validation/*-shots` branches and `pr678`.
+
+**Owner decisions of 25 Nov not yet in section 6** (each slice's PR records its own decision; do not ask again):
+- STK-50/51 approved with all listed assertion changes (decision 52 on its branch).
+- STK-46: new permissions `inventory.cost.enter.organisation` (finance_officer, store_admin) and
+  `inventory.cost.check.organisation` (finance_officer, store_admin, director); replay rule (a), correct the average
+  from the start with a "Changed on <date>" note on Stock value and the journal CSV; pre-STK-10B receipts may take a
+  hand cost labelled "pre-STK-10B cost".
+- STK-49: "Payment terms (days)" on the Suppliers settings page, with the one changed assertion in
+  `tests/Frontend/supplier-settings.test.mjs` approved; Paid in Bukku has no second check. Adlina agreed the label
+  and asked for a small update route on `SupplierSettingsController`/`SupplierSettingsService` (field map, so contacts
+  can follow; don't reuse the old PATCH); she reviews the diff.
+- STK-61: the remainder after a partial dispatch becomes a NEW request.
+
+**Questions still with the owner (via B.E.R.N.I.S.S):**
+1. May the Central store (STK-47) and Quotes/RFQs (STK-48) links go in the Inventory task links? That changes
+   `tests/Frontend/dd-12-inventory-headers.test.mjs` (lines ~21-50, the exact list of 18 links; line ~69, "Orders and
+   suppliers · 7").
+2. The request-day reminder: show it only to people who can send a store request (stock-request create plus
+   `inventory.warehouse.organisation`; recommended), or let CAs request from the store.
+3. `InventoryWalkSeederTest.php:87-90` (above).
+
+**Known limits recorded by the builds:** the central store's "Open" links reach only requests the Inventory panel
+lists (the branch's 50 newest); a store-wide request list is a follow-up. RFQ prices and quote versions are on the RFQ
+(`current_quote_id`), not the PO.
+
+
 - **Recall lifting with one Director (owner, 16 Nov 2026: "note it, decide before go-live"):** only a Director
   holds `inventory.recalls.lift.organisation`, and the Director who started a recall can never lift it (STK-25:
   service and PostgreSQL). With one Director, a recall started in the pilot cannot be lifted. Options to decide
