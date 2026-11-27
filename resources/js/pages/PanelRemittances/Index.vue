@@ -259,7 +259,7 @@ const record = () => {
 <template>
     <Head title="Panel payments" />
     <main
-        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
     >
         <PageHeader
             title="Panel payments"
@@ -355,7 +355,7 @@ const record = () => {
                 />
                 <p
                     v-if="openClaimsTruncated"
-                    class="text-sm text-amber-700 dark:text-amber-300"
+                    class="text-sm text-warning"
                     role="status"
                 >
                     Only the 200 oldest claims are listed. Record this payment,
@@ -530,7 +530,7 @@ const record = () => {
                             !amountSen
                                 ? 'text-muted-foreground'
                                 : leftSen === 0
-                                  ? 'text-emerald-700 dark:text-emerald-300'
+                                  ? 'text-success'
                                   : 'text-destructive'
                         "
                     >
