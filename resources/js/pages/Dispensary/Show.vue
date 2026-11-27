@@ -1457,7 +1457,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="rounded-xl border bg-card p-4 text-sm"
                     data-testid="dispensary-patient"
                 >
-                    <p class="text-[13px] font-medium text-muted-foreground">
+                    <p class="text-[13px] font-semibold text-muted-foreground">
                         Patient
                     </p>
                     <h2 class="text-base font-semibold break-words">
@@ -1621,20 +1621,34 @@ const exceptionStatusLabels: Record<string, string> = {
                     v-else
                     class="rounded-xl border p-4 text-sm"
                     :class="
-                        dispensary.allergySafety.isCurrent
+                        dispensary.allergySafety.isCurrent &&
+                        !dispensary.allergySafety.allergies.length
                             ? 'border-success/25 bg-success-wash'
                             : 'border-warning/25 bg-warning-wash'
                     "
                     data-testid="dispensary-allergies"
                 >
-                    <div class="flex items-center justify-between">
-                        <span
-                            >Allergy safety:
-                            <strong>{{
-                                formatStatusLabel(
-                                    dispensary.allergySafety.status,
-                                )
-                            }}</strong></span
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="flex items-center gap-2"
+                            ><TriangleAlert
+                                v-if="
+                                    !dispensary.allergySafety.isCurrent ||
+                                    dispensary.allergySafety.allergies.length
+                                "
+                                class="size-4 shrink-0 text-warning-strong"
+                                aria-hidden="true"
+                            /><CheckCircle2
+                                v-else
+                                class="size-4 shrink-0 text-success"
+                                aria-hidden="true"
+                            /><span
+                                >Allergy safety:
+                                <strong>{{
+                                    formatStatusLabel(
+                                        dispensary.allergySafety.status,
+                                    )
+                                }}</strong></span
+                            ></span
                         ><span>{{
                             dispensary.allergySafety.isCurrent
                                 ? 'Current'
@@ -1689,7 +1703,11 @@ const exceptionStatusLabels: Record<string, string> = {
                         not saved yet. Save each line to confirm it, then
                         complete.</span
                     >
-                    <Button size="sm" :disabled="busy" @click="saveAll"
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        :disabled="busy"
+                        @click="saveAll"
                         >Save all lines</Button
                     >
                 </div>
@@ -2050,6 +2068,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             <div class="flex items-end gap-2 sm:col-span-full">
                                 <Button
                                     size="sm"
+                                    variant="outline"
                                     :disabled="
                                         busy ||
                                         needsAllergyCheck(item) ||
@@ -2126,7 +2145,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="rounded-xl border border-dashed bg-card-quiet p-4 text-sm"
                     data-testid="removed-lines"
                 >
-                    <h2 class="mb-2 text-[15px] font-medium">
+                    <h2 class="mb-2 text-[15px] font-semibold">
                         Removed from the list
                     </h2>
                     <ul class="grid gap-1">
@@ -2174,7 +2193,9 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="rounded-xl border bg-card p-4 text-sm shadow-card"
                     data-testid="add-medicine"
                 >
-                    <h2 class="mb-3 text-[15px] font-medium">Add a medicine</h2>
+                    <h2 class="mb-3 text-[15px] font-semibold">
+                        Add a medicine
+                    </h2>
                     <div class="flex flex-wrap gap-2">
                         <input
                             v-model="searchTerm"
@@ -2484,6 +2505,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         <div class="flex gap-2 sm:col-span-full">
                             <Button
                                 size="sm"
+                                variant="outline"
                                 :disabled="
                                     busy ||
                                     (matchesFor(chosen).length > 0 &&
@@ -2511,7 +2533,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="rounded-xl border bg-card shadow-card"
                     data-testid="dispensary-services"
                 >
-                    <h2 class="border-b px-4 py-3 text-[15px] font-medium">
+                    <h2 class="border-b px-4 py-3 text-[15px] font-semibold">
                         Services
                     </h2>
                     <p
@@ -2606,6 +2628,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 >
                                     <Button
                                         size="sm"
+                                        variant="outline"
                                         :disabled="
                                             busy || !isServiceDirty(line)
                                         "
@@ -2637,7 +2660,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         class="border-t border-dashed p-3 text-sm"
                         data-testid="removed-services"
                     >
-                        <h3 class="mb-2 text-[15px] font-medium">
+                        <h3 class="mb-2 text-[15px] font-semibold">
                             Removed from the list
                         </h3>
                         <ul class="grid gap-1">
@@ -2668,7 +2691,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         class="border-t p-3 text-sm"
                         data-testid="add-service"
                     >
-                        <h3 class="mb-3 text-[15px] font-medium">
+                        <h3 class="mb-3 text-[15px] font-semibold">
                             Add a service
                         </h3>
                         <div class="flex gap-2">
@@ -2736,6 +2759,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             <div class="flex gap-2 sm:col-span-full">
                                 <Button
                                     size="sm"
+                                    variant="outline"
                                     :disabled="busy"
                                     data-action="add-service"
                                     @click="addService"
@@ -2758,7 +2782,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="rounded-xl border bg-card p-4 text-sm"
                     data-testid="dispensary-summary"
                 >
-                    <h2 class="mb-3 text-[15px] font-medium">
+                    <h2 class="mb-3 text-[15px] font-semibold">
                         This dispensary
                     </h2>
                     <dl class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1">
@@ -2789,7 +2813,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm"
                     data-testid="dispensary-actions"
                 >
-                    <h2 class="text-[15px] font-medium">Actions</h2>
+                    <h2 class="text-[15px] font-semibold">Actions</h2>
                     <OperationalSelect
                         v-if="
                             dispensary.tvCall?.canCall &&
@@ -2840,6 +2864,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         ><RotateCcw class="size-4" />Return to Doctor</Button
                     ><Button
                         v-if="dispensary.can.complete"
+                        :variant="confirming ? 'outline' : 'default'"
                         :disabled="
                             busy ||
                             unsaved.length > 0 ||
@@ -2912,7 +2937,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm"
                     data-testid="doctor-check-supervisor"
                 >
-                    <h2 class="text-[15px] font-medium">
+                    <h2 class="text-[15px] font-semibold">
                         Check instead of the doctor
                     </h2>
                     <p class="text-xs text-muted-foreground">
