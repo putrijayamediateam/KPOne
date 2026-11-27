@@ -10,6 +10,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Dispensary\Models\DispensaryServiceLine;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDoctorCheckDirectory;
+use App\Domain\Clinical\Dispensary\Services\DispensaryDoctorFilter;
 use App\Domain\Clinical\Dispensary\Services\DispensaryListService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryReturnService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
@@ -134,11 +135,21 @@ class DispensaryController extends Controller
     public function index(Request $request, DispensaryListService $list, DispensaryReturnService $returns): Response
     {
         $caseType = $request->query('case_type', 'all');
+        $doctor = $request->query('doctor', 'all');
 
         return Inertia::render('Dispensary/Index', [
-            'list' => $list->page($request->user(), (string) $request->query('tab', DispensaryListService::TAB_PREPARE), (int) $request->query('page', '1'), (string) $request->query('search', ''), is_string($caseType) ? $caseType : 'all'),
+            'list' => $list->page($request->user(), (string) $request->query('tab', DispensaryListService::TAB_PREPARE), (int) $request->query('page', '1'), (string) $request->query('search', ''), is_string($caseType) ? $caseType : 'all', is_string($doctor) ? $doctor : 'invalid'),
             'canViewReturns' => $request->user()->can('dispensary.view.branch') && $returns->canCheckReturns($request->user()),
         ]);
+    }
+
+    public function doctorOptions(Request $request, DispensaryDoctorFilter $doctors): JsonResponse
+    {
+        $search = $request->query('search', '');
+        $selected = $request->query('selected', 'all');
+        $page = $request->query('page', 1);
+
+        return response()->json($doctors->options($request->user(), is_scalar($page) ? (int) $page : 1, is_string($search) ? $search : '', is_string($selected) ? $selected : 'invalid'));
     }
 
     /** DSP-7b: returns at the active branch waiting for a check, for the people who may check them. */

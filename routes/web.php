@@ -1187,6 +1187,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // DSP-27: the branch's Dispensary list (To prepare, Waiting for the doctor's check, Done today). Read only.
         Route::get('dispensary', [DispensaryController::class, 'index'])
             ->middleware(['permission:dispensary.view.branch,dispensary.view_readonly.branch', 'sensitive.no-store', 'throttle:120,1'])->name('dispensary.index');
+        Route::get('dispensary/doctor-options', [DispensaryController::class, 'doctorOptions'])
+            ->middleware(['permission:dispensary.view.branch,dispensary.view_readonly.branch', 'sensitive.no-store', 'throttle:120,1'])->name('dispensary.doctor-options');
         Route::get('dispensary/returns-to-check', [DispensaryController::class, 'returnsToCheck'])
             ->middleware(['permission:dispensary.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.returns-to-check');
         // DSP-25: the Director's read-only view of a dispensary case at any branch; every open recorded. GET only.
