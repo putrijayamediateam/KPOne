@@ -51,7 +51,7 @@ test('the Quick create identity row stacks below sm and joins from sm up', () =>
     const quick = read('resources/js/components/registration/RegistrationCreateForm.vue');
     assert.match(
         quick,
-        /<div class="flex flex-col gap-2 sm:flex-row sm:gap-0">/,
+        /<div\s+class="flex flex-col gap-2 sm:flex-row sm:gap-0"\s*>/,
     );
     assert.match(
         quick,

@@ -16,7 +16,7 @@ test('staff adult acknowledgement is explicit, English and accessible', () => {
 test('staff creation and DOB clearing expose acknowledgement without changing public QR', () => {
     assert.match(read('resources/js/components/patient/PatientFormFields.vue'), /newPatient \|\| !!originalDob/);
     assert.match(read('resources/js/components/patient/PatientFormFields.vue'), /!requirements\?\.requireDateOfBirth/);
-    assert.match(read('resources/js/components/registration/RegistrationCreateForm.vue'), /!quick.date_of_birth && !requirements.requireDateOfBirth/);
+    assert.match(read('resources/js/components/registration/RegistrationCreateForm.vue'), /!quick.date_of_birth\s*&&\s*!requirements.requireDateOfBirth/);
 
     for (const name of ['pages/Patient/Create.vue', 'pages/Patient/Edit.vue', 'components/registration/RegistrationCreateForm.vue']) {
         assert.match(read(`resources/js/${name}`), /adult_confirmed: false/);
