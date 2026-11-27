@@ -79,8 +79,8 @@ const decide = (
     <Head title="Merge requests" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
         <div class="flex items-center gap-3">
-            <div class="rounded-md bg-brand/10 p-2">
-                <GitMerge class="size-5 text-brand-strong" />
+            <div class="rounded-md bg-primary/10 p-2">
+                <GitMerge class="size-5 text-primary" />
             </div>
             <div>
                 <h1 class="text-2xl font-semibold tracking-tight">

@@ -103,7 +103,7 @@ const identifierLabel = (result: Result) =>
             class="flex flex-col justify-between gap-4 md:flex-row md:items-start"
         >
             <div class="flex items-start gap-3">
-                <div class="rounded-xl bg-brand/10 p-2.5 text-brand-strong">
+                <div class="rounded-xl bg-primary/10 p-2.5 text-primary">
                     <UserRoundSearch class="size-5" />
                 </div>
                 <div>
@@ -205,7 +205,7 @@ const identifierLabel = (result: Result) =>
                             >
                                 <Link
                                     :href="patientHref(patient.patientNumber)"
-                                    class="font-medium text-brand-strong hover:underline"
+                                    class="font-medium text-link hover:underline"
                                     >{{ patient.fullName }}</Link
                                 >
                                 <div

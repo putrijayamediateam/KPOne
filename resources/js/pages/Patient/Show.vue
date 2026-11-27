@@ -112,7 +112,9 @@ const formatTime = (value: string) =>
             class="flex flex-col justify-between gap-4 md:flex-row md:items-start"
         >
             <div>
-                <div class="font-mono text-sm font-medium text-brand-strong">
+                <div
+                    class="font-mono text-sm font-medium text-muted-foreground"
+                >
                     {{ patient.patientNumber }}
                 </div>
                 <h1 class="text-2xl font-semibold tracking-tight">

@@ -141,10 +141,16 @@ const days = computed(() => {
     <main
         class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 p-4 md:p-6"
     >
-        <Link href="/queue" class="text-sm underline">Back to Queue</Link>
+        <Link href="/queue" class="text-sm text-link underline"
+            >Back to Queue</Link
+        >
         <header class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <h1 class="text-2xl font-semibold">Medical certificates</h1>
+                <h1
+                    class="text-[26px] font-semibold tracking-tight lg:text-3xl"
+                >
+                    Medical certificates
+                </h1>
                 <p
                     v-if="loaded && !branchChanged"
                     class="text-sm text-muted-foreground"
@@ -166,7 +172,7 @@ const days = computed(() => {
                 >Issue MC</Button
             >
         </header>
-        <p class="rounded-lg border bg-card p-4 text-sm">
+        <p class="rounded-xl border bg-card p-4 text-sm shadow-card">
             <strong>Draft wording — awaiting doctor approval.</strong> Fixed
             EN/BM revision 2. Issuance retains pre-signature content only.
             Wet-sign the paper and retain a signed duplicate. No signed original
@@ -193,7 +199,7 @@ const days = computed(() => {
         <section v-else class="space-y-3" aria-label="MC history">
             <p
                 v-if="!certificates.documents.length"
-                class="rounded-lg border bg-card p-6"
+                class="rounded-xl border bg-card p-6 shadow-card"
             >
                 No MC has been issued for this visit. First issue requires
                 Serving, not held, before clinical checkout.
@@ -209,7 +215,7 @@ const days = computed(() => {
             <article
                 v-for="document in certificates.documents"
                 :key="document.id"
-                class="flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-card p-4"
+                class="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-4 shadow-card"
             >
                 <div class="min-w-0">
                     <h2 class="font-semibold break-words">
