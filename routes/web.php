@@ -15,6 +15,7 @@ use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\AutoAssignSettingController;
 use App\Http\Controllers\BillingApprovalLimitController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\BillingReviewController;
 use App\Http\Controllers\BillingWorkController;
 use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\BranchController;
@@ -105,6 +106,7 @@ use App\Http\Controllers\PatientWhatsAppController;
 use App\Http\Controllers\PayLaterCollectionController;
 use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\PaymentReconciliationController;
+use App\Http\Controllers\PrescribingPhraseSettingsController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\PublicCheckInController;
 use App\Http\Controllers\PublicCheckInLinkController;
@@ -841,6 +843,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['permission:panel.prices.propose.organisation,panel.prices.approve.organisation', 'sensitive.no-store'])->group(function () {
         Route::get('panel-price-changes', [PanelPriceChangesController::class, 'index'])->name('panel-price-changes.index');
         Route::post('panel-price-changes', [PanelPriceChangesController::class, 'store'])->middleware('throttle:20,1')->name('panel-price-changes.store');
+        Route::post('panel-price-changes/approve-selected', [PanelPriceChangesController::class, 'approveSelected'])->middleware(['throttle:6,1', 'approvals.forget'])->name('panel-price-changes.approve-selected');
         Route::post('panel-price-changes/{proposal}/approve', [PanelPriceChangesController::class, 'approve'])->whereUuid('proposal')->middleware(['throttle:20,1', 'approvals.forget'])->name('panel-price-changes.approve');
         Route::post('panel-price-changes/{proposal}/reject', [PanelPriceChangesController::class, 'reject'])->whereUuid('proposal')->middleware(['throttle:20,1', 'approvals.forget'])->name('panel-price-changes.reject');
         Route::post('panel-price-changes/{proposal}/withdraw', [PanelPriceChangesController::class, 'withdraw'])->whereUuid('proposal')->middleware('throttle:20,1')->name('panel-price-changes.withdraw');
@@ -855,6 +858,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['permission:clinical_suggestions.approve.organisation', 'sensitive.no-store'])->group(function () {
         Route::get('consultation-settings/review', [SuggestionReviewController::class, 'index'])->name('suggestion-review.index');
         Route::patch('consultation-settings/review/diagnoses/{preset}', [SuggestionReviewController::class, 'decide'])->whereNumber('preset')->middleware('throttle:30,1')->name('suggestion-review.decide');
+        Route::patch('consultation-settings/review/phrases/{phrase}', [SuggestionReviewController::class, 'decidePhrase'])->whereNumber('phrase')->middleware('throttle:30,1')->name('suggestion-review.decide-phrase');
     });
     Route::middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->group(function () {
         Route::get('registration-settings', [RegistrationSettingsController::class, 'index'])->name('registration-settings.index');
@@ -863,6 +867,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('consultation-settings/diagnoses', [DiagnosisPresetSettingsController::class, 'store'])->middleware('throttle:30,1')->name('diagnosis-presets.store');
         Route::patch('consultation-settings/diagnoses/{preset}/rename', [DiagnosisPresetSettingsController::class, 'rename'])->whereNumber('preset')->middleware('throttle:30,1')->name('diagnosis-presets.rename');
         Route::patch('consultation-settings/diagnoses/{preset}/active', [DiagnosisPresetSettingsController::class, 'active'])->whereNumber('preset')->middleware('throttle:30,1')->name('diagnosis-presets.active');
+        Route::get('consultation-settings/phrases', [PrescribingPhraseSettingsController::class, 'index'])->name('prescribing-phrases.index');
+        Route::post('consultation-settings/phrases', [PrescribingPhraseSettingsController::class, 'store'])->middleware('throttle:30,1')->name('prescribing-phrases.store');
+        Route::patch('consultation-settings/phrases/{phrase}/edit', [PrescribingPhraseSettingsController::class, 'edit'])->whereNumber('phrase')->middleware('throttle:30,1')->name('prescribing-phrases.edit');
+        Route::patch('consultation-settings/phrases/{phrase}/active', [PrescribingPhraseSettingsController::class, 'active'])->whereNumber('phrase')->middleware('throttle:30,1')->name('prescribing-phrases.active');
         Route::get('inventory-services-settings/medicine-details', [MedicineOptionSettingsController::class, 'index'])->name('medicine-details.index');
         Route::post('inventory-services-settings/medicine-details/{type}', [MedicineOptionSettingsController::class, 'store'])->middleware('throttle:30,1')->name('medicine-details.store');
         Route::patch('inventory-services-settings/medicine-details/{type}/{option}/rename', [MedicineOptionSettingsController::class, 'rename'])->whereNumber('option')->middleware('throttle:30,1')->name('medicine-details.rename');
@@ -1183,6 +1191,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware(['permission:dispensary.settings.manage.branch', 'sensitive.no-store'])->name('dispensary-settings.show');
         Route::put('dispensary-settings', [DispensarySettingsController::class, 'update'])
             ->middleware(['permission:dispensary.settings.manage.branch', 'throttle:20,1'])->name('dispensary-settings.update');
+        // DSP-27: the branch's Dispensary list (To prepare, Waiting for the doctor's check, Done today). Read only.
+        Route::get('dispensary', [DispensaryController::class, 'index'])
+            ->middleware(['permission:dispensary.view.branch,dispensary.view_readonly.branch', 'sensitive.no-store', 'throttle:120,1'])->name('dispensary.index');
         Route::get('dispensary/returns-to-check', [DispensaryController::class, 'returnsToCheck'])
             ->middleware(['permission:dispensary.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.returns-to-check');
         // DSP-25: the Director's read-only view of a dispensary case at any branch; every open recorded. GET only.
@@ -1208,6 +1219,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('visits/{visit}/billing/{invoice}/notes', [InvoiceNoteController::class, 'store'])
             ->whereUuid('invoice')->middleware(['permission:billing.notes.view.branch', 'throttle:30,1', 'sensitive.no-store'])->name('billing.notes.store');
 
+        // BIL-37: the Resident Doctor's read-only bill of their own patient's visit; every open recorded. GET only.
+        Route::get('visits/{visit}/billing/review', [BillingReviewController::class, 'show'])
+            ->middleware(['permission:billing.view_readonly.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('billing.review');
         Route::prefix('visits/{visit}/billing')->controller(BillingController::class)->group(function () {
             Route::get('/', 'show')->middleware('permission:billing.view.branch,billing.summary.branch')->name('billing.show');
             Route::get('outstanding/{group}', 'outstanding')->whereIn('group', ['patient', 'panel'])->middleware(['permission:billing.view.branch,billing.summary.branch', 'sensitive.no-store'])->name('billing.outstanding');
@@ -1495,6 +1510,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('queue/average-wait', [QueueController::class, 'averageWait'])
             ->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.average-wait');
+        Route::get('visits/{visit}/queue/details', [QueueController::class, 'details'])
+            ->middleware(['permission:visits.triage.record.branch,queue.view.own', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('queue.details');
+        Route::get('queue/red-zone-alerts', [QueueController::class, 'redZoneAlerts'])
+            ->middleware(['permission:queue.call.own,visits.triage.record.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('queue.red-zone-alerts');
+        Route::post('visits/{visit}/queue/take-red-zone', [QueueController::class, 'takeRedZone'])
+            ->middleware(['permission:queue.call.own', 'throttle:30,1'])
+            ->name('queue.take-red-zone');
         Route::get('queue/call-next', [QueueController::class, 'callNextBlock'])
             ->middleware(['permission:queue.call.own', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.call-next.block');
