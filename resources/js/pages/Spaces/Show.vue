@@ -336,6 +336,130 @@ const props = defineProps<{
     me?: MeHome | null;
 }>();
 
+type HomeTile = { key: string; label: string; value: number; href?: string };
+
+// Count tiles for the top of a home. Every number is already in the page props
+// (the same totals the cards below show); nothing here asks the server for more.
+const homeTiles = computed<HomeTile[]>(() => {
+    const t: HomeTile[] = [];
+    const add = (
+        key: string,
+        label: string,
+        value: number | null | undefined,
+        href?: string,
+    ) => {
+        if (typeof value === 'number') {
+            t.push({ key, label, value, href });
+        }
+    };
+
+    if (props.frontDesk) {
+        add(
+            'fd-waiting',
+            'Waiting',
+            props.frontDesk.waiting?.total,
+            props.frontDesk.waiting?.seeAllHref,
+        );
+        add(
+            'fd-qr',
+            'Check-ins to review',
+            props.frontDesk.qrPending?.total,
+            props.frontDesk.qrPending?.href,
+        );
+    }
+
+    if (props.consultation) {
+        add(
+            'cn-waiting',
+            'Waiting',
+            props.consultation.waiting?.total,
+            props.consultation.waiting?.seeAllHref,
+        );
+        add(
+            'cn-held',
+            'On hold',
+            props.consultation.held?.total,
+            props.consultation.held?.seeAllHref,
+        );
+    }
+
+    if (props.pharmacy) {
+        add(
+            'ph-dispense',
+            'To dispense',
+            props.pharmacy.toDispense?.total,
+            props.pharmacy.toDispense?.seeAllHref,
+        );
+        add(
+            'ph-returns',
+            'Returns to check',
+            props.pharmacy.returnsToCheck?.total,
+        );
+        add('ph-low', 'Low stock', props.pharmacy.stockWatch?.lowStock);
+    }
+
+    if (props.billing) {
+        add(
+            'bl-collect',
+            'Bills to collect',
+            props.billing.payLater?.count,
+            props.billing.payLater?.seeAllHref,
+        );
+        add('bl-overdue', 'Overdue', props.billing.payLater?.overdueCount);
+        add(
+            'bl-awaiting',
+            'Awaiting billing',
+            props.billing.awaiting?.total,
+            props.billing.awaiting?.seeAllHref,
+        );
+    }
+
+    if (props.panel) {
+        add(
+            'pn-pending',
+            'To claim',
+            props.panel.toClaim?.pending,
+            props.panel.toClaim?.seeAllHref,
+        );
+        add('pn-overdue', 'Overdue', props.panel.toClaim?.overdue);
+        add(
+            'pn-follow',
+            'To follow up',
+            props.panel.followUp?.total,
+            props.panel.followUp?.seeAllHref,
+        );
+    }
+
+    if (props.stock) {
+        props.stock.watch?.lists.forEach((l) =>
+            add(`st-${l.key}`, l.title, l.total, l.seeAllHref),
+        );
+        add(
+            'st-overdue',
+            'Overdue reviews',
+            props.stock.overdueReviews?.total,
+            props.stock.overdueReviews?.seeAllHref,
+        );
+    }
+
+    if (props.hr) {
+        add('hr-approvals', 'Approvals waiting', props.hr.approvals?.total);
+        add(
+            'hr-away',
+            'Away today',
+            props.hr.away?.total,
+            props.hr.away?.seeAllHref,
+        );
+    }
+
+    if (props.management?.staff) {
+        add('mg-active', 'Active staff', props.management.staff.active);
+        add('mg-inactive', 'Inactive staff', props.management.staff.inactive);
+    }
+
+    return t.slice(0, 4);
+});
+
 // A status is the Classic status badge (it was the V2 chip until CO-1). The cash closing and the roster use the page's own words.
 const cashTone = (status: string) =>
     status === 'approved'
@@ -471,6 +595,22 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 <p class="space-greet">{{ greetingText }}</p>
                 <p class="space-muted">{{ greetingDate }}</p>
             </div>
+            <ul
+                v-if="!me && homeTiles.length"
+                class="space-tiles"
+                data-test="space-tiles"
+            >
+                <li v-for="tile in homeTiles" :key="tile.key">
+                    <component
+                        :is="tile.href ? Link : 'div'"
+                        :href="tile.href"
+                        class="space-tile"
+                    >
+                        <strong>{{ tile.value }}</strong>
+                        <span class="space-muted">{{ tile.label }}</span>
+                    </component>
+                </li>
+            </ul>
             <template v-if="pharmacy">
                 <SpaceAsOf
                     v-if="pharmacy.branchName"

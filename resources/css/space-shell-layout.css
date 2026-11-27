@@ -1011,6 +1011,45 @@
     flex-direction: column;
     gap: 2px;
 }
+.space-shell[data-classic-frame] .space-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.space-shell[data-classic-frame] .space-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 44px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--space-radius-card);
+    background: var(--space-surface);
+    box-shadow: var(--shadow-card);
+    color: var(--space-fg);
+    text-decoration: none;
+}
+.space-shell[data-classic-frame] .space-tile strong {
+    font-size: 28px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.space-shell[data-classic-frame] a.space-tile:hover {
+    background: var(--space-hover);
+}
+.space-shell[data-classic-frame] a.space-tile:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: 2px;
+}
+@media (min-width: 1024px) {
+    .space-shell[data-classic-frame] .space-tiles {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
 .space-shell[data-classic-frame] .space-greet {
     margin: 0;
     font-size: 28px;
@@ -1028,6 +1067,7 @@
     .space-shell[data-classic-frame] .space-main > header,
     .space-shell[data-classic-frame] .space-main > nav,
     .space-shell[data-classic-frame] .space-main > .space-greeting,
+    .space-shell[data-classic-frame] .space-main > .space-tiles,
     .space-shell[data-classic-frame] .space-main > .space-asof,
     .space-shell[data-classic-frame] .space-main > .space-recent,
     .space-shell[data-classic-frame]
