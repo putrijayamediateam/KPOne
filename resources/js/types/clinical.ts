@@ -195,7 +195,20 @@ export type DispensarySupervisorCheck = {
     overrideNote: string | null;
 };
 
+/** FAM-1 part 1: relatives waiting today; never their conditions. */
+export type FamilyWaiting = {
+    rows: Array<{
+        roleLabel: string;
+        name: string;
+        patientNumber: string;
+        queueLabel: string;
+        url: string;
+    }>;
+    recordUrl: string;
+};
+
 export type ClinicalEncounterPage = {
+    familyWaiting?: FamilyWaiting | null;
     branch: { id: number; code: string; name: string; timezone: string };
     patient: {
         patientNumber: string;
