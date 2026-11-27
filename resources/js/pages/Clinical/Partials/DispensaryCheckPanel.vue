@@ -70,24 +70,35 @@ const directions = (line: {
                 >View in Dispensary</Link
             >
         </header>
-        <p
-            v-if="allergyRecorded"
-            class="border-b px-3 py-2 text-xs"
-            data-testid="dispensary-check-allergies"
-        >
-            {{ allergyLine }}
-        </p>
-        <p
-            v-else
-            class="flex items-start gap-2 border-b border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-strong"
-            data-testid="dispensary-check-allergies"
-        >
-            <TriangleAlert
-                class="mt-0.5 size-3.5 shrink-0"
-                aria-hidden="true"
-            />
-            Allergies not recorded. Ask the patient before you verify.
-        </p>
+        <!-- DSP-29 (Daniel): the allergy line, then once per panel the caveat of the match check, muted, even when
+             nothing matches. The wording still needs a doctor's or pharmacist's approval. -->
+        <div class="border-b">
+            <p
+                v-if="allergyRecorded"
+                class="px-3 pt-2 text-xs"
+                data-testid="dispensary-check-allergies"
+            >
+                {{ allergyLine }}
+            </p>
+            <p
+                v-else
+                class="flex items-start gap-2 bg-warning/10 px-3 py-2 text-xs text-warning-strong"
+                data-testid="dispensary-check-allergies"
+            >
+                <TriangleAlert
+                    class="mt-0.5 size-3.5 shrink-0"
+                    aria-hidden="true"
+                />
+                Allergies not recorded. Ask the patient before you verify.
+            </p>
+            <p
+                class="px-3 pb-2 text-xs text-muted-foreground"
+                :class="allergyRecorded ? 'pt-0.5' : 'pt-2'"
+                data-testid="dispensary-check-allergy-caveat"
+            >
+                It can miss an allergy, so always read the full allergy list.
+            </p>
+        </div>
         <ul class="divide-y">
             <li
                 v-for="(line, index) in check.lines"

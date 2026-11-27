@@ -32,3 +32,16 @@ test('the check panel shows the mark before the quantities', () => {
     assert.match(panel, /:allergens="line\.allergyMatches \?\? \[\]"/);
     assert.match(types, /allergyMatches\?: string\[\];/);
 });
+
+test('the panel says once, muted, that the match check can miss an allergy', () => {
+    assert.match(
+        panel,
+        /data-testid="dispensary-check-allergy-caveat"\s*>\s*It can miss an allergy, so always read the full allergy list\./,
+    );
+    assert.equal((panel.match(/It can miss an allergy/g) ?? []).length, 1);
+    // Before the lines, so it shows even when nothing matches.
+    assert.ok(
+        panel.indexOf('dispensary-check-allergy-caveat') <
+            panel.indexOf('<AllergyMatchMark'),
+    );
+});
