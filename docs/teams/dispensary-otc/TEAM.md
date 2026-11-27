@@ -5,40 +5,47 @@ built, what the owner decided, the rules, and what to build next. The team reads
 updates it in the same PR as the code.
 
 
-## 0. Handoff for the next session (written 2026-11-27, when this session was retired)
+## 0. Handoff for the next session (updated 2026-11-27, after the #1139 slice)
 
-Owner decision 27 Nov: a fresh session on a new model, one slice per session. Read this first, then sections 6 to 9.
+Owner decision 27 Nov: one slice per session. Read this first, then sections 6 to 9.
+
+**Merged in this slice**
+- **#1139 Clean Look Stage 1 of the Dispensary case page** (`Dispensary/Show.vue`, `DoctorCheckActions.vue`,
+  `DispensaryAttentionPanel.vue`), merged as `4f7700420`. Semantic tokens (owner-approved assertion changes of
+  26 Nov), three columns from xl, field labels and card titles 13/600 and 15/600, one filled button (Start or
+  Complete Dispensary; row actions outline; Complete outline while its verify panel is open; both scanners pass
+  ScanInput `lookupVariant="outline"`), allergy safety card with icon and words and the warning wash whenever
+  allergies are recorded or a return is needed, dark "Save all lines" edge `border-muted-foreground` (5.83:1),
+  label limits as a help line under each field ("Label max 96"), Dosage 3 and Frequency 2 grid columns from lg
+  (owner: a stop-gap). Presentation only; prints and clinical behaviour unchanged. Daniel OK; screenshots on
+  `validation/clean-look-dispensary-shots` (evidence only, never merged).
 
 **Open work**
-- **DSP-28 (Returns history and controlled filter)** is built and reviewed (Hakim OK, Daniel OK) on
-  `feature/dsp-28-returns-history`, pushed, head `51d316cf7`. Not yet merged with `main`; no PR. Next steps: merge
-  `origin/main` in (no rebase), rerun the gate, open the PR **only after the owner's ship-it**, then B.E.R.N.I.S.S merges.
-  Full backend suite on `51d316cf7` (local, 26-27 Nov): every error and failure was the known local-only gap
-  (no GD extension: `imagecreatetruecolor`, "GD extension is not installed"; Passport `api` guard: Connector and
-  AskThroughClaude tests). CI has both, so expect green there.
-- Shots branches (pushed, evidence only, never merged): `validation/dsp-22-shots`, `validation/dsp-23-doctor-check-shots`,
-  `validation/dsp-24-shots`, `validation/dsp-25-director-readonly-shots`, `validation/dsp-26-shots`,
-  `validation/dsp-27-shots`, `validation/dsp-28-shots`, `validation/rel-dsp-shot`, `validation/v2-dispensary-labels-shots`.
-- Merged recently: DSP-26 doctor's view-only Dispensary (#1086), REL-DSP label confirmed (#1102), DSP-27 Dispensary list (#1127).
+- **DSP-28 (Returns history and controlled filter)** on `feature/dsp-28-returns-history`, head `58dae460`: our
+  build plus two fixes ported from ChatGPT's draft #1155 (closed unmerged, owner tick 27 Nov): array-valued
+  `?view`/`?controlled` fall back to waiting/all (new test) and the Quarantined chip uses info tokens. `main`
+  `84ea12fce` merged in; needs a fresh `main` merge. Daniel OK on the chip. **Waiting:** Hakim's OK, then the
+  coordinator calls its PR turn, then the owner's ship-it. Optional: a 390 px shot of the returns table.
+  `PharmacySpaceTest:73` is unchanged and still waits for the owner.
 
-**Next slice (decision 43 order):** B6 search the Dispensary list by medicine name, then B7 (age, sex and paid
-status in the row details), B9 (label print log shown on the label preview), B4 (an inline check button that simply
-opens the case page), then B8 (counts for all branches) and B10 (last BP). One slice per PR, each with Daniel's look,
-Hakim's review and the owner's ship-it.
-
-**Also waiting**
-- Clean Look Stage 1 restyle of the Dispensary case pages, Daniel's notes: sentence-case 13 px/600 field labels, card
-  titles 15 px/600, the allergy card in the warning wash token with an icon and words (never colour alone), and one
-  filled "Complete Dispensary" button (all others outline).
-- Pharmacy space link: the "Returns to check" link stays on Registration because `tests/Feature/PharmacySpaceTest.php:73`
-  pins it; pointing it at `/dispensary` needs the owner's approval of that assertion change. Offered, not answered.
-
-**No owner decisions are unrecorded**: decisions up to 43 are in section 6.
+**Next slice (owner decision 27 Nov): the demo's medicine card on the case page**
+- Rebuild the case page's medicine rows as the demo's medicine card (`project/PharmacyCase.dc.html` in demo
+  artifact `KUkn7hc8xW9k2REtRUCFbG`): one direction line per medicine (for example "1 tablet, 3 times a day,
+  before food · 5 days"), the doctor's order beside what is given, and the inputs shown only while editing.
+  It replaces the widened-grid stop-gap. Design note, Daniel's look, Hakim's review and the owner's ship-it first.
+- Fold in DD-125 (Daniel): at 1280 px the Batch select is narrow ("10 unit on hand ·" is cut off; the CA picks
+  by that text) and a long Frequency still clips.
+- Then the decision 43 order: B6 search by medicine name, B7, B9, B4, B8, B10.
 
 **Working notes for the new session**
-- Full suite: `kphp artisan test --parallel --processes=4 --testsuite=Unit,Feature` (plain paratest shares one database
-  and fails). Task-owned PostgreSQL only; never the real `.env`.
-- Screenshots go on a `validation/*` branch through a scratchpad worktree, never on a feature branch.
+- The session hook may stop on a Docker Hub rate limit for `postgres:18`; rerun it with that pull made
+  non-fatal, then pull the image later. Host PHP is 8.3: put a `php` shim that calls `kphp` first on `PATH` for
+  `npm run build` and the frontend tests that call PHP.
+- Task-owned PostgreSQL: `postgres -c max_locks_per_transaction=1024`, `DB_SSLMODE=disable`; never the real `.env`.
+- Full suite: `kphp artisan test --parallel --processes=4 --testsuite=Unit,Feature`.
+- Screenshots: a scratch PHPUnit file (never committed) can build synthetic states with
+  `ClinicalTestCase` and `OtcDispensaryFixtures` and commit them into a task-owned database; then serve with an
+  explicit env file and check the effective database first. Push shots only to a `validation/*` branch.
 - Pinned strings: DSP-7b, CO-5 and CO-10 tests pin text in `ReturnsToCheck.vue`; keep it.
 
 ## 1. Team
