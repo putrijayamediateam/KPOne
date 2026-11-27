@@ -284,6 +284,17 @@ const toBoardRow = (row: QueueRow): PatientBoardRow => ({
     treatmentProgress: row.treatmentProgress ?? null,
     treatmentMinutes: treatmentMinutes(row.treatmentProgress, effectiveNowMs()),
     medicineCheck: row.medicineCheck ?? null,
+    checkoutDestination:
+        row.status === 'removed' &&
+        row.removedAt !== undefined &&
+        activeTab.value === 'removed' &&
+        (live.value.scope === 'own' || live.value.scope === 'branch')
+            ? row.removalReason === 'sent_to_billing'
+                ? 'Billing'
+                : row.removalReason === 'sent_to_dispensary'
+                  ? 'Dispensary'
+                  : null
+            : null,
     completionLabel: row.removedAt
         ? formatDateTime(row.removedAt, live.value.branch.timezone)
         : null,
@@ -310,14 +321,22 @@ const toBoardRow = (row: QueueRow): PatientBoardRow => ({
     priority: row.priority,
     returnedFromDispensary: row.returnedFromDispensary,
     dispensaryCheckWaiting: row.dispensaryCheckWaiting,
-    statusLabel: row.isHeld
-        ? row.isHeldTooLong
-            ? 'On Hold · 30+ min'
-            : 'On Hold'
-        : row.status === 'waiting' &&
-            row.operationalDate !== live.value.operationalDate
-          ? 'Waiting · carry-over'
-          : queuePresentationLabel(row),
+    statusLabel:
+        row.status === 'removed' &&
+        row.removedAt !== undefined &&
+        activeTab.value === 'removed' &&
+        (live.value.scope === 'own' || live.value.scope === 'branch') &&
+        (row.removalReason === 'sent_to_billing' ||
+            row.removalReason === 'sent_to_dispensary')
+            ? 'Consultation checked out'
+            : row.isHeld
+              ? row.isHeldTooLong
+                  ? 'On Hold · 30+ min'
+                  : 'On Hold'
+              : row.status === 'waiting' &&
+                  row.operationalDate !== live.value.operationalDate
+                ? 'Waiting · carry-over'
+                : queuePresentationLabel(row),
     statusTone: row.isHeld
         ? 'held'
         : row.status === 'serving'
@@ -1133,6 +1152,17 @@ onBeforeUnmount(() => {
                         review, including intentionally not-dispensed lines. It
                         is not a supplied medicine quantity. Sent by identifies
                         the latest sender for this check.
+                    </p>
+                    <p
+                        v-if="
+                            activeTab === 'removed' && live.scope === 'branch'
+                        "
+                        class="mb-3 text-sm text-muted-foreground"
+                    >
+                        Sent to records the consultation checkout destination,
+                        not current dispensing or payment progress. Completed is
+                        the consultation checkout time in this branch's
+                        timezone.
                     </p>
                     <PatientBoard
                         v-if="activeTab === 'waiting' || workload.page.value"
