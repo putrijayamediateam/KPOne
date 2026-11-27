@@ -17,6 +17,7 @@ use App\Domain\Queue\Services\QueueRowDetailsService;
 use App\Domain\Queue\Services\QueueWaitingCountService;
 use App\Domain\Queue\Services\QueueWaitStatsService;
 use App\Domain\Queue\Services\RedZoneAlertService;
+use App\Domain\Queue\Services\RoomsTodayService;
 use App\Domain\Visit\Billing\Services\SalesTargetService;
 use App\Domain\Visit\Models\Visit;
 use App\Http\Requests\CallQueueEntryRequest;
@@ -162,6 +163,14 @@ class QueueController extends Controller
         $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1']]);
 
         return response()->json($stats->forActiveBranch($request->user(), (int) $validated['expected_branch_id']));
+    }
+
+    /** Q-16d: the Rooms today view for the board holders. Read only, no patient data. */
+    public function roomsToday(Request $request, RoomsTodayService $rooms): JsonResponse
+    {
+        $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1']]);
+
+        return response()->json($rooms->forActiveBranch($request->user(), (int) $validated['expected_branch_id']));
     }
 
     /**
