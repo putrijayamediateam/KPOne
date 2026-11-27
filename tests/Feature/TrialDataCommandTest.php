@@ -71,10 +71,39 @@ class TrialDataCommandTest extends TestCase
             'branch_id' => $this->cheras->id,
             'credential_strategy' => 'google_only',
         ]);
+        // Clock tests can travel to the previous branch day; keep the synthetic primary coverage valid then,
+        // just like the additional assignments created by StaffBranchAssignmentBootstrapper below.
+        $director->staffProfile->branchAssignments()->where('is_primary', true)->update([
+            'valid_from' => now()->subDay()->toDateString(),
+        ]);
         // Director coverage of every branch (what kpone:director-branches provides), set up as a test fixture.
         foreach (Branch::query()->where('code', '!=', 'CHERAS')->get() as $branch) {
             StaffBranchAssignmentBootstrapper::create($director->staffProfile, $branch, ['is_primary' => false]);
         }
+    }
+
+    public function test_phase_one_accepts_fixture_coverage_on_the_previous_branch_day(): void
+    {
+        $at = CarbonImmutable::now($this->cheras->timezone)->subDay()->startOfDay()->addHours(12);
+        $this->travelTo($at);
+
+        $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
+        $this->assertDatabaseHas('users', ['email' => TrialDataContext::email(TrialDataContext::key('CHERAS', 'ca1'))]);
+    }
+
+    public function test_phase_one_still_refuses_coverage_that_starts_after_the_frozen_day(): void
+    {
+        $at = CarbonImmutable::now($this->cheras->timezone)->subDay()->startOfDay()->addHours(12);
+        $this->travelTo($at);
+        User::role('director')->sole()->staffProfile->branchAssignments()->where('is_primary', true)->update([
+            'valid_from' => $at->addDay()->toDateString(),
+        ]);
+        $before = $this->counts();
+
+        $this->artisan('kpone:trial-data')
+            ->expectsOutputToContain('The Director has no current assignment at CHERAS.')
+            ->assertExitCode(Command::FAILURE);
+        $this->assertSame($before, $this->counts());
     }
 
     public function test_it_refuses_without_the_flag(): void
@@ -413,6 +442,9 @@ class TrialDataCommandTest extends TestCase
 
     public function test_phase_five_fills_kpone_hr_once_with_fictional_payroll_tables(): void
     {
+        // This success case needs an earlier session today; the command deliberately refuses before 00:03.
+        $at = CarbonImmutable::now($this->cheras->timezone)->startOfDay()->addHours(12);
+        $this->travelTo($at->isFuture() ? $at->subDay() : $at);
         Storage::fake('local');
         $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
 

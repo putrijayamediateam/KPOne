@@ -141,7 +141,16 @@ const activeTab = ref<BoardTab>(
         : initialTab === 'triage' &&
             props.visits.tabCounts?.triage !== undefined
           ? 'triage'
-          : 'all',
+          : [
+                  'waiting',
+                  'serving',
+                  'dispensary',
+                  'billing',
+                  'completed',
+                  'cancelled',
+              ].includes(initialTab ?? '')
+            ? (initialTab as BoardTab)
+            : 'all',
 );
 const rows = ref(props.visits.data);
 const total = ref(props.visits.total);
@@ -663,6 +672,11 @@ onMounted(() => {
         typeof document.removeEventListener !== 'function'
     ) {
         return;
+    }
+
+    // Clean Look rail links open a board tab (?tab=dispensary, ?tab=billing): load that tab's rows at once.
+    if (activeTab.value !== 'all' && activeTab.value !== 'qr-intake') {
+        void search(1, true);
     }
 
     pollingEnabled = true;

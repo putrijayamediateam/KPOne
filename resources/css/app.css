@@ -43,6 +43,7 @@
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
+    --radius-xl: var(--radius);
     --radius-lg: var(--radius);
     --radius-md: 0.625rem;
     --radius-sm: 0.5rem;
@@ -126,6 +127,19 @@
     ::backdrop,
     ::file-selector-button {
         border-color: var(--color-gray-200, currentColor);
+    }
+}
+
+@layer components {
+    :where(.rounded-xl.border.bg-card) {
+        box-shadow: var(--shadow-card);
+    }
+
+    :where(
+        .bg-card .rounded-xl.border.bg-card,
+        [data-slot='card'] .rounded-xl.border.bg-card
+    ) {
+        box-shadow: none;
     }
 }
 

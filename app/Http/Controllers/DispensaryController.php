@@ -10,6 +10,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Dispensary\Models\DispensaryServiceLine;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDoctorCheckDirectory;
+use App\Domain\Clinical\Dispensary\Services\DispensaryListService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryReturnService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Clinical\Dispensary\Services\OtcDispensaryService;
@@ -127,6 +128,12 @@ class DispensaryController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Allergy added.']);
 
         return to_route('dispensary.show', $dispensaryCase);
+    }
+
+    /** DSP-27: the branch's Dispensary list in three status tabs, with counts. Read only. */
+    public function index(Request $request, DispensaryListService $list): Response
+    {
+        return Inertia::render('Dispensary/Index', ['list' => $list->page($request->user(), (string) $request->query('tab', DispensaryListService::TAB_PREPARE), (int) $request->query('page', '1'), (string) $request->query('search', ''))]);
     }
 
     /** DSP-7b: returns at the active branch waiting for a check, for the people who may check them. */
