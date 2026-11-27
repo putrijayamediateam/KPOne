@@ -232,12 +232,12 @@ const labelError = (index: number) =>
         >
             <span
                 aria-current="page"
-                class="rounded-md bg-muted px-4 py-3 text-sm font-semibold"
+                class="rounded-[10px] bg-card px-4 py-3 text-sm font-semibold shadow-card"
                 >Medicine details</span
             >
             <Link
                 href="/inventory-services-settings/suppliers"
-                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"
+                class="rounded-[10px] px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
                 >Suppliers</Link
             >
         </nav>
@@ -250,7 +250,7 @@ const labelError = (index: number) =>
                 Inventory and services settings
             </h1>
             <div class="mt-5">
-                <h2 class="text-lg font-medium">Medicine details</h2>
+                <h2 class="text-[17px] font-semibold">Medicine details</h2>
                 <p class="text-sm text-muted-foreground">
                     Set up your drug groups, dosage units and instructions.
                 </p>
@@ -258,7 +258,7 @@ const labelError = (index: number) =>
             <p
                 v-if="generalError"
                 role="alert"
-                class="mt-4 rounded border border-destructive p-3 text-sm text-destructive"
+                class="mt-4 rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive"
             >
                 {{ generalError }}
             </p>
@@ -308,7 +308,7 @@ const labelError = (index: number) =>
                             type="search"
                             maxlength="200"
                             :placeholder="`Search ${plural}`"
-                            class="h-9 min-w-0 rounded-md border bg-background px-3 text-sm"
+                            class="h-11 min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-sm text-foreground md:h-9"
                         /><Button
                             type="submit"
                             variant="ghost"
@@ -361,7 +361,7 @@ const labelError = (index: number) =>
                 <article
                     v-for="option in options"
                     :key="option.id"
-                    class="grid min-w-0 grid-cols-1 gap-3 rounded-xl border bg-card p-4"
+                    class="grid min-w-0 grid-cols-1 gap-3 rounded-xl border bg-card p-4 shadow-card"
                     data-testid="settings-card"
                 >
                     <div class="flex items-start justify-between gap-2">
@@ -549,7 +549,7 @@ const labelError = (index: number) =>
                             required
                             maxlength="200"
                             :placeholder="`Enter ${title?.toLowerCase()} name`"
-                            class="h-11 rounded-md border bg-background px-3" /><InputError
+                            class="h-11 rounded-[10px] border border-input bg-field-fill px-3 text-foreground" /><InputError
                             :message="labelError(index)"
                     /></label>
                 </div>
@@ -594,7 +594,7 @@ const labelError = (index: number) =>
                         v-model="renameForm.label"
                         required
                         maxlength="200"
-                        class="h-11 rounded-md border bg-background px-3" /></label
+                        class="h-11 rounded-[10px] border border-input bg-field-fill px-3 text-foreground" /></label
                 ><InputError :message="renameForm.errors.label" /><InputError
                     :message="generalError"
                 /><DialogFooter

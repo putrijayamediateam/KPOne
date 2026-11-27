@@ -120,12 +120,12 @@ const generalError = computed(
         >
             <Link
                 href="/inventory-services-settings/medicine-details"
-                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"
+                class="rounded-[10px] px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
                 >Medicine details</Link
             >
             <span
                 aria-current="page"
-                class="rounded-md bg-muted px-4 py-3 text-sm font-semibold"
+                class="rounded-[10px] bg-card px-4 py-3 text-sm font-semibold shadow-card"
                 >Suppliers</span
             >
         </nav>
@@ -138,7 +138,7 @@ const generalError = computed(
                 Inventory and services settings
             </h1>
             <div class="mt-5">
-                <h2 class="text-lg font-medium">Suppliers</h2>
+                <h2 class="text-[17px] font-semibold">Suppliers</h2>
                 <p class="text-sm text-muted-foreground">
                     Manage your suppliers and their contact persons.
                 </p>
@@ -146,11 +146,11 @@ const generalError = computed(
             <p
                 v-if="generalError"
                 role="alert"
-                class="mt-4 rounded border border-destructive p-3 text-sm text-destructive"
+                class="mt-4 rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive"
             >
                 {{ generalError }}
             </p>
-            <div class="mt-6 flex items-center justify-end gap-3 border-b pb-3">
+            <div class="mt-6 flex items-center justify-end gap-3 pb-3">
                 <form
                     v-if="searching"
                     class="flex min-w-0 items-center gap-2"
@@ -164,7 +164,7 @@ const generalError = computed(
                         type="search"
                         placeholder="Search suppliers"
                         maxlength="200"
-                        class="h-9 min-w-0 rounded-md border bg-background px-3 text-sm"
+                        class="h-11 min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-sm text-foreground lg:h-9"
                     /><Button
                         type="submit"
                         variant="ghost"
@@ -202,25 +202,36 @@ const generalError = computed(
                 ></Button>
                 <Button type="button" @click="open">Add new</Button>
             </div>
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto rounded-xl border bg-card shadow-card">
                 <table class="w-full text-left text-sm">
                     <thead>
-                        <tr class="border-b text-xs text-muted-foreground">
-                            <th scope="col" class="px-4 py-4 font-medium">
+                        <tr
+                            class="border-b bg-card-quiet text-[13px] text-muted-foreground"
+                        >
+                            <th
+                                scope="col"
+                                class="px-4 py-3 font-semibold lowercase first-letter:uppercase"
+                            >
                                 NAME
                             </th>
-                            <th scope="col" class="px-4 py-4 font-medium">
+                            <th scope="col" class="px-4 py-3 font-semibold">
                                 PIC
                             </th>
-                            <th scope="col" class="px-4 py-4 font-medium">
+                            <th
+                                scope="col"
+                                class="px-4 py-3 font-semibold lowercase first-letter:uppercase"
+                            >
                                 PHONE
                             </th>
-                            <th scope="col" class="px-4 py-4 font-medium">
+                            <th
+                                scope="col"
+                                class="px-4 py-3 font-semibold lowercase first-letter:uppercase"
+                            >
                                 STATUS
                             </th>
                             <th
                                 scope="col"
-                                class="px-4 py-4 text-right font-medium"
+                                class="px-4 py-3 text-right font-semibold lowercase first-letter:uppercase"
                             >
                                 ACTION
                             </th>
@@ -230,7 +241,7 @@ const generalError = computed(
                         <tr
                             v-for="supplier in suppliers"
                             :key="supplier.publicId"
-                            class="border-b"
+                            class="border-b last:border-0 hover:bg-accent/50"
                         >
                             <td class="px-4 py-4">{{ supplier.name }}</td>
                             <td class="px-4 py-4">
@@ -267,7 +278,7 @@ const generalError = computed(
                                     class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
                                     :class="
                                         supplier.active
-                                            ? 'bg-emerald-500'
+                                            ? 'bg-success'
                                             : 'bg-muted-foreground/40'
                                     "
                                     @click="toggle(supplier)"
@@ -333,7 +344,7 @@ const generalError = computed(
                     <div>
                         <label
                             for="supplier-name"
-                            class="mb-1 block text-sm font-medium"
+                            class="mb-2 block text-[13px] font-medium"
                             >Company name</label
                         ><input
                             id="supplier-name"
@@ -341,11 +352,11 @@ const generalError = computed(
                             required
                             maxlength="200"
                             placeholder="Company name"
-                            class="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                            class="h-11 w-full rounded-[10px] border border-input bg-field-fill px-3 text-sm text-foreground lg:h-10"
                         /><InputError :message="form.errors.name" />
                     </div>
                     <div
-                        class="max-h-[45vh] space-y-4 overflow-y-auto rounded-lg border bg-muted/30 p-4"
+                        class="max-h-[45vh] space-y-4 overflow-y-auto rounded-xl bg-card-quiet p-4"
                     >
                         <div
                             v-for="(contact, index) in form.contacts"
@@ -355,14 +366,14 @@ const generalError = computed(
                             <div>
                                 <label
                                     :for="`pic-${index}`"
-                                    class="mb-1 block text-sm font-medium"
+                                    class="mb-2 block text-[13px] font-medium"
                                     >PIC name</label
                                 ><input
                                     :id="`pic-${index}`"
                                     v-model="contact.name"
                                     maxlength="200"
                                     placeholder="Name"
-                                    class="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                                    class="h-11 w-full rounded-[10px] border border-input bg-field-fill px-3 text-sm text-foreground lg:h-10"
                                 /><InputError
                                     :message="contactError(index, 'name')"
                                 />
@@ -370,14 +381,14 @@ const generalError = computed(
                             <div>
                                 <label
                                     :for="`phone-${index}`"
-                                    class="mb-1 block text-sm font-medium"
+                                    class="mb-2 block text-[13px] font-medium"
                                     >Phone number</label
                                 >
                                 <div class="flex gap-1">
                                     <select
                                         v-model="contact.country"
                                         :aria-label="`Phone country ${index + 1}`"
-                                        class="h-10 w-24 min-w-0 rounded-md border bg-background px-1 text-sm"
+                                        class="h-11 w-24 min-w-0 rounded-[10px] border border-input bg-field-fill px-1 text-sm text-foreground lg:h-10"
                                     >
                                         <option
                                             v-for="country in countries"
@@ -393,7 +404,7 @@ const generalError = computed(
                                         inputmode="tel"
                                         maxlength="40"
                                         placeholder="Phone number"
-                                        class="h-10 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm"
+                                        class="h-11 min-w-0 flex-1 rounded-[10px] border border-input bg-field-fill px-2 text-sm text-foreground lg:h-10"
                                     />
                                 </div>
                                 <InputError
