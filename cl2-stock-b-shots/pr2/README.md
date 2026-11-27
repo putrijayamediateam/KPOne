@@ -1,0 +1,1 @@
+PR 2 (feature/cl2-stock-b-2 @ 2cfc47f4): hub operations panel, Purchase Orders & Receiving and Stock Requests & Transfers sections. Synthetic data through the app: approved demo PO, one partial receipt (200 capsule), one stock request Store -> Dispensary.
