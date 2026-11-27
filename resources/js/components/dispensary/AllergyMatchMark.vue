@@ -3,7 +3,7 @@ import { TriangleAlert } from '@lucide/vue';
 import { computed } from 'vue';
 
 // DSP-29 (Iman's sketch): the read-only twin of the CA's AllergyMatchWarning, for people who cannot change the line
-// (the doctor's check panel; the view-only case page follows in DSP-29 part A). Same red box, no tick box, and it never says that anyone
+// (the doctor's check panel and, from DSP-29 part A, the view-only case card). Same red box, no tick box, and it never says that anyone
 // checked the match. The server's own allergy checks at save and complete are unchanged.
 const props = defineProps<{
     allergens: string[];
