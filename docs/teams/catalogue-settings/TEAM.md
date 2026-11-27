@@ -258,3 +258,87 @@ Server checks stay the authority; hiding a control is a usability aid only.
    published which amount and when, from the existing versioned price entries.
 5. **CAT-4 Document readiness (authorised, decision 10).** On Business details, show per branch whether the
    name, address, phone or email, logo and footer are complete, because prints and referral letters depend on them.
+
+## 10. Hand-off to a fresh session (27 Nov 2026)
+
+Written by Adlina before the team session was retired (owner decision 27 Nov: one slice per fresh session on a new
+model). Read this first, then sections 6 to 8. Nothing is unpushed: no stashes, no local branch ahead of its remote,
+no uncommitted files at the time of writing.
+
+### 10.1 Recommendation popup programme (owner request 25 Nov, "Bina sendiri dulu", no MIMS copying)
+Design note: `docs/teams/catalogue-settings/RECOMMENDATION-POPUP-DESIGN.md` (on main). Owner approved all
+recommendations ("Lulus semua cadangan"). Decisions that are now rules:
+- New permission `clinical_suggestions.approve.organisation` for Resident Doctor and Director (additive migration
+  `2026_11_09_000700`). A Draft item is approved or returned from "Review suggestions"
+  (`/consultation-settings/review`) by someone who is neither its creator nor its last editor (service check and
+  PostgreSQL CHECK). Any wording or code change returns an approved item to Draft and sets the editor.
+- ICD-10: KPOne ships no full list. The clinic doctor types codes. A bulk load only after the licence is confirmed.
+- Self-review rule stays "creator plus last editor" ("Kekal seperti sekarang").
+- Each prescribing phrase language is at most 60 characters (dosage + frequency + instruction share the 144-character
+  drug-label budget).
+- Merged: SUG-1a diagnosis review and ICD-10 code (PR #1104, `ceb6ba9`); SUG-1b prescribing phrases (PR #1117, merged
+  26 Nov; migration `2026_11_09_000800_create_prescribing_phrases`; page `/consultation-settings/phrases`).
+- **Not started, no branch yet:**
+  - **SUG-2** the popup that offers approved diagnoses and phrases while the doctor writes. Wire the consultation
+    page with Amirul's team (Queue & TV) and take the look from Daniel. List any existing assertion that changes for
+    the owner's approval before changing it.
+  - **SUG-3** medicine strength and form suggestions plus a nightly usage summary table `diagnosis_medicine_usage`
+    (a pair is shown only with at least 5 patients in the last 12 months). Next free migration number in this team's
+    range: `2026_11_09_000900`.
+- The picker offers only `status = 'approved'` diagnoses and phrases. Demo data creates its starter items as Draft
+  and approves the diagnoses through the real review path (`PhaseOneFoundation`).
+
+### 10.2 Other merged work since section 5
+- Panel price changes (propose and approve, Syafiq's area, built with this team's pricing code): PRs #1018 and #1022.
+- Toast fix (PR #1108, `7c7d6174c`): controllers that ended with `->with('success', ...)` never showed a toast because
+  `resources/js/lib/flashToast.ts` reads only `Inertia::flash('toast', ...)`. Now fixed for Business details,
+  Medicine details, Preset diagnoses, Suppliers and Registration settings (owner: "Ya, semua pasukan", then "Ship
+  it"). `tests/Feature/Catalogue/SettingsToastFlashTest.php` fails if one of this team's settings controllers goes back
+  to `->with('success')`. Other teams' controllers with the old key (Inventory's six, Panel's `PanelSettingsController`,
+  `AutoAssignSettingController`) are theirs to fix.
+
+### 10.3 Open work
+1. **Clean Look restyle (owner decision 25 Nov, deadline Sun 29 Nov 18:00 MYT for Stage 2).** Classic is replaced
+   in place by the "KPOne Clean Look" canvas (design https://claude.ai/artifact/Jyr8UV231y4roWRyyqxxRJ, clickable demo
+   https://claude.ai/artifact/KUkn7hc8xW9k2REtRUCFbG, Daniel's `docs/design/CLEAN-LOOK-SPEC.md`). No second version, no
+   duplicate pages or components, no new-look switch: restyle the existing pages with the shared `ui` components, AppShell and
+   `app.css` tokens. This team's pages (Stage 2): Settings and Business details, Registration, Consultation (diagnoses
+   and phrases), Medicine details, Medicines, Services, Prices and Price check, Suppliers, Payment methods, Approval
+   limits, Clinician credentials, MC templates, Suggestion review, QR links and Waiting-room TV settings (check with
+   Nurul and Amirul who restyles those two). Fast process: Daniel's OK plus the Reviewer's OK, green CI with main
+   contained, then B.E.R.N.I.S.S merges; one owner ship-it per group; list changed existing assertions in the PR body.
+2. **Suppliers multi-contact edit.** The Suppliers settings page only adds and archives; there is no edit route.
+   Zulkifli (Inventory, STK-49) is adding an update route on `SupplierSettingsController` and `SupplierSettingsService`
+   with the full write rules, a field map that contacts can follow later, and one new optional field "Payment terms
+   (days)" (0 to 365; migration in the Inventory range). When his PR is up, review it; do the multi-contact edit and
+   Remove contact as a follow-up in the same route shape. Not on the CA flow (Director, Finance Officer, Panel Officer
+   and Administrator use this page), so it is Stage 2.
+3. **Gap list result (sent to B.E.R.N.I.S.S 25 Nov).** Backend for this team's boards exists on main, apart from the
+   supplier edit above. Facts: the second phone is a field on Business details and letters print "Tel: A / B" when
+   it is filled (the canvas's separate switch does not exist; restyle only). The QR page prints a poster per link.
+   Services has a branch select for price publication. MC templates shows read-only layout previews and revisions
+   and has no separate print-preview action (leave the canvas button out).
+4. **Bulk import.** Zulkifli's one-off Artisan command `inventory:import-catalogue` (IMP-1, run by B.E.R.N.I.S.S at the
+   Sunday 29 Nov reset on kpjaya.com) loads medicines and HQ and branch Self-pay prices through
+   `UnifiedCatalogueSetupService::createMedicine` and `PricePublicationService`, creating a missing branch book
+   ("<branch> Self-pay") with `PricingReferenceAdministrationService::createPriceBook`. Do not change those services
+   or the price book scope keys (`organisation`, `branch:<id>`, `panel:default`, `panel:<id>`) without telling
+   Zulkifli. An in-app import is for later and is not authorised. Panel prices stay on propose and approve.
+5. **Panel price proposals review answers** (Syafiq's, design note section 10 items e to h) are on branch
+   `docs/panel-price-proposals-design` (`b87fa124b`, pushed, no PR). Teams never edit BASELINE.md; ask B.E.R.N.I.S.S
+   whether to open a docs PR for it.
+
+### 10.4 Branches and evidence (all pushed)
+- Evidence screenshots (never merged, kept for Daniel): `validation/sug-1a-shots` (`88ac8563a`),
+  `validation/panel-price-changes-shots` (`db9665854`), `validation/usual-quantity-shots` (`53e9c8a26`),
+  `validation/v2-ask-swap-shots` (`4477af2a9`).
+- Old feature and docs branches (`feature/cat-*`, `docs/catalogue-team-*`) are merged history; leave them.
+
+### 10.5 Standing rules from the coordinator
+- Any migration that grants a permission to `ca` must also grant `medical_assistant` (this team's grants neither).
+- Merge `origin/main` into a PR branch when main moves; never rebase or force-push. Open a PR only after the owner's
+  ship-it. The CI `attest` check fails when main moved after the branch point; merge main, then it passes. A newer
+  push cancels older runs, so their "failures" are not real. Do not refresh main until B.E.R.N.I.S.S says "your turn".
+- Local test tips for a cloud session: run PHP with `kphp`; `npm run build` needs the `php` wrapper that calls `kphp`;
+  the container has no GD extension, so the image-based `BusinessDetailsTest` cases error locally and pass in CI.
+- Pending question for the owner nobody has answered: none open for this team at the time of writing.
