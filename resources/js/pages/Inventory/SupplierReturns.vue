@@ -455,7 +455,7 @@ watch(
             /></label>
             <button
                 type="submit"
-                class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+                class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
             >
                 Search
             </button>
