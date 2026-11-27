@@ -162,7 +162,11 @@ Slice: review Stage 1 Clean Look screens for the Puchong CA test against `docs/d
 - **#1139 Dispensary case (Aisyah): OK with changes, from the diff only.** Tokens replace palette classes, row buttons are outline, one filled button, allergy card has icon plus words, the `xl` three-column exception is honoured. Needs shots (1440, 1280, 390, light and dark: normal, allergy recorded, return needed, confirm panel open, OTC allergy card) and a check of the outline "Save all lines" edge on the warning wash. The final OK waits on those shots.
 - **DSP-28 Quarantined chip: OK** (info and info-wash, dot plus word, other outcomes neutral). A 390 shot of the returns table is wanted, not blocking.
 
-**Not yet reviewed:** #1132 Registration (Nurul, shots coming). Q-16c fixes (Amirul) are a later slice and #1253 (Q-16d) is backend only.
+- **#1132 Registration (Nurul): OK with changes**, from 7 of the 24 shots (`validation/clean-look-registration-shots`, PR head `2beb44539`): board CA light 1440 and 390, board Director dark 1440, Register Visit CA light 1440 and dark 390, Create patient Director dark 1440. Not opened: the other CA and Director shots and the Create patient shots at 390.
+  1. "RECENT PATIENTS" to sentence case. 2. Create patient: drop the pink icon tile and use `PageHeader` (26/30). 3. Phone country select and the unknown-date-of-birth checkbox are native; use the shared select and checkbox (DD-73 family). 4. At 390 the board's empty state is a box inside the card (use one surface) and the tab strip has no right-edge fade. 5. Confirm that the missing Dispensary and Awaiting Billing count chips on the Director board are a permission difference.
+  Asked Nurul to confirm the frozen "12 Nov 2026" date, that the Create patient footer has exactly one filled button, and to send a populated board (the seed has no visits).
+
+**Not yet reviewed:** Q-16c fixes (Amirul) are a later slice and #1253 (Q-16d) is backend only.
 
 **Debt:** DD-119 to DD-122 are on `docs/design-debt-dd119` (`948bdd0a`), written from the handover notes and not re-checked in code. B.E.R.N.I.S.S opens the PR after the Monday merges.
 
