@@ -131,6 +131,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | STK-33 | Stock health (`/inventory/stock-health`): days on hand, turnover and expiry loss per SKU and location, quantities only | #626 |
 | DD-75, DD-76 | Inventory task links: three groups side by side from 1024 px, folding groups with a count on phones (44 px summaries); a two-line Pilot readiness card pointing to the pharmacist review pack | #629 |
 | DD tiles | Inventory summary tiles (SKUs with stock, Total batches, Expired batches) stay in one row at every width, sentence case; fits 320 px | #633 (in batch #634) |
+| CL2-STOCK-A | Clean Look Stage 2, restyled in place (classes only): Inventory hub, the hub's operations panel outside the purchasing and transfer sections, Stock health, Stock count and Write-off, Batch holds, Recalls, Treatment room usage, Controlled register and its detail, Stock review | #1270 (open, 27 Nov) |
+| CL2-STOCK-A2 | Clean Look for Pilot readiness, Medicine sales and the difference row menu (classes only) | #1275 (open, 27 Nov) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -501,6 +503,44 @@ lists (the branch's 50 newest); a store-wide request list is a follow-up. RFQ pr
   caps a SKU's own alert days at 90, so a SKU set above 90 can be expiring on the page before the analyst sees it.
   Patient-returns stock is left out of the at-risk list by the same rule as "Expiring soon" (tested by STK-11), not by
   a test of its own.
+
+### Clean Look Stage 2, stock pages (Mei Ling, 27 Nov 2026)
+
+**PRs:** #1270 (`feature/cl2-stock-a`, head `bc9f5131`) and #1275 (`feature/cl2-stock-a-2`, head `132c9a81`), both
+open with CI running on 27 Nov; the coordinator auto-merges under the owner's standing approval (look only). Shots:
+`validation/cl2-stock-a-shots`, folders `docs/validation/cl2-stock-a/` and `docs/validation/cl2-stock-a-2/` (1440
+light, 1440 dark, 390 light; synthetic data from `KPOneInventoryWalkSeeder`).
+
+**File ownership (coordinator, 27 Nov):** stock-a owns `Inventory/Index.vue`, `InventoryOperationsPanel.vue` except
+the "Purchase Orders & Receiving" and "Stock Requests & Transfers" sections, StockHealth, GovernedStock, BatchHolds,
+Recalls, TreatmentUsage, ControlledRegister and Show, StockReview, Readiness, MedicineSales, DifferenceRowMenu and
+InventoryReferenceDataPanel (no change needed). Stock-b owns BranchReplenishment, the purchasing, receiving,
+supplier and transfer pages and the other `components/inventory` files. `StockValue.vue` is in the Reports PR.
+`ScanInput.vue` (shared with Dispensary) and the print pages stay unchanged.
+
+**What changed:** spec page padding (16/24/32), `rounded-xl border bg-card` cards (shared shadow), token fields
+(`border-input`, `bg-field-fill`, 10 px), pill buttons 44 px below 1024 and 36 px from 1024 (`self-center` in
+stretched flex rows, or they become circles on phones), `card-quiet` table headers and wells, `warning-wash` and
+destructive washes instead of amber or red palette classes, one filled button per view (Treatment room usage
+Search buttons are outline). No wording, route, prop, server, permission, migration or assertion change.
+
+**Pinned classes kept as they are (tests):** `min-h-11 w-full rounded border px-3 disabled:opacity-40 sm:w-auto
+lg:min-h-9` (stk23, GovernedStock Start count); `group rounded-lg border bg-card` (stk44, Medicine sales
+disclosure); the hub's `[&_thead_th]:text-sm`, `font-semibold`, `grid grid-cols-3 gap-2 sm:gap-3`, `lg:grid
+lg:grid-cols-3`; the title-case headings in InventoryOperationsPanel (i2-inventory-operations). Prettier sorts
+Tailwind classes, so a class added inside a pinned string moves into it and breaks the test: leave pinned strings
+alone. StockHealth keeps its flat template (the side card is placed by grid columns), because extra nesting
+re-wraps the explanation text that stk33 matches across lines.
+
+**Demo-only, not built:** InvLanes, InvTimeline, InvMyWork, InventoryFlow (maps and trackers); the demo's
+master-detail layouts (pick a row, selected-batch panel, "Who does what" side help) on holds, counts, write-off,
+recalls, usage and the controlled register; Stock health's expandable rows and clickable filter tiles.
+
+**Tooling notes:** the cloud session's system PHP is 8.3, so `npm run build` (Wayfinder) and frontend tests that call
+PHP need a `php` shim to `kphp` first on PATH. A task-owned Postgres 18 needs `DB_SSLMODE=disable`. Serve with
+`php -S` and Laravel's `server.php` router, or built assets return HTML. Seed order for populated stock shots:
+`migrate:fresh --seed`, then `KPOnePresentationSeeder`, `KPOneDemoSetupSeeder`, `KPOneInventoryWalkSeeder`; sign in
+as `demo.ca_supervisor` (Medicine sales needs `demo.director`).
 
 ## 8. Rules (every task)
 
