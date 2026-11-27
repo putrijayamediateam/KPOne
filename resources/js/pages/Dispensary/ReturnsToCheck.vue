@@ -102,7 +102,7 @@ const filters = [
 // Daniel: the outcome as a dot-plus-word chip; Quarantined is the info tone, the rest neutral.
 const outcomeClass = (row: Row) =>
     row.outcome === 'quarantine'
-        ? 'border-brand/30 bg-brand/10 text-brand-strong'
+        ? 'border-border bg-info-wash text-info'
         : 'border-border text-foreground';
 onMounted(() =>
     // DD-30: a tab chosen from the address is scrolled into view, with its count, on a phone.

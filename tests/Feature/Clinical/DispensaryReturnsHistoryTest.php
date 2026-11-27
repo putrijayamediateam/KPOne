@@ -107,4 +107,15 @@ class DispensaryReturnsHistoryTest extends VisitTestCase
 
         $this->actingAs($ca)->get(route('dispensary.returns-to-check', ['view' => 'checked']))->assertForbidden();
     }
+
+    public function test_array_filter_values_fall_back_without_an_error(): void
+    {
+        $w = $this->waiting(controlled: false);
+
+        $this->actingAs($w['supervisor'])->get(route('dispensary.returns-to-check', ['view' => ['checked'], 'controlled' => ['yes']]))
+            ->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('returns.view', 'waiting')
+            ->where('returns.controlled', 'all')
+            ->where('returns.rows.0.publicId', $w['return']->public_id));
+    }
 }
