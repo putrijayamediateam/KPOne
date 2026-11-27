@@ -290,6 +290,63 @@ const act = (row: Proposal) => {
     );
 };
 
+// PNL-30: approve the ticked waiting proposals in one press. Each is checked on its own on the server.
+const selected = ref<string[]>([]);
+const bulkOpen = ref(false);
+const bulkActing = ref(false);
+const selectable = computed(() => props.waiting.filter((row) => !row.mine));
+const selectedRows = computed(() =>
+    selectable.value.filter((row) => selected.value.includes(row.id)),
+);
+const allSelected = computed(
+    () =>
+        selectable.value.length > 0 &&
+        selectedRows.value.length === selectable.value.length,
+);
+const toggleAll = () => {
+    selected.value = allSelected.value ? [] : selectable.value.map((r) => r.id);
+    bulkOpen.value = false;
+};
+const toggleRow = (row: Proposal) => {
+    selected.value = selected.value.includes(row.id)
+        ? selected.value.filter((id) => id !== row.id)
+        : [...selected.value, row.id];
+    bulkOpen.value = false;
+};
+const approveSelected = () => {
+    if (bulkActing.value || selectedRows.value.length === 0) {
+        return;
+    }
+
+    bulkActing.value = true;
+    router.post(
+        '/panel-price-changes/approve-selected',
+        {
+            expected_branch_id: props.branch.id,
+            items: selectedRows.value.map((row) => ({
+                id: row.id,
+                lock_version: row.lockVersion,
+            })),
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                selected.value = [];
+                bulkOpen.value = false;
+            },
+            onError: (errors) => {
+                if (errors.bulk) {
+                    selected.value = [];
+                    bulkOpen.value = false;
+                }
+            },
+            onFinish: () => {
+                bulkActing.value = false;
+            },
+        },
+    );
+};
+
 const changeOf = (row: Proposal) => {
     if (row.oldAmountSen === null) {
         return null;
@@ -335,7 +392,7 @@ const turnPage = (value: number) =>
 <template>
     <Head title="Panel price changes" />
     <main
-        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
     >
         <PageHeader
             title="Panel price changes"
@@ -574,6 +631,70 @@ const turnPage = (value: number) =>
         </form>
 
         <template v-if="tab === 'waiting' || tab === 'decided'">
+            <div
+                v-if="tab === 'waiting' && canApprove && selectable.length > 0"
+                class="mb-3 space-y-2 rounded-xl border bg-card p-4 text-sm"
+                data-testid="bulk-approve"
+            >
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <label class="flex min-h-11 items-center gap-2">
+                        <input
+                            type="checkbox"
+                            class="size-5"
+                            :checked="allSelected"
+                            @change="toggleAll"
+                        />
+                        Select all {{ selectable.length }} that someone else
+                        proposed
+                    </label>
+                    <Button
+                        type="button"
+                        class="min-h-11"
+                        :disabled="selectedRows.length === 0 || bulkActing"
+                        @click="bulkOpen = true"
+                        >Approve selected ({{ selectedRows.length }})</Button
+                    >
+                </div>
+                <p
+                    v-if="waitingCount > waiting.length"
+                    class="text-xs text-muted-foreground"
+                >
+                    Showing the oldest {{ waiting.length }} of
+                    {{ waitingCount }} waiting. Approve these and the next ones
+                    appear.
+                </p>
+                <div
+                    v-if="bulkOpen && selectedRows.length > 0"
+                    class="space-y-2 border-t pt-3"
+                    role="group"
+                    aria-label="Confirm approval of the selected price changes"
+                >
+                    <p>
+                        Approve {{ selectedRows.length }} price
+                        {{ selectedRows.length === 1 ? 'change' : 'changes' }}?
+                        Each one is checked on its own. Any that cannot be
+                        approved are skipped. Review the refreshed lists and
+                        reasons after approval.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <Button
+                            type="button"
+                            class="min-h-11"
+                            :disabled="bulkActing"
+                            @click="approveSelected"
+                            >Confirm approval</Button
+                        >
+                        <Button
+                            type="button"
+                            variant="outline"
+                            class="min-h-11"
+                            :disabled="bulkActing"
+                            @click="bulkOpen = false"
+                            >Cancel</Button
+                        >
+                    </div>
+                </div>
+            </div>
             <EmptyState
                 v-if="(tab === 'waiting' ? waiting : decided).length === 0"
                 :title="
@@ -597,6 +718,19 @@ const turnPage = (value: number) =>
                     :key="row.id"
                     class="space-y-2 p-4 text-sm"
                 >
+                    <label
+                        v-if="tab === 'waiting' && canApprove && !row.mine"
+                        class="flex min-h-11 items-center gap-2 text-xs"
+                    >
+                        <input
+                            type="checkbox"
+                            class="size-5"
+                            :checked="selected.includes(row.id)"
+                            :aria-label="`Select ${row.panelName} ${row.chargeName}`"
+                            @change="toggleRow(row)"
+                        />
+                        Select for approval
+                    </label>
                     <div
                         class="flex flex-wrap items-baseline justify-between gap-2"
                     >

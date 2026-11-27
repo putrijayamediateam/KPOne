@@ -23,8 +23,11 @@ test('the phone number box can shrink inside a narrow column', () => {
 
 test('below sm the country list stacks above the number box', () => {
     assert.match(phone, /<div class="flex flex-col gap-2 sm:flex-row">/);
-    const select = phone.match(/<select[\s\S]*?>/)?.[0] ?? '';
-    const classes = select.match(/class="([^"]+)"/)?.[1].split(/\s+/) ?? [];
+    // The country list is the shared OperationalSelect; its trigger carries the width classes.
+    const select = phone.match(/<OperationalSelect[\s\S]*?\/>/)?.[0] ?? '';
+    assert.ok(select, 'the country list is the shared OperationalSelect');
+    const classes =
+        select.match(/trigger-class="([^"]+)"/)?.[1].split(/\s+/) ?? [];
 
     for (const name of ['w-full', 'sm:w-36', 'min-w-0']) {
         assert.ok(classes.includes(name), `country list has ${name}`);
@@ -55,10 +58,10 @@ test('the Quick create identity row stacks below sm and joins from sm up', () =>
     );
     assert.match(
         quick,
-        /trigger-class="h-10 w-full sm:w-40 sm:rounded-r-none"/,
+        /trigger-class="h-10 w-full max-lg:min-h-11 sm:w-40 sm:rounded-r-none"/,
     );
     assert.match(
         quick,
-        /class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm sm:flex-1 sm:rounded-l-none sm:border-l-0"/,
+        /class="h-9 w-full min-w-0 rounded-\[10px\] border border-input bg-field-fill px-3 text-sm max-lg:h-11 sm:flex-1 sm:rounded-l-none sm:border-l-0"/,
     );
 });

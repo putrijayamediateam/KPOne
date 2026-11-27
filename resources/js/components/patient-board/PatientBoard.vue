@@ -49,6 +49,8 @@ defineEmits<{
     callDispensary: [row: PatientBoardRow];
     cancel: [row: PatientBoardRow];
     readinessChanged: [];
+    // Q-16c: ask the page to open the read-only details dialog of this row.
+    showDetails: [row: PatientBoardRow];
 }>();
 
 // Q-2: one treatment dialog at a time, opened from the row menu or the inline "Mark done" button.
@@ -88,7 +90,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
     ({
         neutral: 'border-border text-muted-foreground',
         waiting: 'border-border bg-muted text-foreground',
-        serving: 'border-brand/25 bg-brand/10 text-brand-strong',
+        serving: 'border-info/25 bg-info-wash text-info',
         held: 'border-warning/25 bg-warning/10 text-warning-strong',
         cancelled: 'border-border text-muted-foreground',
         removed: 'border-border text-muted-foreground',
@@ -128,16 +130,16 @@ const triageTextClass = (zone: TriageZone | null) =>
             class="w-full table-fixed text-left text-[13px] leading-5 md:min-w-[1040px]"
         >
             <thead
-                class="border-y bg-muted/25 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                class="border-y bg-card-quiet text-[13px] font-semibold text-muted-foreground"
             >
                 <tr>
-                    <th class="w-[15%] px-3 py-2">Patient</th>
+                    <th class="w-[14%] px-3 py-2">Patient</th>
                     <th class="w-[7%] px-3 py-2">Queue</th>
                     <th class="w-[9%] px-3 py-2">Arrived</th>
-                    <th class="w-[12%] px-3 py-2">Visit notes</th>
-                    <th class="w-[10%] px-3 py-2">Doctor</th>
-                    <th class="w-[18%] px-3 py-2">Payment</th>
-                    <th class="w-[8%] px-3 py-2">Duration</th>
+                    <th class="w-[8%] px-3 py-2">Visit notes</th>
+                    <th class="w-[14%] px-3 py-2">Doctor</th>
+                    <th class="w-[12%] px-3 py-2">Payment</th>
+                    <th class="w-[15%] px-3 py-2">Duration</th>
                     <th class="w-[15%] px-3 py-2">Status</th>
                     <th class="w-[112px] px-3 py-2 text-right">Actions</th>
                 </tr>
@@ -208,14 +210,10 @@ const triageTextClass = (zone: TriageZone | null) =>
                             <Tooltip>
                                 <TooltipTrigger as-child>
                                     <span
-                                        class="flex max-w-full items-center gap-1.5 rounded-md bg-muted/70 px-2 py-0.5 font-normal transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:outline-none"
+                                        class="flex max-w-full items-start rounded-md bg-muted/70 px-2 py-0.5 font-normal transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:outline-none"
                                         tabindex="0"
                                     >
-                                        <UserRound
-                                            class="size-3 shrink-0 text-muted-foreground"
-                                            aria-hidden="true"
-                                        />
-                                        <span class="truncate">{{
+                                        <span class="line-clamp-2">{{
                                             row.doctorName ?? 'Unassigned'
                                         }}</span>
                                     </span>
@@ -268,7 +266,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                     </td>
                     <td class="px-3 py-2.5 align-middle" data-label="Duration">
                         <span
-                            class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 tabular-nums"
+                            class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 whitespace-nowrap tabular-nums"
                             :class="durationClass(rowWaitingTone(row))"
                             :data-waiting-tone="rowWaitingTone(row)"
                         >
@@ -300,7 +298,14 @@ const triageTextClass = (zone: TriageZone | null) =>
                         "
                     >
                         <div class="flex flex-wrap items-center gap-1.5">
+                            <!-- The duration chip already reads "Waiting N min": show one Waiting chip, not two. -->
                             <span
+                                v-if="
+                                    !(
+                                        row.statusTone === 'waiting' &&
+                                        row.durationLabel.startsWith('Waiting')
+                                    )
+                                "
                                 class="inline-flex rounded-md border px-2 py-0.5 text-[11px] font-normal"
                                 :class="statusClass(row.statusTone)"
                                 >{{ row.statusLabel }}</span
@@ -416,6 +421,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                                         size="icon"
                                         class="min-h-11 min-w-11"
                                         :aria-label="`Actions for ${row.patientName}`"
+                                        :data-row-menu="row.visitNumber"
                                     >
                                         <LoaderCircle
                                             v-if="busyKey === row.key"
@@ -447,6 +453,14 @@ const triageTextClass = (zone: TriageZone | null) =>
                                             "
                                             >View Patient</Link
                                         >
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="row.triage && from === 'queue'"
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                        data-testid="row-details-menu"
+                                        @select="$emit('showDetails', row)"
+                                    >
+                                        Show details
                                     </DropdownMenuItem>
                                     <!-- TRI-1e: the patient's own doctor reads the triage record (view only). -->
                                     <DropdownMenuItem
@@ -601,7 +615,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                         </div>
                     </td>
                 </tr>
-                <tr v-if="!rows.length">
+                <tr v-if="!rows.length" class="board-empty-row">
                     <td
                         colspan="9"
                         class="px-4 py-12 text-center text-sm text-muted-foreground"
@@ -626,13 +640,24 @@ const triageTextClass = (zone: TriageZone | null) =>
     .patient-board thead {
         display: none;
     }
+    /* Rows are separated by dividers inside the list surface: no card inside the card. */
     .patient-board tbody > tr {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        margin-bottom: 12px;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 8px;
+        border: 0;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
+        padding: 12px 8px;
+    }
+    .patient-board tbody > tr:last-child {
+        border-bottom: 0;
+    }
+    /* The empty message sits on the board's own surface: no card inside the card. */
+    .patient-board tbody > tr.board-empty-row {
+        display: block;
+        margin-bottom: 0;
+        border: 0;
+        padding: 0;
     }
     .patient-board td {
         display: block;

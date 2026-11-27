@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Sleep;
 use Illuminate\Testing\PendingCommand;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
@@ -71,10 +72,39 @@ class TrialDataCommandTest extends TestCase
             'branch_id' => $this->cheras->id,
             'credential_strategy' => 'google_only',
         ]);
+        // Clock tests can travel to the previous branch day; keep the synthetic primary coverage valid then,
+        // just like the additional assignments created by StaffBranchAssignmentBootstrapper below.
+        $director->staffProfile->branchAssignments()->where('is_primary', true)->update([
+            'valid_from' => now()->subDay()->toDateString(),
+        ]);
         // Director coverage of every branch (what kpone:director-branches provides), set up as a test fixture.
         foreach (Branch::query()->where('code', '!=', 'CHERAS')->get() as $branch) {
             StaffBranchAssignmentBootstrapper::create($director->staffProfile, $branch, ['is_primary' => false]);
         }
+    }
+
+    public function test_phase_one_accepts_fixture_coverage_on_the_previous_branch_day(): void
+    {
+        $at = CarbonImmutable::now($this->cheras->timezone)->subDay()->startOfDay()->addHours(12);
+        $this->travelTo($at);
+
+        $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
+        $this->assertDatabaseHas('users', ['email' => TrialDataContext::email(TrialDataContext::key('CHERAS', 'ca1'))]);
+    }
+
+    public function test_phase_one_still_refuses_coverage_that_starts_after_the_frozen_day(): void
+    {
+        $at = CarbonImmutable::now($this->cheras->timezone)->subDay()->startOfDay()->addHours(12);
+        $this->travelTo($at);
+        User::role('director')->sole()->staffProfile->branchAssignments()->where('is_primary', true)->update([
+            'valid_from' => $at->addDay()->toDateString(),
+        ]);
+        $before = $this->counts();
+
+        $this->artisan('kpone:trial-data')
+            ->expectsOutputToContain('The Director has no current assignment at CHERAS.')
+            ->assertExitCode(Command::FAILURE);
+        $this->assertSame($before, $this->counts());
     }
 
     public function test_it_refuses_without_the_flag(): void
@@ -411,8 +441,50 @@ class TrialDataCommandTest extends TestCase
         return ['00:04 in Kuala Lumpur' => ['16:04:00'], '00:30 in Kuala Lumpur' => ['16:30:00'], '01:30 in Kuala Lumpur' => ['17:30:00'], '08:00 in Kuala Lumpur' => ['00:00:00']];
     }
 
+    /**
+     * CI-CLOCK-3: in the first three minutes after midnight in Kuala Lumpur (16:00 to 16:03 UTC) no session can have
+     * ended "earlier today", so phase 5 used to refuse and the end-to-end test failed whenever CI crossed that minute.
+     * Phase 5 now waits (faked here) until 00:03 local time and then succeeds; from two minutes before midnight it
+     * waits for the coming 00:03, since its own work before that point takes seconds. Phase 1 runs before midnight,
+     * as in the failing CI runs, so the phases straddle the change of day. Dates are built in the branch time zone.
+     */
+    #[DataProvider('aroundKualaLumpurMidnight')]
+    public function test_phase_five_waits_out_the_minutes_around_midnight_in_kuala_lumpur(int $secondsFromMidnight): void
+    {
+        // The latest past local midnight that leaves the whole scenario in the past, close to the database's own clock.
+        $midnight = CarbonImmutable::now($this->cheras->timezone)->subMinutes(5)->startOfDay();
+        $this->travelTo($midnight->subMinutes(5));
+        Storage::fake('local');
+        $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
+
+        $this->travelTo($midnight->addSeconds($secondsFromMidnight));
+        Sleep::fake(syncWithCarbon: true);
+        $this->runPhase('5')->doesntExpectOutputToContain('A step failed')->assertExitCode(Command::SUCCESS);
+        Sleep::assertSleptTimes(1);
+        $this->assertSame($midnight->addMinutes(3)->addSecond()->toIso8601String(), CarbonImmutable::now($this->cheras->timezone)->toIso8601String(),
+            'Phase 5 waited until just after 00:03 local time.');
+        $this->assertSame(1, DB::table('hr_overtime_requests')->where('status', 'approved')->count());
+        $this->assertSame(['approved' => 1, 'pending' => 1], DB::table('hr_attendance_corrections')->selectRaw('status, count(*) as n')
+            ->groupBy('status')->orderBy('status')->pluck('n', 'status')->map(fn ($n): int => (int) $n)->all());
+
+        // A rerun has nothing left to add, so it does not wait.
+        $this->travelTo($midnight->addSeconds($secondsFromMidnight));
+        Sleep::fake(syncWithCarbon: true);
+        $this->runPhase('5')->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);
+        Sleep::assertNeverSlept();
+    }
+
+    /** @return array<string, array{int}> */
+    public static function aroundKualaLumpurMidnight(): array
+    {
+        return ['23:58:30 in Kuala Lumpur' => [-90], '00:00:00 in Kuala Lumpur' => [0], '00:00:30 in Kuala Lumpur' => [30], '00:02:59 in Kuala Lumpur' => [179]];
+    }
+
     public function test_phase_five_fills_kpone_hr_once_with_fictional_payroll_tables(): void
     {
+        // This success case needs an earlier session today (phase 5 waits until 00:03 local time for one).
+        $at = CarbonImmutable::now($this->cheras->timezone)->startOfDay()->addHours(12);
+        $this->travelTo($at->isFuture() ? $at->subDay() : $at);
         Storage::fake('local');
         $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
 

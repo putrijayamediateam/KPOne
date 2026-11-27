@@ -5,6 +5,8 @@ import test from 'node:test';
 // Q-2b (owner decision 2026-11-05, Daniel's recommendation): the shared board's
 // Status column widens from 9% to 15% so status, not-ready and treatment chips
 // stop wrapping to many lines; Payment narrows from 24% to 18% to make room.
+// REG-MON-1 (owner tick box 2026-11-27): Duration widens to 15% so the one-line "Waiting 1 hr 7 min" chip fits;
+// Patient, Visit notes and Payment give up 1, 4 and 2 points; the total stays 94%.
 const board = readFileSync(
     new URL(
         '../../resources/js/components/patient-board/PatientBoard.vue',
@@ -18,13 +20,13 @@ test('Status is 15% and Payment 18% wide; the other columns are unchanged', () =
         ...board.matchAll(/<th class="w-\[(\d+)%\][^"]*">([^<]+)<\/th>/g),
     ].map(([, width, label]) => [label.trim(), Number(width)]);
     assert.deepEqual(widths, [
-        ['Patient', 15],
+        ['Patient', 14],
         ['Queue', 7],
         ['Arrived', 9],
-        ['Visit notes', 12],
-        ['Doctor', 10],
-        ['Payment', 18],
-        ['Duration', 8],
+        ['Visit notes', 8],
+        ['Doctor', 14],
+        ['Payment', 12],
+        ['Duration', 15],
         ['Status', 15],
     ]);
     assert.equal(

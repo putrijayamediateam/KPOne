@@ -108,7 +108,7 @@ const submit = () => {
         "
         type="button"
         variant="outline"
-        class="h-auto min-h-11 w-full py-2 text-xs leading-4 whitespace-normal"
+        class="h-auto min-h-11 w-full py-2 text-xs leading-4 whitespace-normal lg:min-h-7 lg:w-auto lg:rounded-full lg:px-3 lg:py-0.5"
         @click="open = true"
     >
         {{ row.callHold?.active ? 'Ready to be called' : 'Mark not ready' }}

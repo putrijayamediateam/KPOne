@@ -90,7 +90,7 @@ const submit = (receipt: DayCloseContext['lockedReceipts'][number]) => {
 
 <template>
     <section
-        class="space-y-3 rounded-lg border border-border bg-muted/40 p-3 text-sm"
+        class="space-y-3 rounded-xl border border-border bg-card-quiet p-3 text-sm"
         aria-label="Daily cash close"
         data-testid="day-close-notice"
     >

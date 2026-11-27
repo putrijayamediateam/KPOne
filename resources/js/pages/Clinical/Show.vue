@@ -15,12 +15,14 @@ import {
 } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
+import FamilyWaitingCard from '@/components/clinical/FamilyWaitingCard.vue';
 import UnsavedClinicalWorkContinueDialog from '@/components/clinical/UnsavedClinicalWorkContinueDialog.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
 import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
 import InputError from '@/components/InputError.vue';
 import HeldCallNext from '@/components/queue/HeldCallNext.vue';
+import RedZoneAlertBanner from '@/components/queue/RedZoneAlertBanner.vue';
 import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
 import TreatmentProgressBadge from '@/components/queue/TreatmentProgressBadge.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -62,6 +64,8 @@ const props = defineProps<{
     treatmentRooms?: Array<{ id: number; name: string }>;
     // Q-2: the Serving consultation's treatment step (board only; never the TV).
     treatmentProgress?: TreatmentProgress | null;
+    // BIL-37: the doctor's read-only bill of this visit (only once a finalised invoice exists).
+    billViewUrl?: string | null;
 }>();
 const page = usePage();
 const user = computed(() => page.props.auth.user!);
@@ -707,6 +711,16 @@ const changeHoldState = (action: 'hold' | 'resume') => {
     <main
         class="consultation-workspace mx-auto flex w-full max-w-[1800px] flex-1 flex-col gap-3 bg-neutral-100 px-3 py-3 md:px-5 dark:bg-background"
     >
+        <RedZoneAlertBanner
+            v-if="
+                page.props.auth.permissions.includes('queue.call.own') ||
+                page.props.auth.permissions.includes(
+                    'visits.triage.record.branch',
+                )
+            "
+            :branch-id="clinical.branch.id"
+            :from-visit="clinical.visit.visitNumber"
+        />
         <header
             class="flex flex-wrap items-center justify-between gap-3 px-1 py-1"
         >
@@ -813,6 +827,20 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                             class="size-3.5"
                             aria-hidden="true"
                         /><span class="sr-only">(opens in a new tab)</span></a
+                    ></Button
+                >
+                <!-- BIL-37 (Daniel): the doctor's read-only bill, same tab, so no external-link icon. -->
+                <Button
+                    v-if="billViewUrl"
+                    variant="outline"
+                    size="sm"
+                    class="h-9 text-[14px] max-lg:h-11"
+                    as-child
+                >
+                    <Link
+                        :href="billViewUrl"
+                        data-testid="consultation-view-bill"
+                        >View bill</Link
                     ></Button
                 >
                 <WaitingPatientsButton
@@ -1123,6 +1151,11 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                         />
                     </div>
                 </section>
+
+                <FamilyWaitingCard
+                    v-if="clinical.familyWaiting"
+                    :family="clinical.familyWaiting"
+                />
 
                 <DispensaryAttentionPanel
                     :items="clinical.dispensaryAttention"

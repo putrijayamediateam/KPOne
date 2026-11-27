@@ -30,7 +30,11 @@ class TriageDoctorViewTest extends TriageTestCase
     public function test_the_own_doctor_reads_every_save_and_the_open_is_audited_first(): void
     {
         $this->approvedGuideline();
-        [$ca, $visit] = $this->waitingFixture();
+        // This test scans the whole rendered payload for forbidden field tokens.
+        // Random display names such as "Lockman" can collide with "lock".
+        $ca = $this->actor('ca');
+        $ca->forceFill(['name' => 'Synthetic Triage Recorder'])->save();
+        [$ca, $visit] = $this->waitingFixture($ca, ['full_name' => 'Synthetic Triage Patient']);
         $doctor = User::query()->findOrFail($visit->assigned_doctor_user_id);
         $this->triage($ca, $visit, ['pulse_bpm' => 130, 'yellow_sign_codes' => ['ys_01'], 'chosen_zone' => 'yellow']);
         $this->travel(2)->minutes();

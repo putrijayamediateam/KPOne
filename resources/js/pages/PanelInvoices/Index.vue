@@ -110,7 +110,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
 <template>
     <Head title="Panel invoices" />
     <main
-        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
     >
         <PageHeader
             title="Panel invoices"
@@ -226,7 +226,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
         <template v-else>
             <p
                 v-if="truncated"
-                class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+                class="rounded-lg border bg-warning-wash p-3 text-sm text-warning"
             >
                 Only the first {{ maxRows.toLocaleString() }} invoices are shown
                 and downloaded. Narrow the date range to see the rest.

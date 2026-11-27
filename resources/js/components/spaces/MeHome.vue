@@ -234,7 +234,7 @@ const tileList = computed(() =>
             <button
                 v-else-if="ring.state === 'in'"
                 type="button"
-                class="me-compact-button"
+                class="me-compact-button is-secondary"
                 data-test="me-clock-out"
                 @click="press()"
             >
@@ -356,7 +356,11 @@ const tileList = computed(() =>
                     </span>
                     <span class="me-tile-body">
                         <strong>{{ t.title }}</strong>
-                        <span>{{ t.text }}</span>
+                        <span>{{
+                            t.key === 'attendance' && t.text === week?.summary
+                                ? 'Open attendance'
+                                : t.text
+                        }}</span>
                     </span>
                 </Link>
             </li>

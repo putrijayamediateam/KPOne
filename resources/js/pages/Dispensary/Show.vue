@@ -6,14 +6,18 @@ import {
     Eye,
     LoaderCircle,
     Megaphone,
+    Pencil,
+    Pill,
     Plus,
     Printer,
     RotateCcw,
     ScanLine,
     Trash2,
     TriangleAlert,
+    Undo2,
 } from '@lucide/vue';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
+import AllergyMatchMark from '@/components/dispensary/AllergyMatchMark.vue';
 import DoctorCheckActions from '@/components/dispensary/DoctorCheckActions.vue';
 import PackQuantityField from '@/components/dispensary/PackQuantityField.vue';
 import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
@@ -26,8 +30,11 @@ import { StatusBadge } from '@/components/ui/status';
 import {
     displayQuantity,
     packChoiceLabel,
+    packCount,
     packsOnHand,
+    packsToBase,
     parsePacks,
+    sameQuantity,
     usablePackConversion,
 } from '@/lib/dispensary-packs';
 import type { PackConversion } from '@/lib/dispensary-packs';
@@ -287,7 +294,13 @@ const isDirty = (item: Item): boolean => {
                 'fefoReason',
                 'availabilityIndex',
             ] as const
-        ).some((key) => form[key] !== saved[key])
+        ).some((key) =>
+            // QA (27 Nov): "12" and the saved "12.000" are the same quantity. Comparing them as text kept the line
+            // "unsaved", so Save all lines sent it again and again.
+            key === 'quantity'
+                ? !sameQuantity(form.quantity, saved.quantity)
+                : form[key] !== saved[key],
+        )
     );
 };
 // Adopt the server's version of a line when it changes, but never overwrite what the CA is typing.
@@ -668,6 +681,8 @@ const markScanned = (sku: ScannedSku, gs1: Gs1Read | null = null) => {
         );
 
         if (line) {
+            // QA: a card a scan opened stays open after the batch is picked, until the CA presses Done editing.
+            openCards[line.publicId] = true;
             void pointAtBatch(line.publicId);
         }
     }
@@ -812,6 +827,7 @@ const saveItem = (item: Item, done?: () => void) => {
             onError: showActionError,
             onSuccess: () => {
                 allergyChecks[checkKey(item)] = false;
+                openCards[item.publicId] = false;
                 clearBatchHint(item.publicId);
                 done?.();
             },
@@ -1271,6 +1287,160 @@ const completeCase = () => {
 const sendForCheck = () => {
     caseAction('send-for-check', { retry_key: crypto.randomUUID() });
 };
+// DSP-CARD-1: the medicine card (owner's demo, 27 Nov). Presentation only: Save line, Remove and the inputs call
+// the same endpoints with the same payloads as before.
+// One direction line, as the demo writes it: "1 tablet, 3 times a day, before food · 5 days".
+type Directions = {
+    dosage?: string | null;
+    frequency?: string | null;
+    duration?: string | null;
+    instruction?: string | null;
+    route?: string | null;
+    precaution?: string | null;
+};
+const directionLine = (directions: Directions): string => {
+    const how = [
+        directions.dosage,
+        directions.frequency,
+        directions.instruction,
+    ]
+        .map((part) => (part ?? '').trim())
+        .filter(Boolean)
+        .join(', ');
+    const days = (directions.duration ?? '').trim();
+
+    return [how, days].filter(Boolean).join(' · ') || 'No directions recorded';
+};
+// While the CA types, the card's direction line follows the inputs; otherwise it shows the saved line.
+const livesInForm = (item: Item): boolean =>
+    props.dispensary.can.update &&
+    forms[item.publicId] !== undefined &&
+    (item.status === 'pending' || isDirty(item));
+const givenDirections = (item: Item): Directions =>
+    livesInForm(item) ? forms[item.publicId] : item;
+const givenQuantity = (item: Item): string => {
+    if (livesInForm(item)) {
+        const form = forms[item.publicId];
+        const packs = parsePacks(form.packs);
+        const conversion = usablePackConversion(item.packConversion, item.unit);
+
+        // Hakim: while editing in packs, say it the way the saved line will ("2 bottles (120 ml)").
+        return form.packMode === 'packs' && packs !== null && conversion
+            ? `${packCount(packs, conversion.packUnit)} (${displayQuantity(packsToBase(packs, conversion))} ${item.unit})`
+            : `${displayQuantity(form.quantity)} ${item.unit}`;
+    }
+
+    return (
+        item.packText ??
+        `${displayQuantity(item.quantityDispensed ?? item.quantityOrdered)} ${item.unit}`
+    );
+};
+// Owner decision (27 Nov): when the directions the CA gives match the doctor's order, "You give" says
+// "Same directions" instead of repeating the text; a changed line shows what is given. Hakim: a changed precaution
+// (printed on the label) or route is always named, so "Same directions" never hides it.
+const givenDirectionsText = (item: Item): string => {
+    const given = givenDirections(item);
+    const line = directionLine(given);
+    const differs = (now?: string | null, was?: string | null) =>
+        (now ?? '').trim() !== (was ?? '').trim();
+    const changed = [
+        differs(given.precaution, item.original.precaution)
+            ? `Precaution: ${(given.precaution ?? '').trim() || 'none'}`
+            : '',
+        differs(given.route, item.original.route)
+            ? `Route: ${(given.route ?? '').trim() || 'none'}`
+            : '',
+    ].filter(Boolean);
+
+    return [
+        line === directionLine(item.original) ? 'Same directions' : line,
+        ...changed,
+    ].join(' · ');
+};
+// DD-125: a short batch line on the card ("Batch DM-0207 · exp 3 Mar 2027 · 60 tablet on hand"); the full option text
+// stays in the dropdown and its "Selected:" line while editing.
+const batchLine = (item: Item): string | null => {
+    const unit = item.sku?.unit ?? item.unit;
+    const onHand = (stock: Availability | undefined) =>
+        stock ? ` · ${stockAmount(stock.quantity, unit)} on hand` : '';
+
+    if (livesInForm(item)) {
+        const stock = item.availability[forms[item.publicId].availabilityIndex];
+
+        return stock && !stock.held
+            ? `Batch ${stock.batchNumber} · exp ${formatDate(stock.expiryDate)}${onHand(stock)}`
+            : null;
+    }
+
+    const saved = (item.allocations ?? []).filter(
+        (allocation) => allocation.batchNumber,
+    );
+
+    return saved.length
+        ? saved
+              .map(
+                  (allocation) =>
+                      `Batch ${allocation.batchNumber}${allocation.expiryDate ? ` · exp ${formatDate(allocation.expiryDate)}` : ''}${onHand(
+                          item.availability.find(
+                              (stock) =>
+                                  stock.batchPublicId ===
+                                  allocation.batchPublicId,
+                          ),
+                      )}`,
+              )
+              .join('; ')
+        : null;
+};
+// A card opens on Edit and stays open while it holds unsaved changes, an allergy re-save or a scan's batch hint, so
+// nothing the CA must act on is ever folded away.
+const openCards = reactive<Record<string, boolean>>({});
+const mustStayOpen = (item: Item): boolean =>
+    isDirty(item) ||
+    item.allergyUnconfirmed === true ||
+    batchHint.value === item.publicId;
+const isEditing = (item: Item): boolean =>
+    props.dispensary.can.update &&
+    forms[item.publicId] !== undefined &&
+    (openCards[item.publicId] === true || mustStayOpen(item));
+const openCard = async (item: Item) => {
+    openCards[item.publicId] = true;
+    await nextTick();
+    document
+        .querySelector<HTMLInputElement>(
+            `#line-edit-${item.publicId} [data-field="dosage"]`,
+        )
+        ?.focus();
+};
+// Closing hands focus back to the card's Edit button, so a keyboard user keeps their place.
+const closeCard = async (item: Item) => {
+    openCards[item.publicId] = false;
+    await nextTick();
+    document
+        .querySelector<HTMLElement>(
+            `[data-action="edit-line"][aria-controls="line-edit-${item.publicId}"]`,
+        )
+        ?.focus();
+};
+// Undo puts the inputs back to the saved line (or the doctor's order on an unsaved line). Nothing is sent.
+const undoCard = (item: Item) => {
+    forms[item.publicId] = formFor(item);
+    clearBatchHint(item.publicId);
+
+    if (item.allergyUnconfirmed === true) {
+        // The card stays open for the allergy re-save, so focus goes to its first input (Hakim).
+        void openCard(item);
+
+        return;
+    }
+
+    void closeCard(item);
+};
+const canPrintLine = (item: Item): boolean =>
+    item.status === 'dispensed' &&
+    props.dispensary.canPrintLabels === true &&
+    !unsaved.value.length &&
+    !unsavedServices.value.length &&
+    !isDirty(item);
 const changeLabel = (item: Item) =>
     ({
         edited: 'Edited by CA',
@@ -1278,10 +1448,11 @@ const changeLabel = (item: Item) =>
         removed: 'Removed',
         unchanged: '',
     })[item.changeState];
-const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
-// DSP-17: brand line colour only (not the error look); replaces the focus ring while shown.
+const inputClass =
+    'mt-1 h-9 w-full rounded-md border border-input bg-field-fill px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+// DSP-17: blue scan hint only (not the error look); replaces the focus ring while shown.
 const batchHintClass =
-    'border-brand ring-2 ring-brand ring-offset-2 ring-offset-background focus-visible:ring-brand';
+    'border-primary ring-2 ring-ring ring-offset-2 ring-offset-background focus-visible:ring-ring';
 
 // Plain words for an earlier partial dispense, never the stored code (Daniel, guide section 15).
 const exceptionStatusLabels: Record<string, string> = {
@@ -1294,7 +1465,7 @@ const exceptionStatusLabels: Record<string, string> = {
 <template>
     <Head title="Dispensary" />
     <main
-        class="mx-auto w-full max-w-[1500px] px-4 py-4 lg:px-6 max-lg:[&_[data-slot=button]]:min-h-11 max-lg:[&_[data-slot=select-trigger]]:min-h-11 max-lg:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-lg:[&_select]:min-h-11 max-lg:[&_textarea]:min-h-11"
+        class="mx-auto w-full max-w-[1500px] px-4 py-5 text-sm lg:px-6 lg:py-6 max-lg:[&_[data-slot=button]]:min-h-11 lg:[&_[data-slot=button]]:min-h-9 max-lg:[&_[data-slot=select-trigger]]:min-h-11 lg:[&_[data-slot=select-trigger]]:min-h-9 max-lg:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-lg:[&_select]:min-h-11 max-lg:[&_textarea]:min-h-11"
     >
         <!-- DD-25: the page title names the task; the patient card below is the one place that names the patient. -->
         <!-- DSP-26: the Resident Doctor's view-only header; the CA's header below is unchanged. -->
@@ -1373,7 +1544,7 @@ const exceptionStatusLabels: Record<string, string> = {
         <!-- DSP-23, Daniel's note 5: the waiting banner, with the hand-over instruction in a warning box. -->
         <section
             v-if="waitingForCheck"
-            class="mb-4 rounded-xl border bg-muted/40 p-4 text-sm"
+            class="mb-4 rounded-xl border bg-card-quiet p-4 text-sm"
             role="status"
             data-testid="doctor-check-waiting"
         >
@@ -1397,7 +1568,7 @@ const exceptionStatusLabels: Record<string, string> = {
             </p>
             <p
                 v-if="!dispensary.viewOnly"
-                class="mt-2 flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-warning-strong"
+                class="mt-2 flex items-start gap-2 rounded-lg border border-warning/25 bg-warning-wash px-3 py-2 text-warning-strong"
             >
                 <TriangleAlert
                     class="mt-0.5 size-4 shrink-0"
@@ -1409,7 +1580,7 @@ const exceptionStatusLabels: Record<string, string> = {
         <!-- DSP-23, Daniel's note 4: the doctor's reason, in a warning box, not red. -->
         <section
             v-if="dispensary.doctorCheck?.sentBack"
-            class="mb-4 flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning-strong"
+            class="mb-4 flex items-start gap-2 rounded-xl border border-warning/25 bg-warning-wash p-4 text-sm text-warning-strong"
             role="status"
             data-testid="doctor-check-sent-back"
         >
@@ -1449,16 +1620,14 @@ const exceptionStatusLabels: Record<string, string> = {
         </section>
 
         <div
-            class="grid gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)]"
+            class="grid gap-4 xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)]"
         >
             <aside class="flex flex-col gap-4" data-testid="dispensary-left">
                 <section
                     class="rounded-xl border bg-card p-4 text-sm"
                     data-testid="dispensary-patient"
                 >
-                    <p
-                        class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                    >
+                    <p class="text-[13px] font-semibold text-muted-foreground">
                         Patient
                     </p>
                     <h2 class="text-base font-semibold break-words">
@@ -1486,8 +1655,8 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="rounded-xl border p-4 text-sm"
                     :class="
                         otcAllergyConfirmed
-                            ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/30'
-                            : 'border-amber-300 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/30'
+                            ? 'border-success/25 bg-success-wash'
+                            : 'border-warning/25 bg-warning-wash'
                     "
                     data-testid="otc-allergy"
                 >
@@ -1598,7 +1767,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             </Button>
                             <span
                                 v-if="otcAllergyConfirmed"
-                                class="text-xs text-emerald-800 dark:text-emerald-300"
+                                class="text-xs text-success"
                                 >Recorded</span
                             >
                             <span
@@ -1622,20 +1791,34 @@ const exceptionStatusLabels: Record<string, string> = {
                     v-else
                     class="rounded-xl border p-4 text-sm"
                     :class="
-                        dispensary.allergySafety.isCurrent
-                            ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/30'
-                            : 'border-amber-300 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/30'
+                        dispensary.allergySafety.isCurrent &&
+                        !dispensary.allergySafety.allergies.length
+                            ? 'border-success/25 bg-success-wash'
+                            : 'border-warning/25 bg-warning-wash'
                     "
                     data-testid="dispensary-allergies"
                 >
-                    <div class="flex items-center justify-between">
-                        <span
-                            >Allergy safety:
-                            <strong>{{
-                                formatStatusLabel(
-                                    dispensary.allergySafety.status,
-                                )
-                            }}</strong></span
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="flex items-center gap-2"
+                            ><TriangleAlert
+                                v-if="
+                                    !dispensary.allergySafety.isCurrent ||
+                                    dispensary.allergySafety.allergies.length
+                                "
+                                class="size-4 shrink-0 text-warning-strong"
+                                aria-hidden="true"
+                            /><CheckCircle2
+                                v-else
+                                class="size-4 shrink-0 text-success"
+                                aria-hidden="true"
+                            /><span
+                                >Allergy safety:
+                                <strong>{{
+                                    formatStatusLabel(
+                                        dispensary.allergySafety.status,
+                                    )
+                                }}</strong></span
+                            ></span
                         ><span>{{
                             dispensary.allergySafety.isCurrent
                                 ? 'Current'
@@ -1669,7 +1852,7 @@ const exceptionStatusLabels: Record<string, string> = {
                 <p
                     v-if="actionError"
                     role="alert"
-                    class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
+                    class="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive"
                 >
                     {{ actionError }}
                 </p>
@@ -1678,7 +1861,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         dispensary.can.update &&
                         (unsaved.length || unsavedServices.length)
                     "
-                    class="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50/70 px-3 py-2 text-sm dark:border-amber-900 dark:bg-amber-950/30"
+                    class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/25 bg-warning-wash px-3 py-2 text-sm"
                     data-testid="dispensary-unsaved"
                 >
                     <span
@@ -1690,7 +1873,12 @@ const exceptionStatusLabels: Record<string, string> = {
                         not saved yet. Save each line to confirm it, then
                         complete.</span
                     >
-                    <Button size="sm" :disabled="busy" @click="saveAll"
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        class="dark:border-muted-foreground"
+                        :disabled="busy"
+                        @click="saveAll"
                         >Save all lines</Button
                     >
                 </div>
@@ -1700,6 +1888,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     refocus-key="dispensary-check"
                     :accept="acceptScan"
                     :describe="describeScan"
+                    lookup-variant="outline"
                     data-testid="dispensary-scan"
                     @keydown.enter.capture="clearLineHint"
                     @found="markScanned"
@@ -1712,43 +1901,158 @@ const exceptionStatusLabels: Record<string, string> = {
                 >
                     {{ scanBatchAnnouncement }}
                 </p>
-                <section class="divide-y rounded-lg border bg-background">
+                <section class="divide-y rounded-xl border bg-card shadow-card">
+                    <!-- DSP-CARD-1 (owner's demo, 27 Nov): one card per medicine. The direction line, the doctor's order beside
+                         what is given and a short batch line are always shown; the inputs open only while editing the card. -->
                     <article
                         v-for="item in visibleItems"
                         :key="item.publicId"
-                        class="grid gap-3 p-3 lg:grid-cols-[minmax(220px,1fr)_minmax(0,3fr)]"
+                        class="flex flex-col gap-3 p-4"
+                        :class="isScanChecked(item) && 'bg-success-wash/60'"
                         :data-testid="`line-${item.publicId}`"
                     >
-                        <div>
-                            <h2 class="text-sm font-medium">{{ item.name }}</h2>
-                            <p class="text-xs text-muted-foreground">
-                                {{
-                                    [item.strength, item.dosageForm, item.code]
-                                        .filter(Boolean)
-                                        .join(' · ')
-                                }}
-                            </p>
-                            <StatusBadge
-                                v-if="changeLabel(item)"
-                                class="mt-1"
-                                status="ca_change"
-                                tone="accent"
-                                :label="changeLabel(item)"
-                            />
-                            <StatusBadge
-                                v-if="isScanChecked(item)"
-                                class="mt-1 ml-1"
-                                status="scan_checked"
-                                tone="success"
-                                label="Checked by scan"
-                                data-testid="scan-checked"
-                            />
-                            <span v-if="isScanChecked(item)" class="sr-only"
-                                >, not saved</span
+                        <div class="flex items-start gap-3">
+                            <span
+                                class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-info-wash text-info"
+                                aria-hidden="true"
+                                ><Pill class="size-4"
+                            /></span>
+                            <div class="min-w-0 flex-1">
+                                <h2 class="text-[15px] font-semibold">
+                                    {{ item.name }}
+                                </h2>
+                                <p class="text-xs text-muted-foreground">
+                                    {{
+                                        [
+                                            item.strength,
+                                            item.dosageForm,
+                                            item.code,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' · ')
+                                    }}
+                                </p>
+                                <p
+                                    class="mt-1 text-[13px] break-words"
+                                    data-testid="direction-line"
+                                >
+                                    {{ directionLine(givenDirections(item)) }}
+                                </p>
+                            </div>
+                            <div
+                                class="flex max-w-[45%] flex-wrap justify-end gap-1"
                             >
+                                <StatusBadge
+                                    v-if="changeLabel(item)"
+                                    status="ca_change"
+                                    tone="accent"
+                                    :label="changeLabel(item)"
+                                />
+                                <StatusBadge
+                                    v-if="isScanChecked(item)"
+                                    status="scan_checked"
+                                    tone="success"
+                                    label="Checked by scan"
+                                    data-testid="scan-checked"
+                                />
+                                <span v-if="isScanChecked(item)" class="sr-only"
+                                    >, not saved</span
+                                >
+                            </div>
+                        </div>
+                        <div
+                            class="grid gap-2 text-[13px] sm:grid-cols-2 sm:pl-12"
+                        >
+                            <div class="rounded-lg bg-card-quiet px-3 py-2">
+                                <p class="text-xs text-muted-foreground">
+                                    Doctor ordered
+                                </p>
+                                <p
+                                    v-if="item.source === 'doctor'"
+                                    class="font-semibold"
+                                >
+                                    {{ displayQuantity(item.quantityOrdered) }}
+                                    {{ item.unit }}
+                                </p>
+                                <p
+                                    v-if="item.source === 'doctor'"
+                                    class="text-xs break-words text-muted-foreground"
+                                    data-testid="original-order"
+                                >
+                                    {{ directionLine(item.original) }}
+                                </p>
+                                <p v-else class="text-muted-foreground">
+                                    Not ordered. Added by CA.
+                                </p>
+                            </div>
+                            <div class="rounded-lg border px-3 py-2">
+                                <p class="text-xs text-muted-foreground">
+                                    {{
+                                        dispensary.viewOnly
+                                            ? 'CA gives'
+                                            : 'You give'
+                                    }}
+                                </p>
+                                <p
+                                    class="font-semibold"
+                                    data-testid="given-quantity"
+                                >
+                                    {{ givenQuantity(item) }}
+                                </p>
+                                <p
+                                    v-if="item.source === 'doctor'"
+                                    class="text-xs break-words text-muted-foreground"
+                                    data-testid="given-directions"
+                                >
+                                    {{ givenDirectionsText(item) }}
+                                </p>
+                                <p
+                                    v-if="item.status === 'pending'"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    Not saved yet
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-1 text-xs sm:pl-12">
+                            <p v-if="!item.sku" class="text-warning-strong">
+                                No approved inventory SKU mapping.
+                            </p>
+                            <p
+                                v-else-if="
+                                    !item.availability.length &&
+                                    !batchLine(item)
+                                "
+                                class="text-warning-strong"
+                            >
+                                No eligible stock in this branch's Dispensary.
+                                Stock at other locations requires transfer
+                                before fulfilment.
+                            </p>
+                            <p
+                                v-else-if="
+                                    livesInForm(item) &&
+                                    !batchLine(item) &&
+                                    item.availability.every(
+                                        (stock) => stock.held,
+                                    )
+                                "
+                                class="text-warning-strong"
+                                data-testid="batch-all-held"
+                            >
+                                Every batch here is on hold, so this line cannot
+                                be saved yet.
+                            </p>
+                            <p
+                                v-else-if="batchLine(item)"
+                                class="text-muted-foreground"
+                                data-testid="batch-line"
+                            >
+                                {{ batchLine(item) }}
+                            </p>
                             <p
                                 v-if="scanBatch(item)"
-                                class="mt-1 flex items-start gap-1 text-xs font-medium"
+                                class="flex items-start gap-1 font-medium"
                                 :class="
                                     scanBatch(item)?.warn
                                         ? 'text-warning-strong'
@@ -1768,32 +2072,8 @@ const exceptionStatusLabels: Record<string, string> = {
                                 />{{ scanBatch(item)?.message }}
                             </p>
                             <p
-                                v-if="item.source === 'doctor'"
-                                class="mt-2 text-xs text-muted-foreground"
-                            >
-                                Doctor ordered
-                                <strong class="text-foreground"
-                                    >{{ displayQuantity(item.quantityOrdered) }}
-                                    {{ item.unit }}</strong
-                                >
-                            </p>
-                            <p
-                                v-if="
-                                    item.changeState === 'edited' &&
-                                    item.source === 'doctor'
-                                "
-                                class="mt-1 text-xs text-muted-foreground"
-                                data-testid="original-order"
-                            >
-                                Original: {{ item.original.dosage }} ·
-                                {{ item.original.frequency
-                                }}<template v-if="item.original.duration">
-                                    · {{ item.original.duration }}</template
-                                >
-                            </p>
-                            <p
                                 v-if="item.exception"
-                                class="mt-1 text-xs text-amber-700 dark:text-amber-300"
+                                class="text-warning-strong"
                             >
                                 Earlier partial dispense:
                                 {{
@@ -1802,35 +2082,40 @@ const exceptionStatusLabels: Record<string, string> = {
                                     ] ?? 'status unknown'
                                 }}
                             </p>
-                            <Button
-                                v-if="
-                                    item.status === 'dispensed' &&
-                                    dispensary.canPrintLabels &&
-                                    !unsaved.length &&
-                                    !unsavedServices.length &&
-                                    !isDirty(item)
-                                "
-                                as-child
-                                variant="ghost"
-                                size="sm"
-                                class="mt-1"
-                            >
-                                <a
-                                    :href="`/dispensary/${dispensary.publicId}/items/${item.publicId}/label`"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    <Printer class="size-3.5" />Print label
-                                    <span class="sr-only"
-                                        >for {{ item.name }} (opens print
-                                        preview in a new tab)</span
-                                    >
-                                </a>
-                            </Button>
                         </div>
+                        <AllergyMatchWarning
+                            v-if="
+                                dispensary.can.update && matchesFor(item).length
+                            "
+                            v-model="allergyChecks[checkKey(item)]"
+                            :matches="matchesFor(item)"
+                            :field-id="`allergy-check-${item.publicId}`"
+                            class="sm:ml-12"
+                        />
+                        <!-- DSP-29 part A: whoever cannot change the line (the Resident Doctor's view-only page, or a CA before Start) sees the same
+                             match, read only: no tick box, and it never says anyone checked it. -->
+                        <AllergyMatchMark
+                            v-else-if="matchesFor(item).length"
+                            :allergens="
+                                matchesFor(item).map((match) => match.allergen)
+                            "
+                            :medicine="item.name"
+                            class="sm:ml-12"
+                        />
+                        <p
+                            v-if="
+                                dispensary.can.update && item.allergyUnconfirmed
+                            "
+                            class="text-xs font-medium sm:pl-12"
+                            data-testid="allergy-resave-hint"
+                        >
+                            This medicine matches an allergy recorded after it
+                            was saved. Tick the box, then press Save line.
+                        </p>
                         <div
-                            v-if="dispensary.can.update && forms[item.publicId]"
-                            class="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
+                            :id="`line-edit-${item.publicId}`"
+                            v-if="isEditing(item)"
+                            class="grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4 [&_input]:font-normal [&_label:not(:has(input[type=checkbox],input[type=radio]))]:font-semibold [&_select]:font-normal [&_textarea]:font-normal"
                         >
                             <p class="text-muted-foreground sm:col-span-full">
                                 Label limits (characters; saved clinical text is
@@ -1861,59 +2146,84 @@ const exceptionStatusLabels: Record<string, string> = {
                                 :input-class="inputClass"
                                 data-field="quantity"
                             />
-                            <label
-                                >Dosage (label max
-                                {{ dispensary.labelLimits?.dosage }}
-                                characters)<input
+                            <label class="lg:col-span-3"
+                                >Dosage<input
                                     v-model="forms[item.publicId].dosage"
                                     :class="inputClass"
                                     maxlength="500"
                                     data-field="dosage"
-                            /></label>
-                            <label
-                                >Frequency (label max
-                                {{ dispensary.labelLimits?.frequency }}
-                                characters)<input
+                                /><span
+                                    class="mt-1 block text-xs font-normal text-muted-foreground"
+                                    >Label max
+                                    {{ dispensary.labelLimits?.dosage }}</span
+                                ></label
+                            >
+                            <label class="lg:col-span-2"
+                                >Frequency<input
                                     v-model="forms[item.publicId].frequency"
                                     :class="inputClass"
                                     maxlength="500"
                                     data-field="frequency"
-                            /></label>
+                                /><span
+                                    class="mt-1 block text-xs font-normal text-muted-foreground"
+                                    >Label max
+                                    {{
+                                        dispensary.labelLimits?.frequency
+                                    }}</span
+                                ></label
+                            >
                             <label
-                                >Duration (label max
-                                {{ dispensary.labelLimits?.duration }}
-                                characters)<input
+                                >Duration<input
                                     v-model="forms[item.publicId].duration"
                                     :class="inputClass"
                                     maxlength="500"
                                     data-field="duration"
-                            /></label>
+                                /><span
+                                    class="mt-1 block text-xs font-normal text-muted-foreground"
+                                    >Label max
+                                    {{ dispensary.labelLimits?.duration }}</span
+                                ></label
+                            >
                             <label
-                                >Route (not printed on the label)<input
+                                >Route<input
                                     v-model="forms[item.publicId].route"
                                     :class="inputClass"
                                     maxlength="500"
                                     data-field="route"
-                            /></label>
+                                /><span
+                                    class="mt-1 block text-xs font-normal text-muted-foreground"
+                                    >Not printed on the label</span
+                                ></label
+                            >
                             <label class="sm:col-span-2"
-                                >Instruction (label max
-                                {{ dispensary.labelLimits?.instruction }}
-                                characters)<input
+                                >Instruction<input
                                     v-model="forms[item.publicId].instruction"
                                     :class="inputClass"
                                     maxlength="2000"
                                     data-field="instruction"
-                            /></label>
+                                /><span
+                                    class="mt-1 block text-xs font-normal text-muted-foreground"
+                                    >Label max
+                                    {{
+                                        dispensary.labelLimits?.instruction
+                                    }}</span
+                                ></label
+                            >
                             <label class="sm:col-span-2"
-                                >Precaution (label max
-                                {{ dispensary.labelLimits?.precaution }}
-                                characters)<input
+                                >Precaution<input
                                     v-model="forms[item.publicId].precaution"
                                     :class="inputClass"
                                     maxlength="2000"
                                     data-field="precaution"
-                            /></label>
-                            <label class="sm:col-span-2"
+                                /><span
+                                    class="mt-1 block text-xs font-normal text-muted-foreground"
+                                    >Label max
+                                    {{
+                                        dispensary.labelLimits?.precaution
+                                    }}</span
+                                ></label
+                            >
+                            <label class="sm:col-span-full"
                                 >Batch<select
                                     v-model.number="
                                         forms[item.publicId].availabilityIndex
@@ -1959,7 +2269,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             >
                                 <span
                                     role="status"
-                                    class="block font-medium text-brand-strong empty:hidden"
+                                    class="block font-medium text-primary empty:hidden"
                                     ><span
                                         v-if="batchHint === item.publicId"
                                         class="inline-flex items-start gap-1"
@@ -2018,39 +2328,24 @@ const exceptionStatusLabels: Record<string, string> = {
                                 needs a controlled reason when an eligible
                                 earlier-expiry batch exists.
                             </p>
-                            <p
-                                v-if="!item.sku"
-                                class="text-xs text-amber-700 sm:col-span-2 dark:text-amber-300"
+                        </div>
+                        <div
+                            v-if="
+                                (dispensary.can.update &&
+                                    forms[item.publicId]) ||
+                                canPrintLine(item)
+                            "
+                            class="flex flex-wrap items-center gap-2 sm:pl-12"
+                        >
+                            <template
+                                v-if="
+                                    dispensary.can.update &&
+                                    forms[item.publicId]
+                                "
                             >
-                                No approved inventory SKU mapping.
-                            </p>
-                            <p
-                                v-else-if="!item.availability.length"
-                                class="text-xs text-amber-700 sm:col-span-2 dark:text-amber-300"
-                            >
-                                No eligible stock in this branch's Dispensary.
-                                Stock at other locations requires transfer
-                                before fulfilment.
-                            </p>
-                            <AllergyMatchWarning
-                                v-if="matchesFor(item).length"
-                                v-model="allergyChecks[checkKey(item)]"
-                                :matches="matchesFor(item)"
-                                :field-id="`allergy-check-${item.publicId}`"
-                                class="sm:col-span-full"
-                            />
-                            <p
-                                v-if="item.allergyUnconfirmed"
-                                class="text-xs font-medium sm:col-span-full"
-                                data-testid="allergy-resave-hint"
-                            >
-                                This medicine matches an allergy recorded after
-                                it was saved. Tick the box, then press Save
-                                line.
-                            </p>
-                            <div class="flex items-end gap-2 sm:col-span-full">
                                 <Button
                                     size="sm"
+                                    variant="outline"
                                     :disabled="
                                         busy ||
                                         needsAllergyCheck(item) ||
@@ -2064,7 +2359,43 @@ const exceptionStatusLabels: Record<string, string> = {
                                     ><LoaderCircle
                                         v-if="busy"
                                         class="size-4 animate-spin"
-                                    />Save line</Button
+                                    />Save line<span class="sr-only">
+                                        for {{ item.name }}</span
+                                    ></Button
+                                >
+                                <Button
+                                    v-if="!isEditing(item)"
+                                    size="sm"
+                                    variant="outline"
+                                    :aria-expanded="false"
+                                    :aria-controls="`line-edit-${item.publicId}`"
+                                    data-action="edit-line"
+                                    @click="openCard(item)"
+                                    ><Pencil class="size-4" />Edit<span
+                                        class="sr-only"
+                                    >
+                                        {{ item.name }}</span
+                                    ></Button
+                                >
+                                <Button
+                                    v-else-if="isDirty(item)"
+                                    size="sm"
+                                    variant="ghost"
+                                    :disabled="busy"
+                                    data-action="undo-line"
+                                    @click="undoCard(item)"
+                                    ><Undo2 class="size-4" />Undo
+                                    changes</Button
+                                >
+                                <Button
+                                    v-else-if="!mustStayOpen(item)"
+                                    size="sm"
+                                    variant="ghost"
+                                    :aria-expanded="true"
+                                    :aria-controls="`line-edit-${item.publicId}`"
+                                    data-action="close-line"
+                                    @click="closeCard(item)"
+                                    >Done editing</Button
                                 >
                                 <Button
                                     size="sm"
@@ -2074,41 +2405,26 @@ const exceptionStatusLabels: Record<string, string> = {
                                     @click="removeItem(item)"
                                     ><Trash2 class="size-4" />Remove</Button
                                 >
-                            </div>
-                        </div>
-                        <dl
-                            v-else
-                            class="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
-                        >
-                            <p>
-                                <span class="text-muted-foreground"
-                                    >Quantity</span
-                                ><br /><template v-if="item.packText">{{
-                                    item.packText
-                                }}</template
-                                ><template v-else
-                                    >{{
-                                        item.quantityDispensed ??
-                                        item.quantityOrdered
-                                    }}
-                                    {{ item.unit }}</template
+                            </template>
+                            <Button
+                                v-if="canPrintLine(item)"
+                                as-child
+                                variant="ghost"
+                                size="sm"
+                            >
+                                <a
+                                    :href="`/dispensary/${dispensary.publicId}/items/${item.publicId}/label`"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                 >
-                            </p>
-                            <p>
-                                <span class="text-muted-foreground">Dosage</span
-                                ><br />{{ item.dosage }}
-                            </p>
-                            <p>
-                                <span class="text-muted-foreground"
-                                    >Frequency</span
-                                ><br />{{ item.frequency }}
-                            </p>
-                            <p>
-                                <span class="text-muted-foreground"
-                                    >Duration</span
-                                ><br />{{ item.duration ?? 'Not recorded' }}
-                            </p>
-                        </dl>
+                                    <Printer class="size-3.5" />Print label
+                                    <span class="sr-only"
+                                        >for {{ item.name }} (opens print
+                                        preview in a new tab)</span
+                                    >
+                                </a>
+                            </Button>
+                        </div>
                     </article>
                     <p
                         v-if="!visibleItems.length"
@@ -2124,12 +2440,10 @@ const exceptionStatusLabels: Record<string, string> = {
 
                 <section
                     v-if="removedItems.length"
-                    class="mt-3 rounded-lg border border-dashed p-3 text-sm"
+                    class="rounded-xl border border-dashed bg-card-quiet p-4 text-sm"
                     data-testid="removed-lines"
                 >
-                    <h2
-                        class="mb-1 text-xs font-semibold text-muted-foreground uppercase"
-                    >
+                    <h2 class="mb-2 text-[15px] font-semibold">
                         Removed from the list
                     </h2>
                     <ul class="grid gap-1">
@@ -2174,18 +2488,16 @@ const exceptionStatusLabels: Record<string, string> = {
 
                 <section
                     v-if="dispensary.can.update"
-                    class="mt-3 rounded-lg border p-3 text-sm"
+                    class="rounded-xl border bg-card p-4 text-sm shadow-card"
                     data-testid="add-medicine"
                 >
-                    <h2
-                        class="mb-2 text-xs font-semibold text-muted-foreground uppercase"
-                    >
+                    <h2 class="mb-3 text-[15px] font-semibold">
                         Add a medicine
                     </h2>
                     <div class="flex flex-wrap gap-2">
                         <input
                             v-model="searchTerm"
-                            class="h-9 w-full rounded-md border px-2 sm:max-w-sm"
+                            class="h-9 w-full rounded-md border border-input bg-field-fill px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:max-w-sm"
                             placeholder="Search medicine name or code"
                             aria-label="Search medicine"
                             data-field="medicine-search"
@@ -2223,6 +2535,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             context="dispensary-add"
                             refocus-key="dispensary-add"
                             :describe="() => ''"
+                            lookup-variant="outline"
                             data-testid="dispensary-scan-add"
                             @found="scanToAdd"
                         />
@@ -2273,7 +2586,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 }}</span>
                                 <span
                                     v-if="matchesFor(medicine).length"
-                                    class="ml-1 inline-block rounded-md bg-red-100 px-1.5 py-0.5 text-[11px] font-medium text-red-800 dark:bg-red-950/70 dark:text-red-100"
+                                    class="ml-1 inline-block rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive"
                                     data-testid="allergy-match-badge"
                                     >Possible allergy match</span
                                 ></span
@@ -2306,7 +2619,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     </p>
                     <div
                         v-if="chosen"
-                        class="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
+                        class="mt-3 grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4 [&_input]:font-normal [&_label:not(:has(input[type=checkbox],input[type=radio]))]:font-semibold [&_select]:font-normal [&_textarea]:font-normal"
                     >
                         <p class="text-sm font-medium sm:col-span-full">
                             {{ chosen.name }}
@@ -2320,55 +2633,74 @@ const exceptionStatusLabels: Record<string, string> = {
                             :input-class="inputClass"
                             data-field="add-quantity"
                         />
-                        <label
-                            >Dosage (label max
-                            {{ dispensary.labelLimits?.dosage }}
-                            characters)<input
+                        <label class="lg:col-span-3"
+                            >Dosage<input
                                 v-model="addForm.dosage"
                                 :class="inputClass"
                                 maxlength="500"
                                 data-field="add-dosage"
-                        /></label>
-                        <label
-                            >Frequency (label max
-                            {{ dispensary.labelLimits?.frequency }}
-                            characters)<input
+                            /><span
+                                class="mt-1 block text-xs font-normal text-muted-foreground"
+                                >Label max
+                                {{ dispensary.labelLimits?.dosage }}</span
+                            ></label
+                        >
+                        <label class="lg:col-span-2"
+                            >Frequency<input
                                 v-model="addForm.frequency"
                                 :class="inputClass"
                                 maxlength="500"
                                 data-field="add-frequency"
-                        /></label>
+                            /><span
+                                class="mt-1 block text-xs font-normal text-muted-foreground"
+                                >Label max
+                                {{ dispensary.labelLimits?.frequency }}</span
+                            ></label
+                        >
                         <label
-                            >Duration (label max
-                            {{ dispensary.labelLimits?.duration }}
-                            characters)<input
+                            >Duration<input
                                 v-model="addForm.duration"
                                 :class="inputClass"
                                 maxlength="500"
-                        /></label>
+                            /><span
+                                class="mt-1 block text-xs font-normal text-muted-foreground"
+                                >Label max
+                                {{ dispensary.labelLimits?.duration }}</span
+                            ></label
+                        >
                         <label
-                            >Route (not printed on the label)<input
+                            >Route<input
                                 v-model="addForm.route"
                                 :class="inputClass"
                                 maxlength="500"
-                        /></label>
+                            /><span
+                                class="mt-1 block text-xs font-normal text-muted-foreground"
+                                >Not printed on the label</span
+                            ></label
+                        >
                         <label class="sm:col-span-2"
-                            >Instruction (label max
-                            {{ dispensary.labelLimits?.instruction }}
-                            characters)<input
+                            >Instruction<input
                                 v-model="addForm.instruction"
                                 :class="inputClass"
                                 maxlength="2000"
-                        /></label>
+                            /><span
+                                class="mt-1 block text-xs font-normal text-muted-foreground"
+                                >Label max
+                                {{ dispensary.labelLimits?.instruction }}</span
+                            ></label
+                        >
                         <label class="sm:col-span-2"
-                            >Precaution (label max
-                            {{ dispensary.labelLimits?.precaution }}
-                            characters)<input
+                            >Precaution<input
                                 v-model="addForm.precaution"
                                 :class="inputClass"
                                 maxlength="2000"
-                        /></label>
-                        <label class="sm:col-span-2"
+                            /><span
+                                class="mt-1 block text-xs font-normal text-muted-foreground"
+                                >Label max
+                                {{ dispensary.labelLimits?.precaution }}</span
+                            ></label
+                        >
+                        <label class="sm:col-span-full"
                             >Batch<select
                                 v-model.number="addForm.availabilityIndex"
                                 :class="[
@@ -2411,7 +2743,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         >
                             <span
                                 role="status"
-                                class="block font-medium text-brand-strong empty:hidden"
+                                class="block font-medium text-primary empty:hidden"
                                 ><span
                                     v-if="batchHint === 'add'"
                                     class="inline-flex items-start gap-1"
@@ -2491,6 +2823,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         <div class="flex gap-2 sm:col-span-full">
                             <Button
                                 size="sm"
+                                variant="outline"
                                 :disabled="
                                     busy ||
                                     (matchesFor(chosen).length > 0 &&
@@ -2515,12 +2848,10 @@ const exceptionStatusLabels: Record<string, string> = {
                 </section>
                 <section
                     v-if="!isOtc"
-                    class="mt-6 rounded-lg border bg-background"
+                    class="rounded-xl border bg-card shadow-card"
                     data-testid="dispensary-services"
                 >
-                    <h2
-                        class="border-b px-3 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-                    >
+                    <h2 class="border-b px-4 py-3 text-[15px] font-semibold">
                         Services
                     </h2>
                     <p
@@ -2533,7 +2864,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         <article
                             v-for="line in visibleServices"
                             :key="line.publicId"
-                            class="grid gap-3 p-3 lg:grid-cols-[minmax(220px,1fr)_minmax(0,3fr)]"
+                            class="grid gap-4 p-4 xl:grid-cols-[minmax(180px,1fr)_minmax(0,3fr)]"
                             :data-testid="`service-${line.publicId}`"
                         >
                             <div>
@@ -2568,7 +2899,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     class="mt-1 text-xs"
                                     :class="
                                         line.disposition === 'performed'
-                                            ? 'text-emerald-700 dark:text-emerald-300'
+                                            ? 'text-success'
                                             : 'text-muted-foreground'
                                     "
                                 >
@@ -2584,7 +2915,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     dispensary.can.update &&
                                     serviceForms[line.publicId]
                                 "
-                                class="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
+                                class="grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4 [&_input]:font-normal [&_label:not(:has(input[type=checkbox],input[type=radio]))]:font-semibold [&_select]:font-normal [&_textarea]:font-normal"
                             >
                                 <label
                                     >Performed ({{ line.unit }})<input
@@ -2615,6 +2946,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 >
                                     <Button
                                         size="sm"
+                                        variant="outline"
                                         :disabled="
                                             busy || !isServiceDirty(line)
                                         "
@@ -2646,9 +2978,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         class="border-t border-dashed p-3 text-sm"
                         data-testid="removed-services"
                     >
-                        <h3
-                            class="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-                        >
+                        <h3 class="mb-2 text-[15px] font-semibold">
                             Removed from the list
                         </h3>
                         <ul class="grid gap-1">
@@ -2679,15 +3009,13 @@ const exceptionStatusLabels: Record<string, string> = {
                         class="border-t p-3 text-sm"
                         data-testid="add-service"
                     >
-                        <h3
-                            class="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-                        >
+                        <h3 class="mb-3 text-[15px] font-semibold">
                             Add a service
                         </h3>
                         <div class="flex gap-2">
                             <input
                                 v-model="serviceTerm"
-                                class="h-9 w-full max-w-sm rounded-md border px-2"
+                                class="h-9 w-full max-w-sm rounded-md border border-input bg-field-fill px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                 placeholder="Search service name or code"
                                 aria-label="Search service"
                                 data-field="service-search"
@@ -2728,7 +3056,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         </ul>
                         <div
                             v-if="chosenService"
-                            class="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
+                            class="mt-3 grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4 [&_input]:font-normal [&_label:not(:has(input[type=checkbox],input[type=radio]))]:font-semibold [&_select]:font-normal [&_textarea]:font-normal"
                         >
                             <p class="text-sm font-medium sm:col-span-full">
                                 {{ chosenService.name }}
@@ -2749,6 +3077,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             <div class="flex gap-2 sm:col-span-full">
                                 <Button
                                     size="sm"
+                                    variant="outline"
                                     :disabled="busy"
                                     data-action="add-service"
                                     @click="addService"
@@ -2771,9 +3100,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="rounded-xl border bg-card p-4 text-sm"
                     data-testid="dispensary-summary"
                 >
-                    <h2
-                        class="mb-2 text-xs font-semibold text-muted-foreground uppercase"
-                    >
+                    <h2 class="mb-3 text-[15px] font-semibold">
                         This dispensary
                     </h2>
                     <dl class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1">
@@ -2804,11 +3131,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm"
                     data-testid="dispensary-actions"
                 >
-                    <h2
-                        class="text-xs font-semibold text-muted-foreground uppercase"
-                    >
-                        Actions
-                    </h2>
+                    <h2 class="text-[15px] font-semibold">Actions</h2>
                     <OperationalSelect
                         v-if="
                             dispensary.tvCall?.canCall &&
@@ -2817,7 +3140,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         v-model="callRoomId"
                         label="Dispensary room"
                         placeholder="Choose room"
-                        trigger-class="h-8 w-40"
+                        trigger-class="min-h-9 w-full max-lg:min-h-11"
                         :options="
                             dispensary.tvCall.rooms.map((room) => ({
                                 value: room.id,
@@ -2859,6 +3182,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         ><RotateCcw class="size-4" />Return to Doctor</Button
                     ><Button
                         v-if="dispensary.can.complete"
+                        :variant="confirming ? 'outline' : 'default'"
                         :disabled="
                             busy ||
                             unsaved.length > 0 ||
@@ -2883,7 +3207,7 @@ const exceptionStatusLabels: Record<string, string> = {
                 </section>
                 <section
                     v-if="confirming && dispensary.can.complete"
-                    class="rounded-xl border border-pink-300 bg-pink-50/60 p-3 text-sm dark:border-pink-900 dark:bg-pink-950/30"
+                    class="rounded-xl border border-info/25 bg-info-wash p-4 text-sm"
                     data-testid="dispensary-verify"
                 >
                     <p class="font-medium">
@@ -2902,7 +3226,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                   : 'The doctor has verified the order. Completing now records your verification of the final list below and takes the stock out.'
                         }}
                     </p>
-                    <div class="mt-2 flex gap-2">
+                    <div class="mt-3 flex flex-wrap gap-2">
                         <Button
                             size="sm"
                             :disabled="busy"
@@ -2931,9 +3255,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm"
                     data-testid="doctor-check-supervisor"
                 >
-                    <h2
-                        class="text-xs font-semibold text-muted-foreground uppercase"
-                    >
+                    <h2 class="text-[15px] font-semibold">
                         Check instead of the doctor
                     </h2>
                     <p class="text-xs text-muted-foreground">

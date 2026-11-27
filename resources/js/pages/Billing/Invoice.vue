@@ -93,11 +93,11 @@ const totals = computed(() => {
         :title="`Invoice ${invoice.financial?.invoiceNumber ?? invoice.visit.visitNumber}`"
     />
     <main
-        class="invoice-workspace flex flex-1 flex-col bg-muted/40 text-[13px]"
+        class="invoice-workspace flex flex-1 flex-col text-sm"
         data-testid="completed-invoice"
     >
         <header
-            class="flex flex-wrap items-center gap-2 border-b bg-card px-4 py-3"
+            class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-5 pb-2 sm:px-6 lg:px-8"
         >
             <ActionLink
                 :href="invoice.links.back"
@@ -105,7 +105,9 @@ const totals = computed(() => {
                 aria-label="Back to Registration"
                 ><ArrowLeft class="size-3.5"
             /></ActionLink>
-            <h1 class="mr-1 text-base font-semibold">
+            <h1
+                class="mr-1 text-[26px] leading-tight font-semibold tracking-[-0.02em]"
+            >
                 Invoice
                 {{
                     invoice.financial?.invoiceNumber ??
@@ -120,20 +122,27 @@ const totals = computed(() => {
                 :notes-context="invoice.notes"
             />
             <ActionLink
+                v-if="invoice.links.billView"
+                :href="invoice.links.billView"
+                variant="outline"
+                data-testid="invoice-view-bill"
+                >View bill</ActionLink
+            >
+            <ActionLink
                 v-if="invoice.links.panelClaim"
                 :href="invoice.links.panelClaim.href"
                 variant="outline"
                 data-testid="panel-claim-link"
                 >{{ invoice.links.panelClaim.label }}</ActionLink
             >
-            <span class="ml-auto text-xs text-muted-foreground"
+            <span class="text-[13px] text-muted-foreground sm:ml-auto"
                 >{{ invoice.visit.branch }} ·
                 {{ invoice.visit.visitNumber }}</span
             >
         </header>
 
         <div
-            class="grid items-start gap-3 p-3 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.3fr)_minmax(0,.8fr)]"
+            class="grid items-start gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.3fr)_minmax(0,.8fr)] lg:px-8"
             data-testid="invoice-columns"
         >
             <aside class="grid min-w-0 gap-3" data-testid="invoice-patient">
@@ -217,11 +226,20 @@ const totals = computed(() => {
                 <OutstandingBills :groups="invoice.outstanding" />
             </aside>
 
+            <!-- BIL-37 (Daniel): for the doctor the items card would only repeat the Bill page line; the card next to
+                 the actions carries it once. -->
             <section
+                v-if="
+                    invoice.canSeeFinancial ||
+                    invoice.canSeeLines ||
+                    !invoice.links.billView
+                "
                 class="min-w-0 overflow-hidden rounded-xl border bg-card"
                 data-testid="invoice-lines"
             >
+                <!-- BIL-37 (Daniel): without billing access the tabs only ever counted 0, so they are hidden. -->
                 <OperationalTabs
+                    v-if="invoice.canSeeFinancial || invoice.canSeeLines"
                     v-model="tab"
                     :tabs="tabs"
                     label="Invoice items"
@@ -383,7 +401,7 @@ const totals = computed(() => {
                         data-testid="invoice-payments"
                     >
                         <header
-                            class="flex items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2"
+                            class="flex items-center justify-between gap-2 border-b bg-card-quiet px-3 py-2"
                         >
                             <h2 class="font-medium">Payments</h2>
                             <ActionLink
@@ -453,7 +471,9 @@ const totals = computed(() => {
                     {{
                         invoice.canSeeFinancial
                             ? 'No invoice was issued for this visit.'
-                            : 'Billing details are not shown for your role.'
+                            : invoice.links.billView
+                              ? 'The bill is on the read-only Bill page.'
+                              : 'Billing details are not shown for your role.'
                     }}
                 </p>
                 <Button
