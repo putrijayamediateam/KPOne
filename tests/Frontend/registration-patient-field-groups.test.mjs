@@ -182,20 +182,29 @@ test('quick patient renders ordered labelled local groups, unchanged conditional
     );
     assert.deepEqual(headings, [
         'Identity',
-        'Contact and address',
+        'Contact',
+        'Address',
         'Identifiers',
     ]);
 
-    for (const name of ['identity', 'contact', 'identifiers']) {
+    for (const name of ['identity', 'contact', 'address', 'identifiers']) {
         assert.equal(
             (html.match(new RegExp(`id="quick-${name}-heading"`, 'g')) ?? [])
                 .length,
             1,
         );
-        assert.match(
-            html,
-            new RegExp(`aria-labelledby="quick-${name}-heading"`),
-        );
+
+        if (name === 'identity' || name === 'identifiers') {
+            assert.match(
+                html,
+                new RegExp(`aria-labelledby="quick-${name}-heading"`),
+            );
+        } else {
+            assert.match(
+                html,
+                /aria-labelledby="quick-contact-heading quick-address-heading"/,
+            );
+        }
     }
 
     assert.ok(
@@ -207,7 +216,11 @@ test('quick patient renders ordered labelled local groups, unchanged conditional
             html.indexOf('quick-contact-heading'),
     );
     assert.ok(
-        html.indexOf('quick-contact-heading') <
+        html.indexOf('id="quick-contact-heading"') <
+            html.indexOf('id="quick-address-heading"'),
+    );
+    assert.ok(
+        html.indexOf('id="quick-address-heading"') <
             html.indexOf('quick-identifiers-heading'),
     );
     assert.equal((html.match(/<form\b/g) ?? []).length, 1);
@@ -251,7 +264,7 @@ test('whole contact fields retain IDs required semantics and escaped refusal whi
 
     assert.match(
         html,
-        /aria-labelledby="quick-contact-heading" class="[^"]*max-lg:\[&amp;_input\]:min-h-11[^"]*max-lg:\[&amp;_select\]:min-h-11/,
+        /aria-labelledby="quick-contact-heading quick-address-heading" class="[^"]*max-lg:\[&amp;_input\]:min-h-11[^"]*max-lg:\[&amp;_select\]:min-h-11/,
     );
     assert.match(html, /Passport issuer/);
     assert.doesNotMatch(await render(), /Passport issuer/);
@@ -274,6 +287,7 @@ test('all regrouped controls remain under the original disabled fieldset on unce
         'quick-identity-heading',
         'data-guardian-fields',
         'quick-contact-heading',
+        'quick-address-heading',
         'quick-identifiers-heading',
         'quick-patient-name',
     ]) {

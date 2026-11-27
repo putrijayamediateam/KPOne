@@ -53,48 +53,50 @@ const required = (field: keyof RegistrationContactValues) =>
 </script>
 <template>
     <div class="grid gap-4 md:grid-cols-2">
-        <label
-            v-for="field in keys"
-            :key="field"
-            :for="`${idPrefix}-${field}`"
-            class="grid gap-1.5"
-            :class="{
-                'md:col-span-2': [
-                    'email',
-                    'address_line_1',
-                    'address_line_2',
-                ].includes(field),
-            }"
-        >
-            <span class="text-sm font-medium"
-                >{{ labels[field][publicForm ? 1 : 0]
-                }}{{
-                    required(field)
-                        ? ' *'
-                        : publicForm
-                          ? ' (pilihan)'
-                          : ' (optional)'
-                }}</span
+        <template v-for="field in keys" :key="field">
+            <slot v-if="field === 'email'" name="before-email" />
+            <slot v-if="field === 'address_line_1'" name="before-address" />
+            <label
+                :for="`${idPrefix}-${field}`"
+                class="grid gap-1.5"
+                :class="{
+                    'md:col-span-2': [
+                        'email',
+                        'address_line_1',
+                        'address_line_2',
+                    ].includes(field),
+                }"
             >
-            <input
-                :id="`${idPrefix}-${field}`"
-                v-model="fields[field]"
-                :type="field === 'email' ? 'email' : 'text'"
-                :maxlength="limits[field]"
-                :required="required(field)"
-                :aria-invalid="!!errors[field]"
-                :aria-describedby="
-                    errors[field] ? `${idPrefix}-${field}-error` : undefined
-                "
-                :placeholder="field === 'country_code' ? 'MY' : undefined"
-                autocomplete="off"
-                class="min-w-0 rounded-md border bg-background px-3 text-sm"
-                :class="publicForm ? 'min-h-12 rounded-xl' : 'h-10'"
-            />
-            <InputError
-                :id="`${idPrefix}-${field}-error`"
-                :message="errors[field]"
-            />
-        </label>
+                <span class="text-sm font-medium"
+                    >{{ labels[field][publicForm ? 1 : 0]
+                    }}{{
+                        required(field)
+                            ? ' *'
+                            : publicForm
+                              ? ' (pilihan)'
+                              : ' (optional)'
+                    }}</span
+                >
+                <input
+                    :id="`${idPrefix}-${field}`"
+                    v-model="fields[field]"
+                    :type="field === 'email' ? 'email' : 'text'"
+                    :maxlength="limits[field]"
+                    :required="required(field)"
+                    :aria-invalid="!!errors[field]"
+                    :aria-describedby="
+                        errors[field] ? `${idPrefix}-${field}-error` : undefined
+                    "
+                    :placeholder="field === 'country_code' ? 'MY' : undefined"
+                    autocomplete="off"
+                    class="min-w-0 rounded-md border bg-background px-3 text-sm"
+                    :class="publicForm ? 'min-h-12 rounded-xl' : 'h-10'"
+                />
+                <InputError
+                    :id="`${idPrefix}-${field}-error`"
+                    :message="errors[field]"
+                />
+            </label>
+        </template>
     </div>
 </template>

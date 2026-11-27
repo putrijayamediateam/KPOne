@@ -1045,37 +1045,49 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     :errors="contactErrors"
                 />
                 <section
-                    aria-labelledby="quick-contact-heading"
+                    aria-labelledby="quick-contact-heading quick-address-heading"
                     class="space-y-3 border-t border-border/60 pt-4 max-lg:[&_input]:min-h-11 max-lg:[&_select]:min-h-11"
                 >
-                    <h3
-                        id="quick-contact-heading"
-                        class="text-sm font-semibold"
+                    <RegistrationContactFields
+                        class="md:col-span-2"
+                        :model="quick"
+                        :require-email="requirements.requireEmail"
+                        :require-address="requirements.requireAddress"
+                        :errors="contactErrors"
+                        id-prefix="quick-contact"
                     >
-                        Contact and address
-                    </h3>
-                    <div class="grid gap-3 md:grid-cols-2">
-                        <PhoneInput
-                            id="quick-phone"
-                            v-model="quick.mobile_phone"
-                            v-model:country="quick.phone_country"
-                            :required="
-                                !knownMinor(quick.date_of_birth, guardianToday)
-                            "
-                            :error="
-                                errorFor('quick_patient.mobile_phone') ||
-                                errorFor('quick_patient.phone_country')
-                            "
-                        />
-                        <RegistrationContactFields
-                            class="md:col-span-2"
-                            :model="quick"
-                            :require-email="requirements.requireEmail"
-                            :require-address="requirements.requireAddress"
-                            :errors="contactErrors"
-                            id-prefix="quick-contact"
-                        />
-                    </div>
+                        <template #before-email>
+                            <h3
+                                id="quick-contact-heading"
+                                class="text-sm font-semibold md:col-span-2"
+                            >
+                                Contact
+                            </h3>
+                            <PhoneInput
+                                id="quick-phone"
+                                v-model="quick.mobile_phone"
+                                v-model:country="quick.phone_country"
+                                :required="
+                                    !knownMinor(
+                                        quick.date_of_birth,
+                                        guardianToday,
+                                    )
+                                "
+                                :error="
+                                    errorFor('quick_patient.mobile_phone') ||
+                                    errorFor('quick_patient.phone_country')
+                                "
+                            />
+                        </template>
+                        <template #before-address>
+                            <h3
+                                id="quick-address-heading"
+                                class="text-sm font-semibold md:col-span-2"
+                            >
+                                Address
+                            </h3>
+                        </template>
+                    </RegistrationContactFields>
                 </section>
                 <section
                     aria-labelledby="quick-identifiers-heading"
