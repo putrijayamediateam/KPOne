@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use LogicException;
 
 /**
@@ -95,5 +96,11 @@ class DispensaryCase extends Model
     public function handoffs(): HasMany
     {
         return $this->hasMany(DispensaryHandoff::class)->orderBy('attempt_number');
+    }
+
+    /** @return HasOne<DispensaryHandoff, $this> */
+    public function latestHandoff(): HasOne
+    {
+        return $this->hasOne(DispensaryHandoff::class)->ofMany('attempt_number', 'max');
     }
 }
