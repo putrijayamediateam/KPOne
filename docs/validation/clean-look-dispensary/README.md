@@ -16,5 +16,5 @@ Checks for Daniel:
   dark was #6b6b73 on #33240f = 2.84:1; fixed: dark now uses --muted-foreground #a1a1a6 = 5.83:1.
 - Sideways overflow is 0 px at every width and theme (measurements.txt).
 - Complete Dispensary turns outline while the verify panel is open; Confirm and complete is the filled one.
-- The shared scan box's "Look up" (ScanInput, Inventory component) is still filled beside Complete Dispensary.
+- "Look up" on both Dispensary scanners is outline (lookupVariant), so Complete Dispensary is the one filled button.
 - Line-grid field labels (Quantity, Dosage, Frequency, Batch and the rest) are 13/600 (owner request).
