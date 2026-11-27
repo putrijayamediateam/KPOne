@@ -18,6 +18,8 @@ import {
 } from 'vue';
 import InputError from '@/components/InputError.vue';
 import AdultConfirmation from '@/components/patient/AdultConfirmation.vue';
+import EmergencyContactCard from '@/components/patient/EmergencyContactCard.vue';
+import type { EmergencyContactCommand } from '@/components/patient/EmergencyContactCard.vue';
 import GuardianFields from '@/components/patient/GuardianFields.vue';
 import MergedFromNote from '@/components/patient/MergedFromNote.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
@@ -52,6 +54,9 @@ const props = defineProps<{
     recentPatients: PatientRegistrationSummary[];
     requirements: RegistrationRequirements;
     guardianToday?: string;
+    canViewEmergencyContact?: boolean;
+    canUpdateEmergencyContact?: boolean;
+    canCreateEmergencyContact?: boolean;
 }>();
 const identityTypeOptions = [
     { value: 'nric', label: 'Malaysian IC' },
@@ -208,6 +213,7 @@ type QuickPatientInput = {
     }>;
 };
 type RegistrationForm = {
+    emergency_contact_command: EmergencyContactCommand | null;
     idempotency_key: string;
     expected_branch_id: number;
     patient_number: string;
@@ -225,6 +231,7 @@ type RegistrationForm = {
     confirm_repeat: boolean;
 };
 const form = useForm<RegistrationForm>({
+    emergency_contact_command: null,
     idempotency_key: props.options.idempotencyKey,
     expected_branch_id: props.options.branch.id,
     patient_number: '',
@@ -424,6 +431,7 @@ const handlePatientSearchKeydown = (event: KeyboardEvent) => {
     }
 };
 const selectPatient = (patient: PatientRegistrationSummary) => {
+    form.emergency_contact_command = null;
     selectedPatient.value = patient;
     form.patient_number = patient.patientNumber;
     quickMode.value = false;
@@ -431,6 +439,7 @@ const selectPatient = (patient: PatientRegistrationSummary) => {
     form.clearErrors('patient_number', 'quick_patient');
 };
 const changePatient = () => {
+    form.emergency_contact_command = null;
     selectedPatient.value = null;
     form.patient_number = '';
     quickMode.value = false;
@@ -443,6 +452,7 @@ const changePatient = () => {
     );
 };
 const startQuickCreate = () => {
+    form.emergency_contact_command = null;
     selectedPatient.value = null;
     form.patient_number = '';
     quickMode.value = true;
@@ -462,7 +472,20 @@ const patientSummaryName = computed(
         quick.value.full_name.trim() ||
         'New Patient',
 );
+const emergencyPending = ref(false);
 const submit = () => {
+    if (emergencyPending.value) {
+        form.setError(
+            'emergency_contact_command',
+            'Save the contact with registration, or cancel the contact edit before continuing.',
+        );
+        document
+            .querySelector<HTMLElement>('[data-test=emergency-contact]')
+            ?.focus();
+
+        return;
+    }
+
     form.clearErrors();
 
     if (quickMode.value) {
@@ -898,6 +921,26 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 >
             </div>
         </section>
+
+        <EmergencyContactCard
+            v-if="
+                (selectedPatient && canViewEmergencyContact) ||
+                (quickMode && canCreateEmergencyContact)
+            "
+            :key="selectedPatient?.patientNumber ?? 'quick-emergency'"
+            v-model="form.emergency_contact_command"
+            :patient-number="selectedPatient?.patientNumber"
+            :can-edit="
+                quickMode
+                    ? !!canCreateEmergencyContact
+                    : !!canUpdateEmergencyContact
+            "
+            :branch-id="options.branch.id"
+            :idempotency-key="form.idempotency_key"
+            :errors="form.errors"
+            registration
+            @pending="emergencyPending = $event"
+        />
 
         <!-- Small screens reserve a row above the fields for the sticky action. -->
         <form

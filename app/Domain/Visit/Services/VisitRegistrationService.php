@@ -9,6 +9,7 @@ use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientAdministrationService;
+use App\Domain\Patient\Services\PatientEmergencyContactService;
 use App\Domain\Patient\Services\PublicIntakePayloadValidator;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
@@ -59,6 +60,7 @@ class VisitRegistrationService
                 $existing = $this->idempotentVisit($lockedActor, $branch, $validated['idempotency_key']);
                 if ($existing) {
                     $this->assertPanelNoteReplay($lockedActor, $existing, $validated);
+                    app(PatientEmergencyContactService::class)->assertRegistrationReplay($lockedActor, $existing, $validated);
 
                     return $existing;
                 }
@@ -81,12 +83,17 @@ class VisitRegistrationService
                     }
 
                     $this->assertPanelNoteReplay($lockedActor, $existing, $validated);
+                    app(PatientEmergencyContactService::class)->assertRegistrationReplay($lockedActor, $existing, $validated);
 
                     return $existing;
                 }
                 if ($lockedPatient->merged_into_patient_id !== null) {
                     // REG-3: a merged-away record never gets new visits; register on the kept record.
                     throw ValidationException::withMessages(['patient_number' => 'This record was merged into another patient. Register the visit on the kept record.']);
+                }
+
+                if (isset($validated['emergency_contact_command'])) {
+                    app(PatientEmergencyContactService::class)->saveLocked($lockedActor, $lockedPatient, $validated['emergency_contact_command'], $quickPatientCreated, app(PatientEmergencyContactService::class)->registrationContext($validated));
                 }
 
                 $now = now()->utc();
@@ -174,6 +181,7 @@ class VisitRegistrationService
             if ($existing) {
                 $existing = $this->assertIdempotentBranch($existing, $branch);
                 $this->assertPanelNoteReplay($actor, $existing, $validated);
+                app(PatientEmergencyContactService::class)->assertRegistrationReplay($actor, $existing, $validated);
 
                 return $existing;
             }
@@ -206,6 +214,7 @@ class VisitRegistrationService
     {
         $validated = Validator::make($attributes, [
             'idempotency_key' => ['required', 'uuid'],
+            'emergency_contact_command' => ['sometimes', 'nullable', 'array'],
             'expected_branch_id' => ['required', 'integer'],
             'patient_number' => [
                 'nullable', 'string', 'max:20', 'required_without:quick_patient',
@@ -233,6 +242,13 @@ class VisitRegistrationService
             'chief_complaint' => ['nullable', 'string', 'max:500'],
             'complaint_duration' => ['nullable', 'string', 'max:120'],
         ])->validate();
+
+        if (isset($validated['emergency_contact_command'])) {
+            $validated['emergency_contact_command'] = app(PatientEmergencyContactService::class)->validate($validated['emergency_contact_command']);
+            if ($validated['emergency_contact_command']['idempotency_key'] !== $validated['idempotency_key']) {
+                throw ValidationException::withMessages(['emergency_contact_command' => 'Use this registration form to save the emergency contact.']);
+            }
+        }
 
         $validated['visit_reason_public_ids'] = array_values($validated['visit_reason_public_ids'] ?? []);
         $validated['coverage_member_reference'] = $this->nullableTrim($validated['coverage_member_reference'] ?? null);

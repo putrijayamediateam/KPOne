@@ -99,6 +99,7 @@ use App\Http\Controllers\PanelRemittancesController;
 use App\Http\Controllers\PanelSettingsController;
 use App\Http\Controllers\PatientBillingReportController;
 use App\Http\Controllers\PatientController;
+use App\Http\Controllers\PatientEmergencyContactController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientMergeController;
 use App\Http\Controllers\PatientSearchController;
@@ -1580,6 +1581,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('visits/{visit}/cancel', [VisitController::class, 'cancel'])
             ->middleware('permission:visits.cancel.branch')
             ->name('visits.cancel');
+
+        Route::get('patients/{patient}/emergency-contact', [PatientEmergencyContactController::class, 'show'])
+            ->middleware('permission:patients.view.organisation')->name('patients.emergency-contact.show');
+        Route::patch('patients/{patient}/emergency-contact', [PatientEmergencyContactController::class, 'update'])
+            ->middleware(['permission:patients.update.organisation', 'throttle:30,1'])->name('patients.emergency-contact.update');
 
         Route::get('patients', [PatientController::class, 'index'])
             ->middleware('permission:patients.search.organisation')
