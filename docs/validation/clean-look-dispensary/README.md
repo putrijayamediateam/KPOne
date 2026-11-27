@@ -19,3 +19,4 @@ Checks for Daniel:
 - "Look up" on both Dispensary scanners is outline (lookupVariant), so Complete Dispensary is the one filled button.
 - Line-grid field labels (Quantity, Dosage, Frequency, Batch and the rest) are 13/600 (owner request).
 - Label limits sit in a help line under each field ("Label max 96"); labels stay on one line (owner request).
+- Field widths (px) after widening: 1440 dosage 356, frequency 233, instruction 233; 1280 dosage 236, frequency 153, instruction 153; 1024 dosage 650, frequency 429; 390 all 324.
