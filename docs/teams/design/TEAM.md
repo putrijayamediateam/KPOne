@@ -110,3 +110,10 @@ pharmacist decisions).
    in the PR body), and keep a short "design debt" list of screens that break the guide, for the Staff Experience
    team and the owning teams.
    The loop is written in `docs/design/REVIEW.md` and the list in `docs/design/DEBT.md`.
+
+## DES-CA-MON (2026-11-27): report-only check of the Puchong CA screens
+
+- Method: task-owned Postgres, trial-data phases 1 and 2 on top of the reference and presentation seeders, signed in as the Puchong CA, 1440 light, 1440 dark and 390 light. Screenshots are on `validation/des-ca-monday-shots`.
+- One likely blocker: label printing is refused when the branch address is over 96 characters or 3 rows (DD-131). Check the real Puchong address in Business details.
+- Not checked: payment dialog, receipts and invoice print, the CA Panel step. Trial data leaves a cash count pending, which pauses payments; clear it or use a fresh database next time.
+- Lessons: visits use `visit_number` in URLs and patients use the KP number; repeated sign-ins from one address trip the login throttle (clear the cache).
