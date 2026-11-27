@@ -514,13 +514,13 @@ const clearFilters = () => {
                 </div>
                 <div
                     v-if="staff.last_page > 1"
-                    class="flex items-center justify-between border-t px-5 py-3"
+                    class="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-3"
                 >
                     <span class="text-[12.5px] text-muted-foreground"
                         >Showing {{ staff.from }}–{{ staff.to }} of
                         {{ staff.total }}</span
                     >
-                    <div class="flex gap-1">
+                    <div class="flex flex-wrap gap-1">
                         <template v-for="link in staff.links" :key="link.label">
                             <Button
                                 v-if="link.url"
