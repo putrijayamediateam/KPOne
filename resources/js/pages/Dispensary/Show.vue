@@ -1718,6 +1718,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     refocus-key="dispensary-check"
                     :accept="acceptScan"
                     :describe="describeScan"
+                    lookup-variant="outline"
                     data-testid="dispensary-scan"
                     @keydown.enter.capture="clearLineHint"
                     @found="markScanned"
@@ -2238,6 +2239,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             context="dispensary-add"
                             refocus-key="dispensary-add"
                             :describe="() => ''"
+                            lookup-variant="outline"
                             data-testid="dispensary-scan-add"
                             @found="scanToAdd"
                         />
