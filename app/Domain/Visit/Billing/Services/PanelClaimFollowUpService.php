@@ -42,7 +42,7 @@ final class PanelClaimFollowUpService
     ];
 
     private const STATUSES = [
-        'prepared' => 'Prepared (not yet submitted)',
+        'prepared' => 'Prepared after earlier submission',
         'submitted' => 'Submitted',
         'queried' => 'Panel query',
         'accepted' => 'Accepted, unpaid',
@@ -64,6 +64,8 @@ final class PanelClaimFollowUpService
     public function page(User $actor, array $query, int $page = 1): array
     {
         $filters = Validator::make($query, ['panel' => ['sometimes', 'nullable', 'string', 'max:80']])->valid();
+        $status = Validator::make($query, ['status' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', self::OPEN)]])->validate();
+        $filters['status'] = (string) ($status['status'] ?? '');
 
         return DB::transaction(function () use ($actor, $filters, $page): array {
             $branch = $this->branches->activeBranch($actor);
@@ -108,6 +110,15 @@ final class PanelClaimFollowUpService
                 $base->where('pn.code', (string) $filters['panel']);
             }
 
+            // Counts describe eligible claims in the selected Panel before status narrowing.
+            $statusCounts = array_fill_keys(self::OPEN, 0);
+            foreach ((clone $base)->select('c.status')->selectRaw('count(*) as total')->groupBy('c.status')->get() as $bucket) {
+                $statusCounts[(string) $bucket->status] = (int) $bucket->total;
+            }
+            if ($filters['status'] !== '') {
+                $base->where('c.status', $filters['status']);
+            }
+
             $rows = (clone $base)
                 ->select(['c.id', 'c.public_id', 'c.status', 'c.patient_name_snapshot', 'c.invoice_number', 'c.claim_amount_sen', 'c.parent_claim_id',
                     'c.accepted_amount_sen', 'pn.name as panel_name', 'pn.claim_follow_up_days', 'l.acted_at', 'l.kind', 'l.user_id'])
@@ -120,7 +131,8 @@ final class PanelClaimFollowUpService
 
             return [
                 'branch' => ['id' => $branch->id, 'name' => $branch->name],
-                'filters' => ['panel' => (string) ($filters['panel'] ?? '')],
+                'filters' => ['panel' => (string) ($filters['panel'] ?? ''), 'status' => $filters['status']],
+                'statusCounts' => $statusCounts,
                 'panels' => DB::table('panels')->where('organisation_id', $org)->orderBy('name')
                     ->get(['code', 'name', 'claim_follow_up_days'])
                     ->map(static fn ($row): array => ['code' => (string) $row->code, 'name' => (string) $row->name, 'followUpDays' => (int) $row->claim_follow_up_days])->all(),

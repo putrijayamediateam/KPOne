@@ -25,7 +25,8 @@ type FollowUpClaim = {
 
 const props = defineProps<{
     branch: { id: number; name: string };
-    filters: { panel: string };
+    filters: { panel: string; status?: string };
+    statusCounts?: Record<string, number>;
     panels: { code: string; name: string; followUpDays: number }[];
     claims: {
         data: FollowUpClaim[];
@@ -35,15 +36,37 @@ const props = defineProps<{
     };
 }>();
 
-const go = (panel: string, page = 1) =>
+const statusOptions = [
+    ['prepared', 'Prepared after earlier submission'],
+    ['submitted', 'Submitted'],
+    ['queried', 'Panel query'],
+    ['accepted', 'Accepted, unpaid'],
+    ['partially_accepted', 'Partially accepted, unpaid'],
+    ['partially_paid', 'Partially paid'],
+] as const;
+const go = (panel: string, page = 1, status = props.filters.status ?? '') =>
     router.get(
         '/panel-claims/follow-up',
         {
             ...(panel ? { panel } : {}),
+            ...(status ? { status } : {}),
             ...(page > 1 ? { page } : {}),
         },
         { preserveScroll: true, replace: true },
     );
+// Keep controls on the loaded result until a successful GET replaces server props.
+const changePanel = (event: Event) => {
+    const target = event.target as HTMLSelectElement;
+    const value = target.value;
+    target.value = props.filters.panel;
+    go(value);
+};
+const changeStatus = (event: Event) => {
+    const target = event.target as HTMLSelectElement;
+    const value = target.value;
+    target.value = props.filters.status ?? '';
+    go(props.filters.panel, 1, value);
+};
 </script>
 
 <template>
@@ -65,9 +88,7 @@ const go = (panel: string, page = 1) =>
                             :value="filters.panel"
                             class="min-h-11 w-full min-w-0 rounded-md border bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
                             aria-label="Panel"
-                            @change="
-                                go(($event.target as HTMLSelectElement).value)
-                            "
+                            @change="changePanel"
                         >
                             <option value="">All Panels</option>
                             <option
@@ -80,6 +101,32 @@ const go = (panel: string, page = 1) =>
                             </option>
                         </select>
                     </label>
+                    <label class="grid min-w-0 gap-1 text-xs">
+                        Status
+                        <select
+                            :value="filters.status ?? ''"
+                            aria-label="Status"
+                            class="min-h-11 w-full min-w-0 rounded-md border bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
+                            @change="changeStatus"
+                        >
+                            <option value="">All eligible statuses</option>
+                            <option
+                                v-for="[value, label] in statusOptions"
+                                :key="value"
+                                :value="value"
+                            >
+                                {{ label }}
+                            </option>
+                        </select>
+                    </label>
+                    <button
+                        v-if="filters.status"
+                        type="button"
+                        class="min-h-11 rounded-md border bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
+                        @click="go(filters.panel, 1, '')"
+                    >
+                        Clear status
+                    </button>
                 </div>
                 <p class="text-sm text-muted-foreground">
                     An action is a submission, query, decision, amount change,
@@ -90,9 +137,10 @@ const go = (panel: string, page = 1) =>
                     Paid and rejected claims are not listed.
                 </p>
                 <p class="text-sm text-muted-foreground">
-                    Prepared claims that have never been submitted are on the
-                    Overdue tab. This list shows claims due for follow-up after
-                    a previous submission.
+                    Prepared claims that have never been submitted are on Not
+                    yet submitted. Overdue claims also appear on Overdue. This
+                    list shows claims due for follow-up after a previous
+                    submission.
                 </p>
 
                 <p
@@ -101,9 +149,11 @@ const go = (panel: string, page = 1) =>
                     data-testid="follow-up-empty"
                 >
                     {{
-                        filters.panel
-                            ? 'No claim for the selected Panel needs a follow-up right now.'
-                            : 'No claim needs a follow-up right now.'
+                        filters.status
+                            ? 'No eligible claim matches the selected status and Panel.'
+                            : filters.panel
+                              ? 'No claim for the selected Panel needs a follow-up right now.'
+                              : 'No claim needs a follow-up right now.'
                     }}
                 </p>
                 <ul
@@ -203,9 +253,36 @@ const go = (panel: string, page = 1) =>
                         Page {{ claims.currentPage }} of {{ claims.lastPage }}.
                         {{ branch.name }} ·
                         {{ filters.panel ? 'Selected Panel' : 'All Panels' }}.
-                        Counts follow the current branch and Panel filter.
+                        Counts follow the current branch and Panel filter. The
+                        selected status further narrows matching claims.
                     </p>
                 </section>
+                <details
+                    v-if="statusCounts"
+                    class="rounded-xl border bg-card p-4 shadow-card"
+                >
+                    <summary
+                        class="min-h-11 cursor-pointer rounded-sm text-sm font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
+                    >
+                        Eligible claims by status
+                    </summary>
+                    <p class="mt-2 text-xs text-muted-foreground">
+                        In this branch and selected Panel, before the status
+                        filter. A newly recorded action can change this list.
+                    </p>
+                    <dl class="mt-3 space-y-3 text-sm">
+                        <div
+                            v-for="[value, label] in statusOptions"
+                            :key="value"
+                            class="flex justify-between gap-3"
+                        >
+                            <dt class="text-muted-foreground">{{ label }}</dt>
+                            <dd class="font-semibold tabular-nums">
+                                {{ statusCounts[value] ?? 0 }}
+                            </dd>
+                        </div>
+                    </dl>
+                </details>
                 <details open class="rounded-xl border bg-card p-4 shadow-card">
                     <summary
                         class="min-h-11 cursor-pointer rounded-sm text-sm font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
