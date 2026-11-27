@@ -10,6 +10,7 @@ use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\BillingDirectoryService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
+use App\Domain\Visit\Billing\Services\FamilyBillService;
 use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
 use App\Domain\Visit\Billing\Services\IssuedBillingDocumentService;
@@ -45,6 +46,14 @@ class BillingController extends Controller
     public function payments(Request $request, Visit $visit, BillingDirectoryService $directory): Response
     {
         return Inertia::render('Billing/Payments', ['billing' => $directory->detail($request->user(), $visit)]);
+    }
+
+    public function family(Request $request, Visit $visit, FamilyBillService $service): Response
+    {
+        $family = $service->view($request->user(), $visit);
+        abort_if($family === null, 404);
+
+        return Inertia::render('Billing/Family', ['family' => $family]);
     }
 
     public function build(Request $request, Visit $visit, BillingBuilderService $service): RedirectResponse

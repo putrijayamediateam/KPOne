@@ -146,6 +146,7 @@ export type BillingPage = {
     outstanding: OutstandingBills | null;
     /** BIL-3: the branch pay-later collection list, for outstanding viewers only. */
     payLaterCollectionsUrl?: string | null;
+    familyBillUrl?: string | null;
     invoice: null | {
         publicId: string;
         number: string | null;
@@ -379,4 +380,41 @@ export type PanelClaimLink = {
     label: string;
     href: string;
     claimNumber: string | null;
+};
+
+// BIL-39: the family bill page (read only); each member keeps their own invoice.
+export type FamilyBillMember = {
+    visitNumber: string;
+    patientName: string;
+    patientNumber: string;
+    coverage: string | null;
+    billingUrl: string;
+    invoice: {
+        publicId: string;
+        number: string | null;
+        lockVersion: number;
+        finalizedAt: string | null;
+        correctionHold: boolean;
+        state: BillingState;
+        lines: {
+            type: string;
+            name: string;
+            unit: string | null;
+            quantity: string | number;
+            unitPriceSen: number;
+            totalSen: number;
+        }[];
+    };
+};
+
+export type FamilyBillPage = {
+    familyGroupId: string;
+    anchorVisitNumber: string;
+    branch: string;
+    expectedBranchId: number;
+    members: FamilyBillMember[];
+    totalDueNowSen: number;
+    linesShown: boolean;
+    can: { pay: boolean };
+    paused: boolean;
 };
