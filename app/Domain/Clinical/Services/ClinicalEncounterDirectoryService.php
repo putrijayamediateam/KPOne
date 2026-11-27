@@ -74,6 +74,7 @@ class ClinicalEncounterDirectoryService
             $hold->resumed_at ?? now()->utc(),
         ));
         $elapsedSeconds = $encounter->started_at->diffInSeconds(now()->utc());
+        $dispensaryCheck = $this->dispensaryAttention->checkForEncounter($actor, $encounter);
 
         return [
             'branch' => $encounter->visit->branch->only(['id', 'code', 'name', 'timezone']),
@@ -157,11 +158,14 @@ class ClinicalEncounterDirectoryService
                 'codeSystem' => $diagnosis->code_system,
                 'isPrimary' => $diagnosis->is_primary,
             ])->values(),
-            'allergies' => $isActiveConsultation ? $this->clinicalSafety->allergies($actor, $encounter) : null,
+            // DSP-30: while the doctor's check of prepared medicine is waiting, the allergy list shows read only.
+            'allergies' => $isActiveConsultation
+                ? $this->clinicalSafety->allergies($actor, $encounter)
+                : ($dispensaryCheck !== null ? $this->clinicalSafety->allergiesDuringDoctorCheck($actor, $encounter) : null),
             'problems' => $isActiveConsultation ? $this->clinicalSafety->problems($actor, $encounter) : null,
             'treatmentPlan' => $this->treatmentPlans->detail($actor, $encounter),
             'dispensaryAttention' => $this->dispensaryAttention->forEncounter($actor, $encounter),
-            'dispensaryCheck' => $this->dispensaryAttention->checkForEncounter($actor, $encounter),
+            'dispensaryCheck' => $dispensaryCheck,
             'dispensaryCheckedInstead' => $this->dispensaryAttention->supervisorCheckForEncounter($actor, $encounter),
             'history' => $this->history($actor, $encounter),
         ];

@@ -270,6 +270,14 @@ const saveProblem = () => {
                         </div>
                     </div>
 
+                    <!-- DSP-30: the medicine is with Dispensary for the doctor's check, so the list is shown read only. -->
+                    <p
+                        v-if="allergies.readOnlyReason === 'doctor_check'"
+                        class="text-xs text-muted-foreground"
+                        data-testid="allergies-read-only"
+                    >
+                        Read only while the medicine waits for your check.
+                    </p>
                     <p
                         v-if="allergies.status === 'unknown'"
                         class="text-sm font-medium text-amber-900 dark:text-amber-300"

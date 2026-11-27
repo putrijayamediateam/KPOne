@@ -394,6 +394,11 @@ const allergyReady = computed(
         props.allergies.status !== 'unknown' &&
         props.allergies.encounterReview?.isCurrent === true,
 );
+// DSP-30 (Hakim): while the doctor's check of prepared medicine waits, the allergy list is read only and nothing here
+// can be saved, so the medicine search stays closed too.
+const medicineSearchOpen = computed(
+    () => allergyReady.value && props.allergies?.readOnlyReason === undefined,
+);
 const formError = computed(() => {
     const errors = form.errors as Record<string, string>;
 
@@ -413,6 +418,10 @@ const search = async (kind: 'medicines' | 'services') => {
         kind === 'medicines' ? medicineQuery.value : serviceQuery.value;
 
     if (query.trim().length < 2) {
+        return;
+    }
+
+    if (kind === 'medicines' && !medicineSearchOpen.value) {
         return;
     }
 
@@ -769,7 +778,7 @@ defineExpose({
                         type="button"
                         size="sm"
                         variant="outline"
-                        :disabled="searchingMedicine || !allergyReady"
+                        :disabled="searchingMedicine || !medicineSearchOpen"
                         @click="search('medicines')"
                     >
                         <LoaderCircle
