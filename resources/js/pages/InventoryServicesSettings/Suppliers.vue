@@ -265,7 +265,7 @@ const generalError = computed(
                                     class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
                                     :class="
                                         supplier.active
-                                            ? 'bg-emerald-500'
+                                            ? 'bg-success'
                                             : 'bg-muted-foreground/40'
                                     "
                                     @click="toggle(supplier)"
