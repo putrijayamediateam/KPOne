@@ -394,6 +394,14 @@ const allergyReady = computed(
         props.allergies.status !== 'unknown' &&
         props.allergies.encounterReview?.isCurrent === true,
 );
+// DSP-30 (Hakim): while the doctor's check of prepared medicine waits, the allergy list is read only and nothing here
+// can be saved, so the medicine search stays closed too.
+const allergiesReadOnly = computed(
+    () => props.allergies?.readOnlyReason === 'doctor_check',
+);
+const medicineSearchOpen = computed(
+    () => allergyReady.value && !allergiesReadOnly.value,
+);
 const formError = computed(() => {
     const errors = form.errors as Record<string, string>;
 
@@ -413,6 +421,10 @@ const search = async (kind: 'medicines' | 'services') => {
         kind === 'medicines' ? medicineQuery.value : serviceQuery.value;
 
     if (query.trim().length < 2) {
+        return;
+    }
+
+    if (kind === 'medicines' && !medicineSearchOpen.value) {
         return;
     }
 
@@ -724,7 +736,7 @@ defineExpose({
             <div
                 v-if="recordDrifted"
                 role="alert"
-                class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+                class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/25 bg-warning-wash p-3 text-sm text-warning-strong"
             >
                 <span class="flex items-start gap-2">
                     <AlertTriangle class="mt-0.5 size-4 shrink-0" />
@@ -744,7 +756,7 @@ defineExpose({
             <div
                 v-if="!allergyReady"
                 role="status"
-                class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+                class="rounded-md border border-warning/25 bg-warning-wash px-3 py-2 text-sm text-warning-strong"
             >
                 New or changed medicine instructions require a current Allergy
                 Profile review for this consultation. Reordering or withdrawing
@@ -760,7 +772,13 @@ defineExpose({
                         Find medicine
                         <input
                             v-model="medicineQuery"
-                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70"
+                            :disabled="allergiesReadOnly"
+                            :aria-describedby="
+                                allergiesReadOnly
+                                    ? 'medicine-search-closed'
+                                    : undefined
+                            "
                             autocomplete="off"
                             @keyup.enter.prevent="search('medicines')"
                         />
@@ -769,7 +787,7 @@ defineExpose({
                         type="button"
                         size="sm"
                         variant="outline"
-                        :disabled="searchingMedicine || !allergyReady"
+                        :disabled="searchingMedicine || !medicineSearchOpen"
                         @click="search('medicines')"
                     >
                         <LoaderCircle
@@ -778,6 +796,16 @@ defineExpose({
                         /><Search v-else class="size-4" /> Search
                     </Button>
                 </div>
+                <!-- DSP-30 (Daniel): say why the search is closed while the medicine waits for the doctor's check. -->
+                <p
+                    v-if="allergiesReadOnly"
+                    id="medicine-search-closed"
+                    class="text-xs text-muted-foreground"
+                    data-testid="medicine-search-closed"
+                >
+                    Medicine search is closed while the medicine waits for your
+                    check.
+                </p>
                 <div
                     v-if="medicineResults.length"
                     class="divide-y rounded-md border"

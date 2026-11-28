@@ -3,6 +3,8 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { PageFrame } from '@/components/ui/page-frame';
+import { PageHeader } from '@/components/ui/page-header';
 
 const props = defineProps<{
     branchId: number;
@@ -99,23 +101,24 @@ const submit = () => {
 
 <template>
     <Head title="Registration settings" />
-    <main class="flex flex-1 flex-col p-4 pb-8 md:px-8 md:pt-6">
+    <PageFrame width="narrow">
         <nav
             aria-label="Breadcrumb"
-            class="mb-4 flex flex-wrap gap-2 text-xs text-muted-foreground"
+            class="-mb-3 flex flex-wrap gap-2 text-[13px] text-muted-foreground"
         >
             <Link
                 href="/clinic-management"
-                class="rounded hover:underline focus-visible:outline-2"
+                class="min-h-11 rounded py-3 text-link hover:underline focus-visible:outline-2 lg:min-h-0 lg:py-0"
                 >Clinic management</Link
-            ><span aria-hidden="true">/</span><span>Registration settings</span>
+            ><span aria-hidden="true">/</span
+            ><span class="font-semibold text-foreground"
+                >Registration settings</span
+            >
         </nav>
-        <h1 class="border-b pb-3 text-xl font-semibold">
-            Registration settings
-        </h1>
+        <PageHeader title="Registration settings" />
         <form
             id="registration-settings-form"
-            class="mt-5 max-w-3xl space-y-5 rounded-lg border bg-card p-4 md:p-5"
+            class="space-y-5 rounded-[14px] border bg-card p-4 md:p-5"
             novalidate
             @submit.prevent="submit"
         >
@@ -300,5 +303,5 @@ const submit = () => {
                 >
             </form>
         </section>
-    </main>
+    </PageFrame>
 </template>

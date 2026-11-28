@@ -270,7 +270,9 @@ const clearFilters = () => {
 
 <template>
     <Head title="Inventory" />
-    <main class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-6">
+    <main
+        class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
+    >
         <PageHeader
             title="Inventory"
             :description="`Stock, batches and movement history for ${inventory.branch}.`"
@@ -433,9 +435,9 @@ const clearFilters = () => {
                 </section>
             </div>
             <div class="w-full space-y-2 lg:hidden">
-                <details class="group rounded-lg border bg-card">
+                <details class="group rounded-xl border bg-card">
                     <summary
-                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
                     >
                         Count and adjust ·
                         {{ canViewControlledRegister ? 6 : 5 }}
@@ -484,9 +486,9 @@ const clearFilters = () => {
                         >
                     </div>
                 </details>
-                <details class="group rounded-lg border bg-card">
+                <details class="group rounded-xl border bg-card">
                     <summary
-                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
                     >
                         Orders and suppliers · 7
                         <ChevronDown
@@ -539,9 +541,9 @@ const clearFilters = () => {
                         >
                     </div>
                 </details>
-                <details class="group rounded-lg border bg-card">
+                <details class="group rounded-xl border bg-card">
                     <summary
-                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
                     >
                         Reports and checks ·
                         {{ reportsCount }}
@@ -592,28 +594,40 @@ const clearFilters = () => {
             class="grid grid-cols-3 gap-2 sm:gap-3"
             aria-label="Inventory summary"
         >
-            <div class="min-w-0 rounded-xl border bg-card p-2 sm:px-4 sm:py-3">
+            <div
+                class="flex min-w-0 flex-col gap-0.5 rounded-xl border bg-card px-3 py-3 sm:px-4"
+            >
+                <p
+                    class="text-xl font-semibold tracking-[-0.02em] tabular-nums sm:text-2xl"
+                >
+                    {{ inventory.summary.skusWithStock }}
+                </p>
                 <p class="text-xs break-words text-muted-foreground">
                     SKUs with stock
                 </p>
-                <p class="mt-1 text-lg font-semibold tabular-nums sm:text-xl">
-                    {{ inventory.summary.skusWithStock }}
-                </p>
             </div>
-            <div class="min-w-0 rounded-xl border bg-card p-2 sm:px-4 sm:py-3">
+            <div
+                class="flex min-w-0 flex-col gap-0.5 rounded-xl border bg-card px-3 py-3 sm:px-4"
+            >
+                <p
+                    class="text-xl font-semibold tracking-[-0.02em] tabular-nums sm:text-2xl"
+                >
+                    {{ inventory.summary.totalBatches }}
+                </p>
                 <p class="text-xs break-words text-muted-foreground">
                     Total batches
                 </p>
-                <p class="mt-1 text-lg font-semibold tabular-nums sm:text-xl">
-                    {{ inventory.summary.totalBatches }}
-                </p>
             </div>
-            <div class="min-w-0 rounded-xl border bg-card p-2 sm:px-4 sm:py-3">
+            <div
+                class="flex min-w-0 flex-col gap-0.5 rounded-xl border bg-card px-3 py-3 sm:px-4"
+            >
+                <p
+                    class="text-xl font-semibold tracking-[-0.02em] tabular-nums sm:text-2xl"
+                >
+                    {{ inventory.summary.expiredBatches }}
+                </p>
                 <p class="text-xs break-words text-muted-foreground">
                     Expired batches
-                </p>
-                <p class="mt-1 text-lg font-semibold tabular-nums sm:text-xl">
-                    {{ inventory.summary.expiredBatches }}
                 </p>
             </div>
         </section>
@@ -627,7 +641,7 @@ const clearFilters = () => {
             />
 
             <form
-                class="grid gap-3 md:grid-cols-2"
+                class="grid gap-3 md:grid-cols-2 [&_label]:text-[13px]"
                 :class="
                     inventory.tab === 'movements'
                         ? 'xl:grid-cols-7'
@@ -720,7 +734,7 @@ const clearFilters = () => {
                     <Button type="submit" :disabled="loading">Apply</Button>
                     <Button
                         type="button"
-                        variant="secondary"
+                        variant="outline"
                         :disabled="loading"
                         @click="clearFilters"
                     >
@@ -758,7 +772,7 @@ const clearFilters = () => {
             :columns="canReport ? 9 : 8"
             min-width="1040px"
             :loading="loading"
-            class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:text-foreground"
+            class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:text-muted-foreground"
         >
             <template #head
                 ><tr>
@@ -856,7 +870,7 @@ const clearFilters = () => {
             :columns="9"
             min-width="1120px"
             :loading="loading"
-            class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:text-foreground"
+            class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:text-muted-foreground"
         >
             <template #head
                 ><tr>
@@ -944,7 +958,7 @@ const clearFilters = () => {
             :columns="8"
             min-width="1120px"
             :loading="loading"
-            class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:text-foreground"
+            class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:text-muted-foreground"
         >
             <template #head
                 ><tr>

@@ -127,7 +127,7 @@ watch(
 <template>
     <Head title="Inventory pilot readiness" />
     <main
-        class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-5 p-4 md:p-7"
+        class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
     >
         <ActionLink
             href="/inventory"
@@ -189,7 +189,7 @@ watch(
                 >Import opening stock</ActionLink
             >
         </div>
-        <section class="space-y-2 rounded-lg border bg-card p-4 text-sm">
+        <section class="space-y-2 rounded-xl border bg-card p-4 text-sm">
             <p>
                 Each SKU has one base stock unit, with up to 3 decimals. Other
                 units and conversions are refused.
@@ -206,7 +206,7 @@ watch(
             v-for="(error, key) in page.props.errors"
             :key="key"
             role="alert"
-            class="rounded-md border border-destructive p-3 text-sm text-destructive"
+            class="rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive"
         >
             {{ error }}
         </p>
@@ -215,9 +215,9 @@ watch(
                 >Search SKU<input
                     v-model="search"
                     maxlength="100"
-                    class="min-h-11 min-w-0 rounded-md border bg-background px-3" /></label
+                    class="min-h-11 min-w-0 rounded-[10px] border border-input bg-field-fill px-3" /></label
             ><button
-                class="min-h-11 self-end rounded-md border px-4"
+                class="inline-flex min-h-11 items-center justify-center self-end rounded-full border border-input px-4 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                 type="submit"
             >
                 Search
@@ -232,7 +232,7 @@ watch(
             <article
                 v-for="row in readiness.rows"
                 :key="row.id"
-                class="min-w-0 space-y-3 rounded-lg border bg-card p-4"
+                class="min-w-0 space-y-3 rounded-xl border bg-card p-4"
             >
                 <h2 class="font-semibold break-words">{{ row.sku_code }}</h2>
                 <dl class="grid grid-cols-2 gap-2 text-sm">
@@ -261,7 +261,7 @@ watch(
                 </dl>
                 <p
                     v-if="row.stock_unit !== row.dispensing_unit"
-                    class="text-sm text-amber-700 dark:text-amber-300"
+                    class="text-sm text-warning"
                 >
                     Dispensing uses a different unit. Conversion is unsupported;
                     review the references before dispensing.
@@ -270,14 +270,17 @@ watch(
                     v-if="readiness.canVerifyUnits && !row.unit_verification_id"
                     type="button"
                     :disabled="busy"
-                    class="min-h-11 rounded-md border px-3 text-sm disabled:opacity-50"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-50 lg:min-h-9"
                     @click="verify('unit', row.public_id, row.stock_unit)"
                 >
                     Verify base unit: {{ row.stock_unit }}
                 </button>
             </article>
         </div>
-        <p v-if="readiness.rows.length === 0" class="rounded-lg border p-5">
+        <p
+            v-if="readiness.rows.length === 0"
+            class="rounded-xl border bg-card p-5"
+        >
             No SKUs match this review.
         </p>
         <nav
@@ -285,7 +288,7 @@ watch(
             class="flex flex-wrap items-center gap-3"
         >
             <button
-                class="min-h-11 rounded-md border px-3 disabled:opacity-40"
+                class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-40 lg:min-h-9"
                 :disabled="readiness.page <= 1"
                 @click="run(readiness.page - 1)"
             >
@@ -293,7 +296,7 @@ watch(
             ><span class="text-sm"
                 >{{ readiness.page }} / {{ readiness.lastPage }}</span
             ><button
-                class="min-h-11 rounded-md border px-3 disabled:opacity-40"
+                class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-40 lg:min-h-9"
                 :disabled="readiness.page >= readiness.lastPage"
                 @click="run(readiness.page + 1)"
             >
@@ -316,7 +319,7 @@ watch(
             <article
                 v-for="opening in readiness.pending"
                 :key="opening.public_id"
-                class="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4"
+                class="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4"
             >
                 <div class="min-w-0 text-sm">
                     <p class="break-words">
@@ -340,7 +343,7 @@ watch(
                 <button
                     v-if="opening.canVerify"
                     :disabled="busy"
-                    class="min-h-11 rounded-md border px-3 text-sm disabled:opacity-50"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-50 lg:min-h-9"
                     @click="verify('opening', opening.public_id)"
                 >
                     Sign off opening</button
@@ -356,7 +359,7 @@ watch(
                 class="flex flex-wrap items-center gap-3"
             >
                 <button
-                    class="min-h-11 rounded-md border px-3 disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-40 lg:min-h-9"
                     :disabled="readiness.openingPage <= 1"
                     @click="openingPage(readiness.openingPage - 1)"
                 >
@@ -367,7 +370,7 @@ watch(
                     {{ readiness.openingLastPage }}</span
                 >
                 <button
-                    class="min-h-11 rounded-md border px-3 disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent disabled:opacity-40 lg:min-h-9"
                     :disabled="
                         readiness.openingPage >= readiness.openingLastPage
                     "
@@ -398,7 +401,7 @@ watch(
             <article
                 v-for="shared in readiness.sharedBarcodes.rows"
                 :key="shared.code"
-                class="space-y-2 rounded-md border p-3"
+                class="space-y-2 rounded-xl border bg-card-quiet p-3"
             >
                 <p class="font-mono text-sm break-all">{{ shared.code }}</p>
                 <div

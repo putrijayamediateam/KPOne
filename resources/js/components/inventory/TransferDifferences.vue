@@ -71,14 +71,14 @@ const submit = (difference: InventoryTransferDifference) => {
 <template>
     <section
         v-if="differences.length > 0"
-        class="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-2 dark:border-amber-700 dark:bg-amber-950/40"
+        class="space-y-2 rounded-[10px] border border-warning/25 bg-warning-wash p-3 dark:border-warning/40"
         :aria-label="`Transfer differences for ${number}`"
     >
         <h4 class="text-sm font-semibold">Transfer differences</h4>
         <article
             v-for="difference in differences"
             :key="difference.publicId"
-            class="space-y-2 rounded-md border bg-card p-2 text-sm"
+            class="space-y-2 rounded-lg bg-card p-3 text-sm"
         >
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <span
@@ -87,12 +87,16 @@ const submit = (difference: InventoryTransferDifference) => {
                     {{ difference.sku }} · {{ difference.batch }}</span
                 >
                 <span
-                    class="rounded-full px-2 py-0.5 text-xs font-medium"
+                    class="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-semibold"
                     :class="
                         difference.status === 'open'
-                            ? 'bg-amber-200 text-amber-950 dark:bg-amber-800 dark:text-amber-50'
-                            : 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-50'
+                            ? 'bg-card text-warning-strong'
+                            : 'bg-success-wash text-success'
                     "
+                    ><span
+                        class="size-1.5 rounded-full bg-current"
+                        aria-hidden="true"
+                    ></span
                     >{{
                         difference.status === 'open' ? 'Open' : 'Resolved'
                     }}</span
@@ -100,7 +104,7 @@ const submit = (difference: InventoryTransferDifference) => {
             </div>
             <p
                 v-if="difference.status === 'resolved'"
-                class="text-xs text-muted-foreground"
+                class="text-[12.5px] text-muted-foreground"
             >
                 {{
                     transferOutcomeLabels[difference.outcome ?? ''] ??
@@ -112,7 +116,7 @@ const submit = (difference: InventoryTransferDifference) => {
             </p>
             <p
                 v-else-if="difference.receivedByYou"
-                class="text-xs text-muted-foreground"
+                class="text-[12.5px] text-muted-foreground"
             >
                 You received this transfer, so a different CA Supervisor,
                 Finance Officer or Director must resolve it.
@@ -157,7 +161,7 @@ const submit = (difference: InventoryTransferDifference) => {
                     >Resolve difference</Button
                 >
             </form>
-            <p v-else class="text-xs text-muted-foreground">
+            <p v-else class="text-[12.5px] text-muted-foreground">
                 Waiting for a CA Supervisor, Finance Officer or Director to
                 resolve.
             </p>

@@ -10,9 +10,16 @@ status and outstanding release gates are in [BASELINE.md](./BASELINE.md).
 ## Access and privacy
 
 Every active staff role is granted `insights.view.organisation`. The backend permission protects all Insights
-routes; hiding a menu item is not an authorization boundary. The branch selector is organisation-wide and
-offers All branches and the three clinic branches. Doctor filtering is available only on reports whose source
-data supports it.
+routes; hiding a menu item is not an authorization boundary. For organisation accounts (those holding
+`branch_context.switch.organisation`, such as the Director and Finance Officer) the branch selector is
+organisation-wide and offers All branches and the three clinic branches. **INS-BM-1 (owner decision 27 Nov 2026,
+option A):** branch roles without that permission (Branch Manager, CA, CA Supervisor, Resident Doctor and Medical
+Assistant) are kept to their active branch: the pages default to it, the selector offers only that branch and no
+All branches, and the server refuses any other branch or "all" with 403 (`InsightsBranchScope`, the same rule as
+the downloads' `BranchOnlyExportScope`); their download links default to that branch. Doctor filtering is
+available only on reports whose source data supports it. The doctor list still shows every active doctor in the
+organisation (names and primary branch only); with the branch fixed, the figures stay own-branch. Narrowing that
+list is a follow-up.
 
 Reports return aggregates and catalogue/provider ranking labels, not patient names, patient numbers, identity
 documents, or individual financial records. Patient-level outstanding-balance rankings are intentionally not

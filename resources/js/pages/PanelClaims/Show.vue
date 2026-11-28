@@ -353,7 +353,7 @@ const eventTitle = (type: string) =>
 <template>
     <Head :title="`Panel claim · ${claim.claimNo}`" />
     <main
-        class="mx-auto w-full max-w-[1500px] space-y-6 px-4 py-6 print:max-w-none print:px-0"
+        class="mx-auto w-full max-w-[1500px] space-y-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-6 print:max-w-none print:px-0"
     >
         <header
             class="flex flex-wrap items-start justify-between gap-4 print:items-center"
@@ -369,7 +369,7 @@ const eventTitle = (type: string) =>
                 </ActionLink>
                 <div>
                     <h1
-                        class="flex flex-wrap items-center gap-3 text-2xl font-semibold text-foreground"
+                        class="flex flex-wrap items-center gap-3 text-[26px] font-semibold tracking-[-0.02em] text-foreground lg:text-[30px]"
                     >
                         <span>Panel Claims {{ claim.claimNo }}</span>
                         <span class="text-lg font-normal">

@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 
 /**
@@ -40,9 +41,7 @@ const toggle = () => {
 
 <template>
     <Head title="Dispensary settings" />
-    <main
-        class="mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-4 px-4 py-6 md:px-6"
-    >
+    <PageFrame width="narrow">
         <PageHeader
             title="Dispensary settings"
             :description="`${branch.name} · These settings apply to this branch only.`"
@@ -92,5 +91,5 @@ const toggle = () => {
                 }}</span>
             </div>
         </section>
-    </main>
+    </PageFrame>
 </template>
