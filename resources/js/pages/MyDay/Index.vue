@@ -57,6 +57,38 @@ const redZone = computed(() => {
 });
 
 // Clean Look greeting: the signed-in user's own first name (already a shared page prop) and the browser clock.
+// Count tiles under the greeting, from numbers this page already has: approvals waiting for the person,
+// their next things and credentials due. The live strip below keeps its own figures.
+const dayTiles = computed(() => {
+    const t: Array<{ key: string; label: string; value: number }> = [];
+
+    if (props.waiting) {
+        t.push({
+            key: 'approvals',
+            label: 'Waiting for my approval',
+            value: props.waiting.total,
+        });
+    }
+
+    if (props.next?.live) {
+        t.push({
+            key: 'things',
+            label: 'Next things',
+            value: props.next.thingsTotal,
+        });
+    }
+
+    if (props.today.credentials) {
+        t.push({
+            key: 'credentials',
+            label: 'Credentials due',
+            value: props.today.credentials.rows.length,
+        });
+    }
+
+    return t;
+});
+
 const greetingText = computed(() =>
     greetingFor(
         page.props.auth?.user?.name,
@@ -83,6 +115,18 @@ const greetingText = computed(() =>
             <div class="space-greeting" data-test="space-greeting">
                 <p class="space-greet">{{ greetingText }}</p>
             </div>
+            <ul
+                v-if="dayTiles.length"
+                class="space-tiles"
+                data-test="space-tiles"
+            >
+                <li v-for="tile in dayTiles" :key="tile.key">
+                    <div class="space-tile">
+                        <strong>{{ tile.value }}</strong>
+                        <span class="space-muted">{{ tile.label }}</span>
+                    </div>
+                </li>
+            </ul>
 
             <!-- Today first (the clock card), then what needs acting on, then the rest of the person's own week. -->
             <MeHome
