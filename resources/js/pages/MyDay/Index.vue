@@ -58,7 +58,7 @@ const redZone = computed(() => {
 
 // Clean Look greeting: the signed-in user's own first name (already a shared page prop) and the browser clock.
 // Count tiles under the greeting, from numbers this page already has: approvals waiting for the person,
-// their next things and credentials due. The live strip below keeps its own figures.
+// their next things and credentials due. The live strip below keeps its own figures. The tiles do not link anywhere.
 const dayTiles = computed(() => {
     const t: Array<{ key: string; label: string; value: number }> = [];
 
@@ -86,7 +86,8 @@ const dayTiles = computed(() => {
         });
     }
 
-    return t;
+    // A tile that reads 0 is left out; its card below already says there is nothing.
+    return t.filter((tile) => tile.value > 0);
 });
 
 const greetingText = computed(() =>
@@ -117,7 +118,7 @@ const greetingText = computed(() =>
             </div>
             <ul
                 v-if="dayTiles.length"
-                class="space-tiles"
+                class="space-tiles is-fill"
                 data-test="space-tiles"
             >
                 <li v-for="tile in dayTiles" :key="tile.key">

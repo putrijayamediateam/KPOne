@@ -21,3 +21,15 @@ test('the tiles add no request and no new prop', () => {
 
     assert.doesNotMatch(script, /requestJson|fetch\(|router\./);
 });
+
+test('a tile that reads 0 is hidden, the row fills the width, and the tiles are not links', () => {
+    assert.match(day, /tile\.value > 0/);
+    assert.match(day, /class="space-tiles is-fill"/);
+    assert.doesNotMatch(
+        day.slice(
+            day.indexOf('data-test="space-tiles"'),
+            day.indexOf('</ul>', day.indexOf('data-test="space-tiles"')),
+        ),
+        /<Link|href=/,
+    );
+});
