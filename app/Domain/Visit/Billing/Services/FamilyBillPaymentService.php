@@ -64,12 +64,20 @@ final class FamilyBillPaymentService
             throw ValidationException::withMessages(['amount_sen' => 'A payment must be positive.']);
         }
         $familyPaymentId = Uuid::uuid5(self::NAMESPACE, "kpone:family-payment:{$actor->organisation_id}:{$data['idempotency_key']}")->toString();
-        $members = collect($data['members'])->map(fn (array $m): array => ['invoice' => (string) $m['invoice_public_id'], 'version' => (int) $m['lock_version']])
-            ->sortBy('invoice')->values()->all();
+        /** @var array<string, int> $sent invoice public id => lock_version the page showed */
+        $sent = [];
+        foreach ((array) $data['members'] as $member) {
+            $sent[(string) $member['invoice_public_id']] = (int) $member['lock_version'];
+        }
+        ksort($sent);
+        $members = [];
+        foreach ($sent as $invoicePublicId => $version) {
+            $members[] = ['invoice' => $invoicePublicId, 'version' => $version];
+        }
         $hash = hash('sha256', json_encode([$actor->id, (int) $data['expected_branch_id'], $amount, $data['method'], $data['reference'] ?? null,
             (int) $data['expected_total_sen'], $members], JSON_THROW_ON_ERROR));
 
-        return DB::transaction(function () use ($actor, $anchor, $data, $amount, $familyPaymentId, $hash): array {
+        return DB::transaction(function () use ($actor, $anchor, $data, $amount, $familyPaymentId, $hash, $sent): array {
             $branch = $this->authority->branch($actor, $data['expected_branch_id']);
             $actor = $this->authority->lock($actor, $branch, 'payments.add.branch');
             abort_unless($anchor->organisation_id === $actor->organisation_id && $anchor->branch_id === $branch->id && $anchor->family_group_id !== null, 404);
@@ -96,11 +104,10 @@ final class FamilyBillPaymentService
 
             // R2: the family as shown must be the family now: the same open invoices, versions and total.
             $current = $this->family->openInvoices($anchor);
-            $sent = collect($data['members'])->mapWithKeys(fn (array $m): array => [(string) $m['invoice_public_id'] => (int) $m['lock_version']]);
             $payable = $current->reject(fn (Invoice $invoice): bool => (bool) $invoice->correction_hold);
             if ($current->pluck('id')->sort()->values()->all() !== $locked->keys()->sort()->values()->all()
-                || $payable->count() !== $sent->count()
-                || $payable->contains(fn (Invoice $invoice): bool => $sent->get($invoice->public_id) !== $locked[$invoice->id]->lock_version)
+                || $payable->count() !== count($sent)
+                || $payable->contains(fn (Invoice $invoice): bool => ($sent[$invoice->public_id] ?? null) !== $locked[$invoice->id]->lock_version)
                 || $visits->contains(fn (Visit $visit): bool => $visit->status !== Visit::STATUS_REGISTERED)) {
                 throw ValidationException::withMessages(['family' => self::CHANGED]);
             }
@@ -159,6 +166,6 @@ final class FamilyBillPaymentService
             throw ValidationException::withMessages(['payment' => 'This request key was already used.']);
         }
 
-        return $existing->all();
+        return array_values($existing->all());
     }
 }
