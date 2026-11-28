@@ -230,7 +230,7 @@ const saveProblem = () => {
         <p
             v-if="actionError"
             role="alert"
-            class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+            class="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive"
         >
             {{ actionError }}
         </p>
@@ -257,8 +257,8 @@ const saveProblem = () => {
                             class="inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium"
                             :class="
                                 reviewCurrent
-                                    ? 'border-emerald-200 bg-emerald-50/60 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300'
-                                    : 'border-amber-300 bg-amber-50/70 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300'
+                                    ? 'border-success/25 bg-success-wash text-success'
+                                    : 'border-warning/25 bg-warning-wash text-warning-strong'
                             "
                         >
                             <Check v-if="reviewCurrent" class="size-3.5" />
@@ -287,7 +287,7 @@ const saveProblem = () => {
                     </p>
                     <p
                         v-if="allergies.status === 'unknown'"
-                        class="text-sm font-medium text-amber-900 dark:text-amber-300"
+                        class="text-sm font-medium text-warning-strong"
                     >
                         Allergy status not yet reviewed
                     </p>
@@ -390,7 +390,7 @@ const saveProblem = () => {
                                 size="sm"
                                 variant="ghost"
                                 type="button"
-                                class="text-red-700 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                class="text-destructive hover:text-destructive"
                                 :disabled="allergyBusy"
                                 @click="
                                     requestConfirmation(
@@ -414,7 +414,7 @@ const saveProblem = () => {
 
                 <form
                     v-if="showAllergyForm && allergies.canUpdate"
-                    class="grid gap-2 rounded-md border bg-muted/20 p-3 sm:grid-cols-2"
+                    class="grid gap-2 rounded-md border bg-card-quiet p-3 sm:grid-cols-2"
                     @submit.prevent="saveAllergy"
                 >
                     <label class="text-sm sm:col-span-2">
@@ -457,7 +457,7 @@ const saveProblem = () => {
                     </label>
                     <p
                         v-if="Object.keys(allergyForm.errors).length"
-                        class="text-xs text-red-700 sm:col-span-2"
+                        class="text-xs text-destructive sm:col-span-2"
                     >
                         Review the highlighted Allergy information and try
                         again.
@@ -482,7 +482,7 @@ const saveProblem = () => {
 
             <div
                 v-else
-                class="rounded-md border border-amber-300 bg-amber-50/70 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300"
+                class="rounded-md border border-warning/25 bg-warning-wash px-3 py-2 text-sm text-warning-strong"
             >
                 Allergy information is unavailable for this consultation. Do not
                 interpret this as no known allergies.
@@ -593,7 +593,7 @@ const saveProblem = () => {
                                 size="sm"
                                 variant="ghost"
                                 type="button"
-                                class="text-red-700 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                class="text-destructive hover:text-destructive"
                                 :disabled="problemBusy"
                                 @click="
                                     requestConfirmation(
@@ -631,7 +631,7 @@ const saveProblem = () => {
                             size="sm"
                             variant="ghost"
                             type="button"
-                            class="text-red-700 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                            class="text-destructive hover:text-destructive"
                             :disabled="problemBusy"
                             @click="
                                 requestConfirmation(
@@ -704,7 +704,7 @@ const saveProblem = () => {
 
                 <form
                     v-if="showProblemForm && problems.canUpdate"
-                    class="grid items-start gap-2 rounded-md border bg-muted/20 p-3 sm:grid-cols-2"
+                    class="grid items-start gap-2 rounded-md border bg-card-quiet p-3 sm:grid-cols-2"
                     @submit.prevent="saveProblem"
                 >
                     <label class="text-sm sm:col-span-2">
@@ -738,7 +738,7 @@ const saveProblem = () => {
                     </label>
                     <p
                         v-if="Object.keys(problemForm.errors).length"
-                        class="text-xs text-red-700 sm:col-span-2"
+                        class="text-xs text-destructive sm:col-span-2"
                     >
                         Review the highlighted Problem information and try
                         again.
