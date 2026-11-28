@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { PageFrame } from '@/components/ui/page-frame';
+import { PageHeader } from '@/components/ui/page-header';
 
 type Clinician = {
     userId: number;
@@ -99,24 +101,17 @@ const save = () => {
 
 <template>
     <Head title="Clinician credentials" />
-    <main class="mx-auto w-full max-w-4xl space-y-5 p-4 md:p-6">
-        <Link href="/clinic-management" class="text-sm underline"
-            >Clinic management</Link
-        >
-        <h1 class="text-2xl font-semibold">
-            {{
+    <PageFrame width="narrow">
+        <PageHeader
+            :title="
                 canManage ? 'Clinician credentials' : 'My clinician credentials'
-            }}
-        </h1>
-        <p class="text-sm text-muted-foreground">
-            Professional identity for future Medical Certificates. Issuing
-            certificates is not available. Verification is a manual check, not
-            an automated MMC or current APC validation.
-        </p>
+            "
+            description="Professional identity for future Medical Certificates. Issuing certificates is not available. Verification is a manual check, not an automated MMC or current APC validation."
+        />
         <p
             v-if="saved"
             role="status"
-            class="rounded border border-emerald-600 p-3"
+            class="rounded-[12px] bg-success-wash p-3 text-sm text-success"
         >
             Credentials saved.
         </p>
@@ -127,7 +122,7 @@ const save = () => {
             <section
                 v-for="clinician in clinicians"
                 :key="clinician.userId"
-                class="space-y-3 rounded-lg border bg-card p-4"
+                class="space-y-3 rounded-[14px] border bg-card p-4 md:p-5"
             >
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <h2 class="font-semibold">{{ clinician.accountName }}</h2>
@@ -285,5 +280,5 @@ const save = () => {
                 </form>
             </DialogContent></Dialog
         >
-    </main>
+    </PageFrame>
 </template>

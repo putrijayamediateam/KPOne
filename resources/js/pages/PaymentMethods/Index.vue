@@ -5,6 +5,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/status';
 
@@ -112,9 +113,7 @@ const changeStatus = (method: PaymentMethodRow) => {
 </script>
 
 <template>
-    <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
-    >
+    <PageFrame>
         <PageHeader
             title="Payment Methods"
             description="Configure the organisation payment methods available at checkout."
@@ -417,5 +416,5 @@ const changeStatus = (method: PaymentMethodRow) => {
                 </form>
             </section>
         </div>
-    </main>
+    </PageFrame>
 </template>

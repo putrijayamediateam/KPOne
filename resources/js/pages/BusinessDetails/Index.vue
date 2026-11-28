@@ -273,7 +273,7 @@ const reload = () =>
 <template>
     <Head title="Business details" />
     <main
-        class="mx-auto w-full max-w-4xl min-w-0 flex-1 p-4 pb-0 md:p-6 md:pb-0"
+        class="mx-auto w-full max-w-4xl min-w-0 flex-1 p-4 pb-0 md:p-6 md:pb-0 lg:px-8"
     >
         <PageHeader
             title="Business details"
