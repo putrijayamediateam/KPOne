@@ -61,6 +61,20 @@ final class InsightsDoctorPickerScopeTest extends ClinicalTestCase
         $this->assertNotContains($elsewhere->id, $ids, 'another branch only, no visit here');
     }
 
+    public function test_a_covering_doctor_can_be_filtered_and_drops_out_after_a_year_without_visits(): void
+    {
+        $locum = $this->locum();
+        $manager = $this->actor('branch_manager');
+        $this->selectBranch($manager);
+        $this->actingAs($manager)->get(route('insights.report', ['section' => 'sales', 'doctor' => $locum->id]))->assertOk();
+        $this->actingAs($manager)->get(route('insights.sales-summary.download', ['doctor' => $locum->id, 'from' => '2026-10-01', 'to' => '2026-10-01']))->assertOk();
+
+        // The window rolls from today (owner decision: "the last year"); 367 days on, the covering visit no longer counts.
+        $this->travel(367)->days();
+        $this->assertNotContains($locum->id, $this->pickerIds($manager));
+        $this->actingAs($manager)->get(route('insights.report', ['section' => 'sales', 'doctor' => $locum->id]))->assertForbidden();
+    }
+
     public function test_a_branch_only_person_is_refused_a_doctor_outside_its_picker_on_the_page_and_downloads(): void
     {
         $here = $this->actor('resident_doctor');

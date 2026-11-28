@@ -13,7 +13,7 @@ final class SalesSummaryExportService
 {
     public const PERMISSION = 'reports.sales.export.organisation';
 
-    public function __construct(private BranchAccessService $branches, private TransactionalActorAuthority $authority, private ClinicInsightsReportService $reports, private AuditRecorder $audit) {}
+    public function __construct(private BranchAccessService $branches, private TransactionalActorAuthority $authority, private ClinicInsightsReportService $reports, private AuditRecorder $audit, private InsightsBranchScope $insightsScope) {}
 
     /** @return array{name:string, csv:string} */
     public function download(User $actor, string $scope, string $from, string $to, ?int $doctor): array
@@ -28,6 +28,8 @@ final class SalesSummaryExportService
             abort_unless($branch && $branch->organisation_id === $actor->organisation_id, 403);
             $actor = $this->authority->lock($actor, $branch, self::PERMISSION);
             BranchOnlyExportScope::enforce($actor, $branch, $scope);
+            // INS-BM-3 (owner, 28 Nov 2026): a branch-only account may filter only by its branch's doctors.
+            $this->insightsScope->enforceDoctor($actor, $doctor, $this->reports);
             $grants = $actor->getAllPermissions()->pluck('name');
             // INS-1 (owner, 24 Nov 2026): the download stands on its own export permission, not on Insights page access.
             abort_unless($grants->contains(self::PERMISSION), 403);
