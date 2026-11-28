@@ -31,7 +31,7 @@ server-built `ShellMenu` (#1125)**. Fonts are self-hosted in `public/fonts` (Gei
 
 ### CL2-HOMES2 (Clean Look stage 2, area homes and Insights; 27 Nov 2026, Kavitha and Aiman)
 Brief: restyle the area homes and Insights in place to match the demo; frontend only; no PHP, route, permission, migration, payload or
-assertion change. State on 28 Nov 2026: **all three are merged: #1260 (27 Nov, 22:08 UTC), #1280 (27 Nov, 22:27 UTC) and #1278 (28 Nov, 06:02 UTC).**
+assertion change. State on 28 Nov 2026: **#1260 (27 Nov, 22:08 UTC), #1280 (27 Nov, 22:27 UTC), #1278 (28 Nov, 06:02 UTC) and #1295 (28 Nov, 10:37 UTC) are merged; #1296 is open and waits for Daniel's OK (check its state first).**
 - **#1260** (merged) `feature/cl2-homes2` (frozen at `b10de601`): `shadow-card` on every `space-card` (`Spaces/Show.vue`, `SpaceAskPanel.vue`,
   `MyRoutine.vue`); Insights cards get the soft shadow; Dashboard pink hover and Overview amber dots use tokens; the routine tick uses
   `--primary`; a greeting line ("Good morning, <first name>") on the department homes and My day; up to four count tiles under the greeting,
@@ -47,6 +47,21 @@ assertion change. State on 28 Nov 2026: **all three are merged: #1260 (27 Nov, 2
   branch clock, not the device clock (`resources/js/lib/greeting.ts`; My day uses `today.time.timezone`, department homes parse the
   server's `asOf` text, both fall back to the browser clock), with `tests/Frontend/cl2-greeting-timezone.test.mjs`. It changes behaviour,
   so it was taken to the owner separately from the look-only approval.
+- **#1295** (merged) `feature/cl2-home-tiles`: count tiles on **My day**, the landing page for every role, under the greeting. A survey of every
+  demo role against every department space showed all department homes with data already had tiles; My day had none. The three tiles
+  come from props the page already has: Waiting for my approval (`waiting.total`), Next things (`next.thingsTotal`, roles with a live
+  strip) and Credentials due (`today.credentials.rows.length`). After Daniel's nits the row fills the width (`is-fill`, My day only), a
+  tile that reads 0 is hidden, and the tiles are not links (a code comment and a test pin that). New `tests/Frontend/cl2-my-day-tiles.test.mjs`.
+  Shots: `validation/cl2-home-tiles-shots` (the populated shots are mocked-props, said in their README).
+- **#1296** (open) `fix/cl2-section-gap`: a full-width block on a home ("Recent activity", "This week", the as-of line) sat 0 to 14 px under
+  the cards above it, because under the balanced columns the bottom margin of a column's last card is cut or kept depending on the
+  balance. The block now brings its own 16 px gap above it and the card before it keeps no bottom margin. CSS only, inside the 1024 px
+  query, with `tests/Frontend/cl2-section-gap.test.mjs`. It touches every home, so it waits for Daniel; shots are in
+  `validation/cl2-section-gap-shots` (before and after, CA, Finance Officer and Director). Stock still measures 22 px (two columns of
+  different heights).
+- **Owner decision, 28 Nov:** the Director's Consultation space stays as it is. Its home is built for a doctor's own queue, so the Director
+  gets no counts and shows an empty-state card; giving the Director branch-wide counts would be a data-visibility change in PHP that the
+  owner would have to decide (it would belong to the Queue and TV team).
 - **Demo-only, not built** (the demo shows them, KPOne has no data or feature for them): the Director "Needs your approval" card with
   Approve buttons; Finance "Today's money by branch"; the BM live and "My week" cards; the routine ring, tiles, "My week" and "For you"
   cards on the other demo homes; expandable "Are you sure?" confirms. Card re-ordering was not done: each home's first card is already
@@ -202,7 +217,7 @@ usability aid only and must follow the permission the backend already enforces.
 | CO-10a | The agent office's V2 control-room look removed | #1052 |
 | CO-10b | The V2 machinery removed: `components/v2`, the V2 shell, `V2Layout`, `useUiVersion`, `lib/v2-*`, `v2.css`, `UiVersionResolver`, `V2ShellNavigation`, `config/v2-pages.php`, the Geist font and the V2 shared props | #1056 |
 | CO-10c | The last V2 leftovers: unused V2-only props and options, seven backend fields and the inline "add a Panel" route (`POST /catalogue-panels`), and stale V2 comments | #1059 |
-| CL2-HOMES2 | Clean Look stage 2 for the area homes and Insights: card shadow, balanced two-column card flow, greeting, count tiles; logo to the role's landing page; branch-clock greeting (see section 0) | #1260, #1278, #1280 |
+| CL2-HOMES2 | Clean Look stage 2 for the area homes and Insights: card shadow, balanced two-column card flow, greeting, count tiles; logo to the role's landing page; branch-clock greeting, My day count tiles, gap above full-width blocks (see section 0) | #1260, #1278, #1280, #1295, #1296 |
 
 **Classic only: done (2026-11-22).** Every slice of `docs/design/CLASSIC-ONLY-PLAN.md` is merged (its section 8 lists them). Each slice listed its changed or deleted test assertions and had the owner's approval before the commit that changed them. Owner, 22 Nov 2026: keep the unused `user_space_preferences` table (plan Q4), so there is no CO-11. The Classic leave warning (section 7, item 17) remains its own later slice.
 
