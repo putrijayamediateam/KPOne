@@ -40,6 +40,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $coverage_panel_note
  * @property string|null $coverage_member_reference
  * @property Carbon $registered_at
+ * @property string|null $family_group_id
  * @property int $registered_by_user_id
  * @property int $updated_by_user_id
  * @property Carbon|null $cancelled_at
