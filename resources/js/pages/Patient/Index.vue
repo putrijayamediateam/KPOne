@@ -103,7 +103,7 @@ const identifierLabel = (result: Result) =>
             class="flex flex-col justify-between gap-4 md:flex-row md:items-start"
         >
             <div class="flex items-start gap-3">
-                <div class="rounded-xl bg-brand/10 p-2.5 text-brand-strong">
+                <div class="rounded-xl bg-primary/10 p-2.5 text-primary">
                     <UserRoundSearch class="size-5" />
                 </div>
                 <div>
@@ -185,7 +185,7 @@ const identifierLabel = (result: Result) =>
             <div v-if="results.length" class="overflow-x-auto">
                 <table class="block w-full text-left text-sm md:table">
                     <thead
-                        class="hidden border-b bg-muted/40 text-xs text-muted-foreground uppercase md:table-header-group"
+                        class="hidden border-b bg-card-quiet text-[13px] font-semibold text-muted-foreground md:table-header-group"
                     >
                         <tr>
                             <th class="px-5 py-3">Patient</th>
@@ -205,7 +205,7 @@ const identifierLabel = (result: Result) =>
                             >
                                 <Link
                                     :href="patientHref(patient.patientNumber)"
-                                    class="font-medium text-brand-strong hover:underline"
+                                    class="font-medium text-link hover:underline"
                                     >{{ patient.fullName }}</Link
                                 >
                                 <div
