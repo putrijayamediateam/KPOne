@@ -160,7 +160,9 @@ const record = () => {
 
 <template>
     <Head title="Import opening stock" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 text-sm lg:px-8"
+    >
         <ActionLink
             href="/inventory/readiness"
             variant="ghost"
@@ -173,7 +175,7 @@ const record = () => {
             :description="`${props.import.branchName} · Record this branch's opening stock from one CSV. Check it first: every row is recorded, or none.`"
         />
         <p
-            class="rounded-lg border bg-muted/40 p-3 text-sm"
+            class="rounded-xl bg-card-quiet p-4 text-sm"
             data-testid="opening-import-notice"
         >
             Synthetic data only. Not a Yezza data migration. Each opening still
@@ -182,11 +184,11 @@ const record = () => {
 
         <section
             v-if="props.import.recorded > 0 && !checked"
-            class="space-y-2 rounded-lg border bg-card p-4"
+            class="space-y-2 rounded-xl border bg-card p-4 shadow-card sm:p-5"
             role="status"
             data-testid="opening-import-success"
         >
-            <h2 class="font-semibold">
+            <h2 class="text-[15px] font-semibold">
                 {{ props.import.recorded }} opening
                 {{ props.import.recorded === 1 ? 'line' : 'lines' }} recorded
             </h2>
@@ -201,8 +203,10 @@ const record = () => {
             >
         </section>
 
-        <section class="space-y-3 rounded-lg border bg-card p-4">
-            <h2 class="font-semibold">The file</h2>
+        <section
+            class="space-y-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
+        >
+            <h2 class="text-[15px] font-semibold">The file</h2>
             <p class="text-sm">
                 A CSV with these columns, in this order, up to
                 {{ props.import.maxRows }} rows:
@@ -221,14 +225,14 @@ const record = () => {
             </ul>
             <a
                 href="/inventory/opening-import/template"
-                class="inline-flex min-h-11 items-center text-sm underline underline-offset-4 lg:min-h-0"
+                class="inline-flex min-h-11 items-center text-sm text-link underline underline-offset-4 lg:min-h-0"
                 >Download the template</a
             >
             <form
-                class="flex flex-wrap items-end gap-2"
+                class="flex flex-wrap items-end gap-3"
                 @submit.prevent="check"
             >
-                <div class="grid min-w-0 flex-1 gap-1 text-sm">
+                <div class="grid min-w-0 flex-1 gap-2 text-[13px] font-medium">
                     <span id="opening-import-file-label">CSV file</span>
                     <FileChooseButton
                         id="opening-import-file"
@@ -255,10 +259,10 @@ const record = () => {
 
         <section
             v-if="checked"
-            class="space-y-3"
+            class="space-y-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
             aria-labelledby="opening-import-result"
         >
-            <h2 id="opening-import-result" class="font-semibold">
+            <h2 id="opening-import-result" class="text-[15px] font-semibold">
                 {{ checked.rows.length }}
                 {{ checked.rows.length === 1 ? 'row' : 'rows' }} checked
             </h2>
@@ -274,7 +278,7 @@ const record = () => {
             </p>
             <div
                 v-else
-                class="flex flex-wrap items-center gap-3 rounded-lg border p-3"
+                class="flex flex-wrap items-center gap-3 rounded-[10px] bg-card-quiet p-3"
             >
                 <p class="min-w-0 flex-1 text-sm">
                     Every row is OK. Recording adds
@@ -295,12 +299,15 @@ const record = () => {
                     }}</Button
                 >
             </div>
-            <ul class="space-y-2" aria-label="Checked rows">
+            <ul
+                class="divide-y overflow-hidden rounded-[10px] border"
+                aria-label="Checked rows"
+            >
                 <li
                     v-for="row in checked.rows"
                     :key="row.line"
-                    class="rounded-lg border bg-card p-3 text-sm"
-                    :class="row.problems.length ? 'border-destructive' : ''"
+                    class="p-3 text-sm"
+                    :class="row.problems.length ? 'bg-destructive/10' : ''"
                 >
                     <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                         <span class="text-muted-foreground"
@@ -313,7 +320,7 @@ const record = () => {
                             >Batch {{ row.batch_number }}
                             <span
                                 v-if="row.new_batch && !row.problems.length"
-                                class="ml-1 rounded border px-1.5 py-0.5 text-xs"
+                                class="ml-1 rounded-lg bg-muted px-2 py-0.5 text-xs font-medium"
                                 >New batch</span
                             ></span
                         >

@@ -14,83 +14,77 @@ defineProps<{
 
 <template>
     <div
-        class="grid min-h-svh bg-slate-100 lg:grid-cols-[minmax(0,1.05fr)_minmax(460px,0.95fr)] dark:bg-slate-950"
+        class="grid min-h-svh bg-background lg:grid-cols-[minmax(0,1.05fr)_minmax(460px,0.95fr)] lg:gap-5 lg:p-5"
     >
+        <!-- Decorative brand panel (Clean Look sign-in): the one gradient element; text uses --primary-foreground (5.07:1 on --primary). -->
         <div
-            class="relative hidden min-h-svh overflow-hidden bg-slate-950 p-10 text-white lg:flex lg:flex-col xl:p-14 dark:border-r dark:border-white/10"
+            class="relative hidden min-h-[calc(100svh-2.5rem)] overflow-hidden rounded-[32px] bg-linear-to-br from-primary to-primary/80 p-10 text-primary-foreground lg:flex lg:flex-col xl:p-14 dark:border dark:bg-card dark:bg-none dark:text-foreground"
         >
             <div
-                class="pointer-events-none absolute -top-32 -left-28 size-96 rounded-full border border-pink-400/10 bg-pink-400/[0.04]"
-            />
-            <div
-                class="pointer-events-none absolute right-[-8rem] bottom-[-10rem] size-[30rem] rounded-full border border-white/[0.05]"
+                class="pointer-events-none absolute -top-32 -right-28 size-96 rounded-full bg-primary-foreground/10"
+                aria-hidden="true"
             />
             <Link
                 href="/"
-                class="relative z-20 inline-flex w-fit items-center gap-3 rounded-lg text-lg font-semibold tracking-tight focus-visible:ring-2 focus-visible:ring-pink-400/70 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-950 focus-visible:outline-none"
+                class="relative z-20 inline-flex w-fit items-center gap-3 rounded-lg text-lg font-semibold tracking-tight focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:outline-none"
             >
-                <AppLogoIcon class="size-11 text-pink-500" />
+                <AppLogoIcon class="size-11 text-brand" />
                 {{ name }}
             </Link>
             <div class="relative z-20 my-auto max-w-lg py-16">
-                <div class="mb-8 h-px w-14 bg-pink-500" aria-hidden="true" />
-                <p
-                    class="text-xs font-semibold tracking-[0.18em] text-pink-300 uppercase"
-                >
+                <p class="text-[13px] font-medium opacity-90">
                     Klinik Putrijaya workspace
                 </p>
                 <h2
-                    class="mt-5 text-4xl leading-[1.12] font-semibold tracking-[-0.035em] text-white xl:text-5xl"
+                    class="mt-4 text-4xl leading-[1.1] font-semibold tracking-[-0.03em] xl:text-5xl"
                 >
                     Clear, connected clinic operations.
                 </h2>
-                <p class="mt-6 max-w-md text-base leading-7 text-slate-300">
+                <p class="mt-6 max-w-md text-base leading-7 opacity-90">
                     A focused workspace for authorised teams to coordinate care
                     and daily clinic work.
                 </p>
                 <div
-                    class="mt-10 flex flex-wrap gap-x-8 gap-y-4 text-sm text-slate-300"
+                    class="mt-10 flex flex-wrap gap-x-8 gap-y-4 text-sm opacity-95"
                 >
                     <div class="flex items-center gap-3">
-                        <ShieldCheck class="size-4 text-pink-300" />
+                        <ShieldCheck class="size-4" />
                         Permission-aware access
                     </div>
                     <div class="flex items-center gap-3">
-                        <Building2 class="size-4 text-pink-300" />
+                        <Building2 class="size-4" />
                         Branch-aware operations
                     </div>
                 </div>
             </div>
-            <p class="relative z-20 text-xs text-slate-500">
+            <p class="relative z-20 text-[12.5px] opacity-90">
                 Authorised Klinik Putrijaya staff only
             </p>
         </div>
 
         <main
-            class="flex min-h-svh items-center justify-center px-5 py-8 sm:px-8 lg:px-12"
+            class="flex min-h-svh items-center justify-center px-4 py-8 sm:px-8 lg:min-h-0 lg:px-12"
         >
             <div
-                class="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-950/[0.06] sm:p-9 dark:border-white/10 dark:bg-slate-900 dark:shadow-black/20"
+                class="w-full max-w-md rounded-[14px] border bg-card p-6 shadow-card sm:p-8"
             >
                 <Link
                     href="/"
-                    class="mb-8 inline-flex items-center gap-3 rounded-lg font-semibold tracking-tight text-slate-950 focus-visible:ring-2 focus-visible:ring-pink-500/60 focus-visible:ring-offset-4 focus-visible:outline-none lg:hidden dark:text-white dark:focus-visible:ring-offset-slate-900"
+                    class="mb-8 inline-flex min-h-11 items-center gap-3 rounded-lg font-semibold tracking-tight text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:outline-none lg:hidden"
                 >
-                    <AppLogoIcon
-                        class="size-10 text-pink-600 dark:text-pink-500"
-                    />
+                    <AppLogoIcon class="size-10 text-brand" />
                     {{ name }}
                 </Link>
-                <div class="space-y-2">
+                <div class="space-y-1">
                     <h1
                         v-if="title"
-                        class="text-2xl font-semibold tracking-[-0.025em] text-slate-950 dark:text-white"
+                        class="text-[26px] font-semibold tracking-[-0.02em] text-foreground"
                     >
                         {{ title }}
                     </h1>
                     <p
                         v-if="description"
-                        class="text-sm leading-6 text-slate-600 dark:text-slate-300"
+                        class="text-sm leading-6 text-muted-foreground"
                     >
                         {{ description }}
                     </p>

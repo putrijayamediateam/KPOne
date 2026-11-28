@@ -72,7 +72,7 @@ onBeforeUnmount(() => {
 <template>
     <Head title="Agent office" />
     <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 lg:px-8"
     >
         <PageHeader
             title="Agent office"
@@ -85,7 +85,7 @@ onBeforeUnmount(() => {
 
         <div class="flex flex-wrap items-center gap-2 text-sm">
             <span
-                class="inline-flex items-center gap-2 rounded-full border px-3 py-1"
+                class="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1"
             >
                 <span
                     class="size-2.5 rounded-full"
@@ -96,7 +96,7 @@ onBeforeUnmount(() => {
             <component
                 :is="canOpenInbox ? Link : 'span'"
                 :href="canOpenInbox ? '/agents/inbox' : undefined"
-                class="inline-flex items-center gap-2 rounded-full border px-3 py-1"
+                class="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1"
                 data-test="office-pending"
             >
                 <span
@@ -127,7 +127,7 @@ onBeforeUnmount(() => {
         </div>
 
         <div
-            class="overflow-hidden rounded-2xl border bg-gradient-to-b from-brand/5 to-transparent p-1 sm:p-3"
+            class="overflow-hidden rounded-[14px] border bg-card p-1 shadow-card sm:p-3"
         >
             <OfficeScene
                 :feed="feed"
@@ -152,7 +152,7 @@ onBeforeUnmount(() => {
                 >
                     <button
                         type="button"
-                        class="flex min-h-11 w-full min-w-0 flex-col gap-1 rounded-xl border bg-card p-3 text-left hover:border-brand"
+                        class="flex min-h-11 w-full min-w-0 flex-col gap-1 rounded-[14px] border bg-card p-3 text-left hover:border-brand"
                         :class="{ 'opacity-60': !agent.isEnabled }"
                         :data-test="`office-card-${agent.code}`"
                         @click="select(agent.code)"
@@ -174,7 +174,7 @@ onBeforeUnmount(() => {
                                 tone="accent"
                             />
                         </span>
-                        <span class="text-xs text-muted-foreground">
+                        <span class="text-[12.5px] text-muted-foreground">
                             {{ agent.jobTitle }} · {{ statusFor(agent) }}
                         </span>
                         <span class="truncate text-sm">
@@ -186,7 +186,7 @@ onBeforeUnmount(() => {
                         </span>
                         <span
                             v-if="latestMessage.get(agent.code)"
-                            class="truncate text-xs text-muted-foreground"
+                            class="truncate text-[12.5px] text-muted-foreground"
                         >
                             “{{ latestMessage.get(agent.code)?.summary }}”
                         </span>
@@ -272,7 +272,7 @@ onBeforeUnmount(() => {
                                 <p class="break-words">
                                     {{ step.summary }}
                                 </p>
-                                <p class="text-xs text-muted-foreground">
+                                <p class="text-[12.5px] text-muted-foreground">
                                     {{ formatDateTime(step.at) }}
                                 </p>
                             </li>
@@ -322,7 +322,7 @@ onBeforeUnmount(() => {
                                 <p class="font-medium">
                                     {{ proposal.typeLabel }}
                                 </p>
-                                <p class="text-xs text-muted-foreground">
+                                <p class="text-[12.5px] text-muted-foreground">
                                     {{ detail.pendingBranch }} ·
                                     {{ formatDateTime(proposal.createdAt) }}
                                 </p>
