@@ -8,7 +8,7 @@ const signed = (sign: '+' | '−', sen: number) =>
 </script>
 <template>
     <section
-        class="rounded-xl border bg-card p-4 text-sm"
+        class="rounded-xl border bg-card p-4 text-sm shadow-card"
         aria-label="Gross to net invoice sales"
     >
         <h2 class="font-semibold">Gross to net invoice sales</h2>

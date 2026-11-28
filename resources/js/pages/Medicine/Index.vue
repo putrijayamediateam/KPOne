@@ -527,7 +527,7 @@ const toggleDescription = computed(() => {
 
 <template>
     <main
-        class="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-4 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-4 px-4 py-6 md:px-6 lg:px-8"
     >
         <PageHeader
             title="Medicine Catalogue"
