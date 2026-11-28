@@ -266,10 +266,25 @@ const saveProblem = () => {
                             <span v-if="reviewCurrent">
                                 Reviewed for this consultation
                             </span>
+                            <!-- DSP-30 (Daniel): nothing to press while the check waits, so the chip says what happened. -->
+                            <span
+                                v-else-if="
+                                    allergies.readOnlyReason === 'doctor_check'
+                                "
+                                >Changed since your review.</span
+                            >
                             <span v-else>Review required</span>
                         </div>
                     </div>
 
+                    <!-- DSP-30: the medicine is with Dispensary for the doctor's check, so the list is shown read only. -->
+                    <p
+                        v-if="allergies.readOnlyReason === 'doctor_check'"
+                        class="text-xs text-muted-foreground"
+                        data-testid="allergies-read-only"
+                    >
+                        Read only while the medicine waits for your check.
+                    </p>
                     <p
                         v-if="allergies.status === 'unknown'"
                         class="text-sm font-medium text-amber-900 dark:text-amber-300"

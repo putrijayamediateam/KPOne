@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { ScrollText } from '@lucide/vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +9,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { PageFrame } from '@/components/ui/page-frame';
 import { formatAuditEventLabel } from '@/lib/displayLabels';
 
 defineOptions({
@@ -46,23 +46,20 @@ const formatTime = (value: string) =>
 
 <template>
     <Head title="Audit Logs" />
-    <main class="flex flex-1 flex-col gap-6 p-4 md:p-7">
-        <div class="flex items-start gap-3">
-            <div class="rounded-xl bg-emerald-100 p-2.5 text-emerald-800">
-                <ScrollText class="size-5" />
-            </div>
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight">
-                    Audit Logs
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                    Append-oriented security and administration history.
-                </p>
-            </div>
-        </div>
+    <PageFrame>
+        <header class="min-w-0 space-y-1">
+            <h1
+                class="text-[26px] font-semibold tracking-[-0.02em] text-foreground lg:text-[30px]"
+            >
+                Audit Logs
+            </h1>
+            <p class="text-[13px] text-muted-foreground">
+                Append-oriented security and administration history.
+            </p>
+        </header>
         <Card>
             <CardHeader
-                ><CardTitle
+                ><CardTitle class="text-[15px] tabular-nums"
                     >{{ logs.total }} recorded event{{
                         logs.total === 1 ? '' : 's'
                     }}</CardTitle
@@ -78,20 +75,24 @@ const formatTime = (value: string) =>
                     role="region"
                     aria-label="Audit log table"
                 >
-                    <table class="w-full text-left text-sm">
+                    <table class="w-full min-w-[720px] text-left text-sm">
                         <thead
-                            class="border-y bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase"
+                            class="border-y bg-card-quiet text-[13px] font-semibold text-muted-foreground"
                         >
                             <tr>
-                                <th class="px-6 py-3">Event</th>
-                                <th class="px-6 py-3">Actor</th>
-                                <th class="px-6 py-3">Context</th>
-                                <th class="px-6 py-3">Time</th>
+                                <th class="px-4 py-3 sm:px-5">Event</th>
+                                <th class="px-4 py-3 sm:px-5">Actor</th>
+                                <th class="px-4 py-3 sm:px-5">Context</th>
+                                <th class="px-4 py-3 sm:px-5">Time</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y">
-                            <tr v-for="log in logs.data" :key="log.id">
-                                <td class="px-6 py-4">
+                        <tbody class="divide-y divide-border/70">
+                            <tr
+                                v-for="log in logs.data"
+                                :key="log.id"
+                                class="transition-colors hover:bg-muted"
+                            >
+                                <td class="px-4 py-3.5 sm:px-5">
                                     <div class="font-medium">
                                         {{
                                             formatAuditEventLabel(
@@ -109,7 +110,7 @@ const formatTime = (value: string) =>
                                     </div>
                                     <div
                                         v-if="log.subjectType"
-                                        class="text-xs text-muted-foreground"
+                                        class="text-[12.5px] text-muted-foreground"
                                     >
                                         {{ log.subjectType
                                         }}<template v-if="log.subjectId">
@@ -117,8 +118,10 @@ const formatTime = (value: string) =>
                                         >
                                     </div>
                                 </td>
-                                <td class="px-6 py-4">{{ log.actor }}</td>
-                                <td class="px-6 py-4">
+                                <td class="px-4 py-3.5 sm:px-5">
+                                    {{ log.actor }}
+                                </td>
+                                <td class="px-4 py-3.5 sm:px-5">
                                     <Badge
                                         v-if="log.branch"
                                         variant="outline"
@@ -128,7 +131,7 @@ const formatTime = (value: string) =>
                                     >
                                 </td>
                                 <td
-                                    class="px-6 py-4 whitespace-nowrap text-muted-foreground"
+                                    class="px-4 py-3.5 whitespace-nowrap text-muted-foreground tabular-nums sm:px-5"
                                 >
                                     {{ formatTime(log.occurredAt) }}
                                 </td>
@@ -145,5 +148,5 @@ const formatTime = (value: string) =>
                 ><Link :href="logs.next_page_url">Next</Link></Button
             >
         </div>
-    </main>
+    </PageFrame>
 </template>
