@@ -87,7 +87,9 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
         >
             <div class="rounded-xl border bg-card p-4">
                 <p class="text-xs text-muted-foreground">Still owed</p>
-                <p class="mt-1 text-xl font-semibold tabular-nums">
+                <p
+                    class="mt-1 text-2xl font-semibold tracking-[-0.02em] whitespace-nowrap tabular-nums"
+                >
                     {{ myr(collections.all.totalSen) }}
                 </p>
                 <p class="text-xs text-muted-foreground">
@@ -99,7 +101,9 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                 <p class="text-xs text-muted-foreground">
                     Owed on bills past due (today is {{ collections.today }})
                 </p>
-                <p class="mt-1 text-xl font-semibold tabular-nums">
+                <p
+                    class="mt-1 text-2xl font-semibold tracking-[-0.02em] whitespace-nowrap tabular-nums"
+                >
                     {{ myr(collections.all.overdueSen) }}
                 </p>
                 <p class="text-xs text-muted-foreground">
@@ -175,13 +179,13 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                     </div>
                     <span
                         v-if="row.daysOverdue > 0 && dueNowOf(row) > 0"
-                        class="block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+                        class="block w-fit rounded-lg border border-warning/25 bg-warning-wash px-2 text-xs font-semibold text-warning-strong"
                         data-testid="bill-days-since-visit"
                         >{{ daysSinceVisit(row.daysOverdue) }}</span
                     >
                     <span
                         v-else-if="row.daysOverdue > 0"
-                        class="block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+                        class="block w-fit rounded-lg border border-warning/25 bg-warning-wash px-2 text-xs font-semibold text-warning-strong"
                         >{{ row.daysOverdue }}
                         {{ row.daysOverdue === 1 ? 'day' : 'days' }} past
                         due</span
@@ -332,12 +336,12 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                             {{ dueNowOf(row) > 0 ? 'Now' : row.dueDate }}
                             <span
                                 v-if="row.daysOverdue > 0 && dueNowOf(row) > 0"
-                                class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+                                class="mt-1 block w-fit rounded-lg border border-warning/25 bg-warning-wash px-2 text-xs font-semibold text-warning-strong"
                                 >{{ daysSinceVisit(row.daysOverdue) }}</span
                             >
                             <span
                                 v-else-if="row.daysOverdue > 0"
-                                class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+                                class="mt-1 block w-fit rounded-lg border border-warning/25 bg-warning-wash px-2 text-xs font-semibold text-warning-strong"
                                 >{{ row.daysOverdue }}
                                 {{ row.daysOverdue === 1 ? 'day' : 'days' }}
                                 past due</span

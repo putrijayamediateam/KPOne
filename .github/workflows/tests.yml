@@ -5,6 +5,9 @@ on:
     branches:
       - main
   pull_request:
+  merge_group:
+    types:
+      - checks_requested
   repository_dispatch:
     types:
       - exact_sha_validation_requested
@@ -14,7 +17,8 @@ permissions:
   pull-requests: read
 
 # CI-PAR-1: a new push to a pull request cancels that pull request's older run. Pushes to main and exact-SHA
-# validation dispatches each keep their own group (the run id), so they are never cancelled.
+# validation dispatches each keep their own group (the run id), so they are never cancelled. CI-MQ-1: merge_group runs
+# (GitHub merge queue) also take the run-id group, so queued candidates never cancel each other.
 concurrency:
   group: tests-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -76,6 +80,50 @@ jobs:
             echo "pr_number=$pr_number"
             echo "synthetic_merge_sha=$synthetic_merge_sha"
             echo "synthetic_merge_ref=$synthetic_merge_ref"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Validate merge-group candidate
+        if: github.event_name == 'merge_group'
+        id: validate_mg_candidate
+        shell: bash
+        env:
+          MG_HEAD_SHA_JSON: ${{ toJSON(github.event.merge_group.head_sha) }}
+          MG_BASE_SHA_JSON: ${{ toJSON(github.event.merge_group.base_sha) }}
+          MG_HEAD_REF_JSON: ${{ toJSON(github.event.merge_group.head_ref) }}
+          EVENT_SHA_JSON: ${{ toJSON(github.sha) }}
+        run: |
+          set -euo pipefail
+
+          for input in "$MG_HEAD_SHA_JSON" "$MG_BASE_SHA_JSON" "$EVENT_SHA_JSON"; do
+            if ! jq -e 'type == "string" and test("^[0-9a-f]{40}$")' <<<"$input" >/dev/null; then
+              echo 'Merge-group commit identities must be full lowercase 40-character hexadecimal SHAs.' >&2
+              exit 1
+            fi
+          done
+
+          candidate_sha="$(jq -er '.' <<<"$MG_HEAD_SHA_JSON")"
+          base_sha="$(jq -er '.' <<<"$MG_BASE_SHA_JSON")"
+          event_sha="$(jq -er '.' <<<"$EVENT_SHA_JSON")"
+          head_ref="$(jq -er '.' <<<"$MG_HEAD_REF_JSON")"
+
+          if [[ "$candidate_sha" != "$event_sha" ]]; then
+            echo 'The merge-group head SHA is not the SHA this run was triggered for.' >&2
+            exit 1
+          fi
+
+          if [[ "$candidate_sha" == "$base_sha" ]]; then
+            echo 'The merge-group head SHA equals its base SHA, so there is nothing to validate.' >&2
+            exit 1
+          fi
+
+          if [[ ! "$head_ref" =~ ^refs/heads/gh-readonly-queue/[A-Za-z0-9._/-]+$ || "$GITHUB_REF" != "$head_ref" ]]; then
+            echo 'The merge_group event is not associated with its expected gh-readonly-queue ref.' >&2
+            exit 1
+          fi
+
+          {
+            echo "candidate_sha=$candidate_sha"
+            echo "base_sha=$base_sha"
           } >>"$GITHUB_OUTPUT"
 
       - name: Validate exact-SHA request
@@ -196,8 +244,37 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Checkout exact merge-group candidate
+        if: github.event_name == 'merge_group'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.validate_mg_candidate.outputs.candidate_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Attest merge-group checkout and base
+        if: github.event_name == 'merge_group'
+        shell: bash
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ steps.validate_mg_candidate.outputs.candidate_sha }}
+          EXPECTED_BASE_SHA: ${{ steps.validate_mg_candidate.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_CANDIDATE_SHA" ]]; then
+            echo 'The merge-group checkout is not the candidate SHA.' >&2
+            exit 1
+          fi
+          if ! git cat-file -e "$EXPECTED_BASE_SHA^{commit}" 2>/dev/null; then
+            echo 'The merge-group base commit is not present in the checkout.' >&2
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$EXPECTED_BASE_SHA" "$EXPECTED_CANDIDATE_SHA"; then
+            echo 'The merge-group candidate does not contain its base commit.' >&2
+            exit 1
+          fi
+
       - name: Checkout code
-        if: github.event_name != 'repository_dispatch' && github.event_name != 'pull_request'
+        if: github.event_name == 'push'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -533,17 +610,18 @@ jobs:
           fi
 
       # The one commit every other job checks out and verifies: the pull request head, the exact-SHA request's
-      # commit, or the pushed commit.
+      # commit, the merge-queue group head, or the pushed commit.
       - name: Publish the attested candidate SHA
         id: candidate
         shell: bash
         env:
           PR_CANDIDATE_SHA: ${{ steps.validate_pr_candidate.outputs.candidate_sha }}
+          MG_CANDIDATE_SHA: ${{ steps.validate_mg_candidate.outputs.candidate_sha }}
           DISPATCH_CANDIDATE_SHA: ${{ steps.validate_candidate.outputs.candidate_sha }}
           PUSH_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          candidate_sha="${PR_CANDIDATE_SHA:-${DISPATCH_CANDIDATE_SHA:-$PUSH_SHA}}"
+          candidate_sha="${PR_CANDIDATE_SHA:-${MG_CANDIDATE_SHA:-${DISPATCH_CANDIDATE_SHA:-$PUSH_SHA}}}"
           if [[ ! "$candidate_sha" =~ ^[0-9a-f]{40}$ ]]; then
             echo 'The candidate SHA is not a full lowercase 40-character hexadecimal string.' >&2
             exit 1

@@ -11,6 +11,8 @@ import MultiSelectFilterChip from '@/components/reports/MultiSelectFilterChip.vu
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
+import { PageFrame } from '@/components/ui/page-frame';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatDateTime } from '@/lib/presentation';
 
 type Method = { id: number; code: string; name: string; amountSen: number };
@@ -247,25 +249,24 @@ function applyTime() {
 </script>
 <template>
     <Head title="Billing Detail" />
-    <main class="mx-auto w-full max-w-[1440px] min-w-0 space-y-5 p-4 md:p-6">
-        <header class="flex flex-wrap items-start justify-between gap-3">
-            <div>
-                <h1 class="text-xl font-semibold">Billing Detail</h1>
-                <p class="text-sm text-muted-foreground">
-                    {{ branch.name }} · {{ branch.timezone }} · MYR
-                </p>
-            </div>
-            <Button
-                v-if="canExport"
-                :disabled="busy || !data || dirty"
-                @click="perform(true)"
-                >Download CSV</Button
-            >
-        </header>
-        <p class="max-w-5xl text-sm text-muted-foreground">{{ basis }}</p>
+    <PageFrame width="wide">
+        <PageHeader
+            title="Billing Detail"
+            :description="`${branch.name} · ${branch.timezone} · MYR`"
+        >
+            <template #actions>
+                <Button
+                    v-if="canExport"
+                    :disabled="busy || !data || dirty"
+                    @click="perform(true)"
+                    >Download CSV</Button
+                >
+            </template>
+        </PageHeader>
+        <p class="max-w-5xl text-[13px] text-muted-foreground">{{ basis }}</p>
         <section
             aria-label="Report filters"
-            class="space-y-3 rounded-lg border bg-card p-4"
+            class="space-y-3 rounded-[14px] border bg-card p-4 shadow-card md:p-5"
         >
             <div class="flex flex-wrap items-end gap-3">
                 <label class="min-w-0 text-sm max-sm:w-full"
@@ -364,7 +365,7 @@ function applyTime() {
         <p
             v-if="error"
             role="alert"
-            class="rounded-lg border border-destructive p-3 text-sm text-destructive"
+            class="rounded-xl bg-destructive/10 p-3 text-sm text-destructive"
         >
             {{ error }}
         </p>
@@ -387,19 +388,21 @@ function applyTime() {
                 <div
                     v-for="column in columns"
                     :key="column.key"
-                    class="rounded-lg border bg-card p-3"
+                    class="rounded-[14px] border bg-card p-4 shadow-card"
                 >
                     <dt class="text-xs text-muted-foreground">
                         {{ column.label }} (MYR)
                     </dt>
-                    <dd class="mt-1 font-semibold tabular-nums">
+                    <dd
+                        class="mt-1 text-xl font-semibold tracking-[-0.02em] tabular-nums"
+                    >
                         {{ shown(column.key, data.totals[column.key]) }}
                     </dd>
                 </div>
             </dl>
             <section
                 aria-label="Filtered payment method totals"
-                class="rounded-lg border bg-card p-3"
+                class="rounded-[14px] border bg-card p-4 shadow-card"
             >
                 <h2 class="mb-2 text-sm font-medium">
                     Net allocated receipts by method (MYR)
@@ -419,12 +422,14 @@ function applyTime() {
                 </ul>
             </section>
             <div
-                class="max-w-full overflow-x-auto rounded-lg border"
+                class="max-w-full overflow-x-auto rounded-[14px] border bg-card shadow-card"
                 tabindex="0"
                 aria-label="Billing Detail table; scroll horizontally for settlement columns"
             >
                 <table class="w-full min-w-[1200px] text-left text-sm">
-                    <thead class="bg-muted">
+                    <thead
+                        class="bg-card-quiet text-[13px] font-semibold text-muted-foreground"
+                    >
                         <tr>
                             <th class="p-3">#</th>
                             <th class="p-3">Local finalisation</th>
@@ -516,10 +521,10 @@ function applyTime() {
         </template>
         <p
             v-else-if="!busy && !error"
-            class="rounded-lg border p-6 text-center text-muted-foreground"
+            class="rounded-[14px] bg-card p-6 text-center text-muted-foreground shadow-card"
         >
             Choose a period and run the report. Patient rows are not loaded
             automatically.
         </p>
-    </main>
+    </PageFrame>
 </template>

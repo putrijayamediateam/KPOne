@@ -67,7 +67,7 @@ const disconnect = () => {
 <template>
     <Head title="Connected apps" />
     <main
-        class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-6 lg:px-8"
     >
         <div ref="heading" tabindex="-1" class="outline-none">
             <PageHeader
@@ -86,7 +86,7 @@ const disconnect = () => {
 
         <div
             v-if="apps.length === 0"
-            class="rounded-xl border border-dashed p-5 text-sm text-muted-foreground"
+            class="rounded-[14px] border border-dashed p-5 text-sm text-muted-foreground"
             data-test="connected-apps-empty"
         >
             <template v-if="connectorEnabled">
@@ -103,7 +103,7 @@ const disconnect = () => {
             <li
                 v-for="app in apps"
                 :key="app.clientId"
-                class="rounded-xl border bg-card p-4"
+                class="rounded-[14px] border bg-card p-4"
                 :data-test="`connected-app-${app.clientId}`"
             >
                 <div

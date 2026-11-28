@@ -193,7 +193,7 @@ const pageLink = (page: number) =>
 <template>
     <Head title="Approval inbox" />
     <main
-        class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 lg:px-8"
     >
         <PageHeader
             title="Approval inbox"
@@ -237,13 +237,13 @@ const pageLink = (page: number) =>
                 :aria-current="tab === item.key ? 'page' : undefined"
             >
                 {{ item.label }}
-                <span class="text-xs">{{ counts[item.key] }}</span>
+                <span class="text-[12.5px]">{{ counts[item.key] }}</span>
             </Link>
         </nav>
 
         <div
             v-if="proposals.length === 0"
-            class="rounded-xl border border-dashed p-6 text-sm text-muted-foreground"
+            class="rounded-[14px] border border-dashed p-6 text-sm text-muted-foreground"
         >
             {{ emptyText[tab] }}
         </div>
@@ -251,14 +251,14 @@ const pageLink = (page: number) =>
             <li
                 v-for="proposal in proposals"
                 :key="proposal.id"
-                class="min-w-0 rounded-xl border bg-card p-4"
+                class="min-w-0 rounded-[14px] border bg-card p-4"
                 :data-test="`proposal-${proposal.id}`"
             >
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="font-medium">{{ proposal.typeLabel }}</span>
                     <StatusBadge :status="proposal.status" />
                 </div>
-                <p class="mt-1 text-xs text-muted-foreground">
+                <p class="mt-1 text-[12.5px] text-muted-foreground">
                     Suggested by {{ proposal.agent ?? 'an AI agent' }}
                     <StatusBadge
                         status="ai_agent"
@@ -279,7 +279,7 @@ const pageLink = (page: number) =>
                 </dl>
                 <p
                     v-if="proposal.decidedAt"
-                    class="mt-3 text-xs text-muted-foreground"
+                    class="mt-3 text-[12.5px] text-muted-foreground"
                 >
                     {{
                         proposal.status === 'approved' ? 'Approved' : 'Decided'
@@ -400,7 +400,7 @@ const pageLink = (page: number) =>
                 </label>
                 <p
                     v-if="!offer.canPrepare && offer.cannotPrepareReason"
-                    class="text-xs text-muted-foreground"
+                    class="text-[12.5px] text-muted-foreground"
                     data-test="cannot-prepare"
                 >
                     {{ offer.cannotPrepareReason }}
@@ -408,7 +408,7 @@ const pageLink = (page: number) =>
                 <template v-if="preparing">
                     <p
                         v-if="offer.warning"
-                        class="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs"
+                        class="rounded-md border border-warning/40 bg-warning/10 p-2 text-[12.5px]"
                         data-test="prepare-warning"
                     >
                         {{ offer.warning }}
@@ -424,7 +424,7 @@ const pageLink = (page: number) =>
                                 class="h-9 rounded-md border bg-background px-2"
                                 data-test="edit-quantity"
                             />
-                            <span class="text-xs text-muted-foreground">
+                            <span class="text-[12.5px] text-muted-foreground">
                                 Up to
                                 {{ plainQuantity(offer.edits.maxQuantity) }}.
                                 You can only lower it.

@@ -31,8 +31,27 @@ class RangeInsightsTest extends BillingTestCase
 
     public function test_range_report_uses_an_organisation_scoped_branch_and_rejects_invalid_filters(): void
     {
+        // INS-BM-1 (owner, 27 Nov 2026, option A): a branch-only account (here a CA) sees its own branch only.
         $this->actingAs($this->actor('ca'));
+        $this->get(route('insights.report', [
+            'section' => 'sales',
+            'branch' => 'PUCHONG',
+            'from' => '2026-10-01',
+            'to' => '2026-10-01',
+        ]))->assertForbidden();
+        $this->get(route('insights.report', [
+            'section' => 'sales',
+            'branch' => $this->branch->code,
+            'from' => '2026-10-01',
+            'to' => '2026-10-01',
+        ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.branch', $this->branch->code)
+                ->where('data.report.summary.totalSen', 0));
 
+        // An organisation account still chooses any branch of its own organisation; unknown branches are not found.
+        $this->actingAs($this->actor('director'));
         $this->get(route('insights.report', [
             'section' => 'sales',
             'branch' => 'PUCHONG',

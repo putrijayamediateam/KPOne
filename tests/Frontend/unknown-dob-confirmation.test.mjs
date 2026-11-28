@@ -9,7 +9,8 @@ test('staff adult acknowledgement is explicit, English and accessible', () => {
     assert.match(component, /18 or\s+older/);
     assert.match(component, /min-h-11/);
     assert.match(component, /size-11/);
-    assert.match(component, /type="checkbox"/);
+    assert.match(component, /import \{ Checkbox \} from '@\/components\/ui\/checkbox'/);
+    assert.match(component, /<Checkbox\b/);
     assert.doesNotMatch(component, /v-html|localStorage|sessionStorage/);
 });
 

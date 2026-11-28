@@ -97,8 +97,15 @@ class ExpiryAlertDaysTest extends VisitTestCase
 
         $audit = DB::table('audit_logs')->where('event', 'inventory_sku.updated')->where('subject_id', $f['sku']->id)->latest('id')->first();
         $this->assertNotNull($audit);
-        $this->assertStringContainsString('expiry_alert_days', (string) $audit->metadata);
-        $this->assertStringNotContainsString('365', (string) $audit->metadata);
+        $metadata = json_decode((string) $audit->metadata, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertContains('expiry_alert_days', $metadata['changed_fields']);
+        // The reference is the SKU's own random public id, so it may contain "365" by chance; pin it exactly instead.
+        $this->assertSame($f['sku']->public_id, $metadata['reference_id']);
+        $rest = $metadata;
+        unset($rest['reference_id']);
+        $this->assertStringNotContainsString('365', json_encode($rest, JSON_THROW_ON_ERROR), 'the old or new value is never recorded');
+        unset($rest['changed_fields']);
+        $this->assertStringNotContainsString('expiry_alert_days', json_encode($rest, JSON_THROW_ON_ERROR), 'the field appears only in the changed-field list');
 
         $this->expectException(QueryException::class);
         DB::transaction(fn () => DB::table('inventory_skus')->where('id', $f['sku']->id)->update(['expiry_alert_days' => 6]));

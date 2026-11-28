@@ -8,6 +8,8 @@ const props = defineProps<{
     branchName: string;
     asOf: string | null;
     only: string;
+    // The page header already names the branch (My day): show only "as of".
+    hideBranch?: boolean;
 }>();
 
 const refreshing = ref(false);
@@ -33,8 +35,10 @@ const refresh = () => {
 <template>
     <p class="space-muted space-asof">
         <span
-            >{{ branchName
-            }}<template v-if="asOf"> · as of {{ asOf }}</template></span
+            ><template v-if="!hideBranch">{{ branchName }}</template
+            ><template v-if="asOf"
+                >{{ hideBranch ? 'As of' : ' · as of' }} {{ asOf }}</template
+            ></span
         >
         <button
             type="button"

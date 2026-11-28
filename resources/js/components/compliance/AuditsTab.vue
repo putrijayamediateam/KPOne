@@ -362,7 +362,7 @@ const statusLabel = (s: string) =>
             <fieldset
                 v-for="s in audits.selected.sections"
                 :key="s.title"
-                class="flex flex-col gap-3 rounded-lg border bg-card p-4"
+                class="flex flex-col gap-3 rounded-[14px] border bg-card p-4 shadow-card"
             >
                 <legend class="px-1 text-sm font-semibold">
                     {{ s.title }}
@@ -564,7 +564,7 @@ const statusLabel = (s: string) =>
         <template v-else>
             <div
                 v-if="audits.canPerform"
-                class="flex flex-col gap-3 rounded-lg border bg-card p-4"
+                class="flex flex-col gap-3 rounded-[14px] border bg-card p-4 shadow-card"
             >
                 <h2 class="text-sm font-semibold">Start an audit</h2>
                 <p
@@ -630,9 +630,7 @@ const statusLabel = (s: string) =>
                 </form>
             </div>
 
-            <h2
-                class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-            >
+            <h2 class="text-[13px] font-semibold text-muted-foreground">
                 Audits
             </h2>
             <EmptyState
@@ -644,7 +642,7 @@ const statusLabel = (s: string) =>
                 <li
                     v-for="a in audits.audits"
                     :key="a.id"
-                    class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4"
+                    class="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border bg-card p-4 shadow-card"
                     data-test="audit-row"
                 >
                     <div class="min-w-0">
@@ -687,9 +685,7 @@ const statusLabel = (s: string) =>
         </template>
 
         <!-- Tasks -->
-        <h2
-            class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-        >
+        <h2 class="text-[13px] font-semibold text-muted-foreground">
             Supervisor tasks
         </h2>
         <p v-if="!audits.tasks.length" class="text-sm text-muted-foreground">
@@ -699,7 +695,7 @@ const statusLabel = (s: string) =>
             <li
                 v-for="t in audits.tasks"
                 :key="t.id"
-                class="flex flex-col gap-2 rounded-lg border bg-card p-4"
+                class="flex flex-col gap-2 rounded-[14px] border bg-card p-4 shadow-card"
                 data-test="task-row"
             >
                 <div class="flex flex-wrap items-start justify-between gap-2">

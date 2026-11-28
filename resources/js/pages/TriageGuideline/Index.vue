@@ -222,7 +222,7 @@ const firstError = (prefix: string) =>
 <template>
     <Head title="Triage guideline" />
     <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 p-4 pb-28 md:px-8 md:pt-6"
+        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 pt-5 pb-28 sm:px-6 lg:px-8 lg:pt-6"
     >
         <PageHeader
             title="Triage guideline"
@@ -247,12 +247,12 @@ const firstError = (prefix: string) =>
         >
             <section
                 v-if="section.detail || section.empty"
-                class="rounded-lg border bg-card p-4"
+                class="rounded-xl border bg-card p-4 shadow-card sm:p-5"
                 :aria-labelledby="`heading-${section.id}`"
             >
                 <h2
                     :id="`heading-${section.id}`"
-                    class="flex flex-wrap items-center gap-2 text-base font-semibold"
+                    class="flex flex-wrap items-center gap-2 text-[17px] font-semibold"
                 >
                     {{ section.title }}
                     <span
@@ -269,7 +269,7 @@ const firstError = (prefix: string) =>
                 </p>
                 <template v-else>
                     <dl
-                        class="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4"
+                        class="mt-4 grid gap-x-6 gap-y-3 rounded-lg bg-card-quiet p-3 text-sm sm:grid-cols-2 lg:grid-cols-4"
                     >
                         <div>
                             <dt class="text-xs text-muted-foreground">
@@ -300,9 +300,9 @@ const firstError = (prefix: string) =>
                     </dl>
                     <div class="mt-4 grid gap-4 md:grid-cols-2">
                         <div>
-                            <h3 class="text-sm font-medium">Red flags</h3>
+                            <h3 class="text-[15px] font-semibold">Red flags</h3>
                             <ol
-                                class="mt-1 list-decimal space-y-1 pl-5 text-sm"
+                                class="mt-2 list-decimal space-y-1 pl-5 text-sm"
                             >
                                 <li
                                     v-for="flag in section.detail.redFlags"
@@ -313,10 +313,12 @@ const firstError = (prefix: string) =>
                             </ol>
                         </div>
                         <div>
-                            <h3 class="text-sm font-medium">Yellow signs</h3>
+                            <h3 class="text-[15px] font-semibold">
+                                Yellow signs
+                            </h3>
                             <ol
                                 v-if="section.detail.yellowSigns.length"
-                                class="mt-1 list-decimal space-y-1 pl-5 text-sm"
+                                class="mt-2 list-decimal space-y-1 pl-5 text-sm"
                             >
                                 <li
                                     v-for="sign in section.detail.yellowSigns"
@@ -338,13 +340,13 @@ const firstError = (prefix: string) =>
                         :key="`view-cards-${band.value}`"
                         class="mt-4 space-y-2 md:hidden"
                     >
-                        <h3 class="text-sm font-medium">
+                        <h3 class="text-[15px] font-semibold">
                             {{ band.label }} · limits
                         </h3>
                         <dl
                             v-for="r in readings"
                             :key="r"
-                            class="rounded-md border p-3 text-sm"
+                            class="rounded-lg border bg-card-quiet p-3 text-sm"
                         >
                             <dt class="font-medium">{{ READING_LABELS[r] }}</dt>
                             <dd class="mt-1 grid grid-cols-2 gap-x-3 gap-y-1">
@@ -374,20 +376,24 @@ const firstError = (prefix: string) =>
                         :key="band.value"
                         class="mt-4 hidden overflow-x-auto md:block"
                     >
-                        <table class="w-full min-w-[520px] text-sm">
-                            <caption class="mb-1 text-left text-sm font-medium">
+                        <table
+                            class="w-full min-w-[520px] overflow-hidden rounded-lg text-sm"
+                        >
+                            <caption
+                                class="mb-2 text-left text-[15px] font-semibold"
+                            >
                                 {{
                                     band.label
                                 }}
                                 · limits
                             </caption>
                             <thead
-                                class="border-y bg-muted/40 text-left text-xs text-muted-foreground"
+                                class="border-y bg-card-quiet text-left text-[13px] text-muted-foreground"
                             >
                                 <tr>
                                     <th
                                         scope="col"
-                                        class="px-2 py-1.5 font-medium"
+                                        class="px-3 py-2 font-semibold"
                                     >
                                         Reading
                                     </th>
@@ -395,7 +401,7 @@ const firstError = (prefix: string) =>
                                         v-for="c in COLUMNS"
                                         :key="c.label"
                                         scope="col"
-                                        class="px-2 py-1.5 text-right font-medium"
+                                        class="px-3 py-2 text-right font-semibold"
                                     >
                                         {{ c.label }}
                                     </th>
@@ -409,14 +415,14 @@ const firstError = (prefix: string) =>
                                 >
                                     <th
                                         scope="row"
-                                        class="px-2 py-1.5 text-left font-normal"
+                                        class="px-3 py-2.5 text-left font-normal"
                                     >
                                         {{ READING_LABELS[r] }}
                                     </th>
                                     <td
                                         v-for="c in COLUMNS"
                                         :key="c.label"
-                                        class="px-2 py-1.5 text-right tabular-nums"
+                                        class="px-3 py-2.5 text-right tabular-nums"
                                     >
                                         {{
                                             limitText(
@@ -498,10 +504,10 @@ const firstError = (prefix: string) =>
         </template>
 
         <section
-            class="rounded-lg border bg-card p-4"
+            class="rounded-xl border bg-card p-4 shadow-card sm:p-5"
             aria-labelledby="enter-heading"
         >
-            <h2 id="enter-heading" class="text-base font-semibold">
+            <h2 id="enter-heading" class="text-[17px] font-semibold">
                 Enter a new version
             </h2>
             <p v-if="draft" class="mt-2 text-sm text-muted-foreground">
@@ -521,28 +527,30 @@ const firstError = (prefix: string) =>
                     <button
                         v-if="inForce"
                         type="button"
-                        class="underline"
+                        class="font-medium text-link underline"
                         @click="startFromInForce"
                     >
                         Start from version {{ inForce.versionNumber }}
                     </button>
                 </p>
                 <div class="grid gap-3 sm:grid-cols-3">
-                    <div class="grid gap-1">
-                        <label for="tg-doctor" class="text-sm"
+                    <div class="grid gap-1.5">
+                        <label for="tg-doctor" class="text-[13px] font-medium"
                             >Signing doctor</label
                         >
                         <input
                             id="tg-doctor"
                             v-model="entry.approving_doctor_name"
-                            class="h-11 rounded-md border bg-background px-3 text-sm lg:h-9"
+                            class="h-11 rounded-md border border-input bg-field-fill px-3 text-sm lg:h-9"
                         />
                         <InputError
                             :message="entry.errors.approving_doctor_name"
                         />
                     </div>
-                    <div class="grid gap-1">
-                        <label for="tg-signed" class="text-sm">Signed on</label>
+                    <div class="grid gap-1.5">
+                        <label for="tg-signed" class="text-[13px] font-medium"
+                            >Signed on</label
+                        >
                         <DateField
                             id="tg-signed"
                             v-model="entry.doctor_signed_on"
@@ -550,15 +558,15 @@ const firstError = (prefix: string) =>
                         />
                         <InputError :message="entry.errors.doctor_signed_on" />
                     </div>
-                    <div class="grid gap-1">
-                        <label for="tg-child" class="text-sm"
+                    <div class="grid gap-1.5">
+                        <label for="tg-child" class="text-[13px] font-medium"
                             >Child means under (years)</label
                         >
                         <input
                             id="tg-child"
                             v-model="entry.child_age_limit_years"
                             inputmode="numeric"
-                            class="h-11 rounded-md border bg-background px-3 text-sm lg:h-9"
+                            class="h-11 rounded-md border border-input bg-field-fill px-3 text-sm lg:h-9"
                         />
                         <InputError
                             :message="entry.errors.child_age_limit_years"
@@ -582,7 +590,7 @@ const firstError = (prefix: string) =>
                         :key="list.field"
                         class="space-y-2"
                     >
-                        <legend class="text-sm font-medium">
+                        <legend class="text-[13px] font-semibold">
                             {{ list.title }}
                         </legend>
                         <div
@@ -593,7 +601,7 @@ const firstError = (prefix: string) =>
                             <input
                                 v-model="entry[list.field][i]"
                                 :aria-label="`${list.field === 'red_flags' ? 'Red flag' : 'Yellow sign'} ${i + 1}`"
-                                class="h-11 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm lg:h-9"
+                                class="h-11 min-w-0 flex-1 rounded-md border border-input bg-field-fill px-3 text-sm lg:h-9"
                             />
                             <Button
                                 type="button"
@@ -627,13 +635,13 @@ const firstError = (prefix: string) =>
                     :key="`cards-${band.value}`"
                     class="space-y-2 md:hidden"
                 >
-                    <h3 class="text-sm font-medium">
+                    <h3 class="text-[15px] font-semibold">
                         {{ band.label }} · limits
                     </h3>
                     <fieldset
                         v-for="r in readings"
                         :key="r"
-                        class="rounded-md border p-3"
+                        class="rounded-lg border bg-card-quiet p-3"
                     >
                         <legend class="px-1 text-sm">
                             {{ READING_LABELS[r] }}
@@ -656,7 +664,7 @@ const firstError = (prefix: string) =>
                                         ]
                                     "
                                     inputmode="decimal"
-                                    class="h-11 w-full min-w-0 rounded-md border bg-background px-2 text-right text-sm text-foreground tabular-nums"
+                                    class="h-11 w-full min-w-0 rounded-md border border-input bg-field-fill px-2 text-right text-sm text-foreground tabular-nums"
                             /></label>
                         </div>
                     </fieldset>
@@ -666,25 +674,29 @@ const firstError = (prefix: string) =>
                     :key="band.value"
                     class="hidden overflow-x-auto md:block"
                 >
-                    <table class="w-full min-w-[620px] text-sm">
-                        <caption class="mb-1 text-left text-sm font-medium">
+                    <table
+                        class="w-full min-w-[620px] overflow-hidden rounded-lg text-sm"
+                    >
+                        <caption
+                            class="mb-2 text-left text-[15px] font-semibold"
+                        >
                             {{
                                 band.label
                             }}
                             · limits
                         </caption>
                         <thead
-                            class="border-y bg-muted/40 text-left text-xs text-muted-foreground"
+                            class="border-y bg-card-quiet text-left text-[13px] text-muted-foreground"
                         >
                             <tr>
-                                <th scope="col" class="px-2 py-1.5 font-medium">
+                                <th scope="col" class="px-3 py-2 font-semibold">
                                     Reading
                                 </th>
                                 <th
                                     v-for="c in COLUMNS"
                                     :key="c.label"
                                     scope="col"
-                                    class="px-2 py-1.5 font-medium"
+                                    class="px-3 py-2 font-semibold"
                                 >
                                     {{ c.label }}
                                 </th>
@@ -698,14 +710,14 @@ const firstError = (prefix: string) =>
                             >
                                 <th
                                     scope="row"
-                                    class="px-2 py-1 text-left font-normal"
+                                    class="px-3 py-1.5 text-left font-normal"
                                 >
                                     {{ READING_LABELS[r] }}
                                 </th>
                                 <td
                                     v-for="c in COLUMNS"
                                     :key="c.label"
-                                    class="px-2 py-1"
+                                    class="px-3 py-1.5"
                                 >
                                     <input
                                         v-model="
@@ -720,7 +732,7 @@ const firstError = (prefix: string) =>
                                         "
                                         inputmode="decimal"
                                         :aria-label="`${band.label}, ${READING_LABELS[r]}, ${c.label}`"
-                                        class="h-11 w-full min-w-20 rounded-md border bg-background px-2 text-right text-sm tabular-nums lg:h-9"
+                                        class="h-11 w-full min-w-20 rounded-md border border-input bg-field-fill px-2 text-right text-sm tabular-nums lg:h-9"
                                     />
                                 </td>
                             </tr>
@@ -747,10 +759,10 @@ const firstError = (prefix: string) =>
         </section>
 
         <section
-            class="rounded-lg border bg-card p-4"
+            class="rounded-xl border bg-card p-4 shadow-card sm:p-5"
             aria-labelledby="history-heading"
         >
-            <h2 id="history-heading" class="text-base font-semibold">
+            <h2 id="history-heading" class="text-[17px] font-semibold">
                 Versions
             </h2>
             <p
@@ -783,8 +795,10 @@ const firstError = (prefix: string) =>
                 </li>
             </ul>
         </section>
-        <p class="text-xs text-muted-foreground">
-            <Link href="/clinic-management" class="underline"
+        <p class="text-[12.5px] text-muted-foreground">
+            <Link
+                href="/clinic-management"
+                class="font-medium text-link underline"
                 >Back to Clinic management</Link
             >
         </p>

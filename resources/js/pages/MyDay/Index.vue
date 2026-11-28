@@ -1,18 +1,23 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
+import { computed } from 'vue';
 import MyRoutine from '@/components/MyRoutine.vue';
+import RedZoneAlertBanner from '@/components/queue/RedZoneAlertBanner.vue';
 import MeHome from '@/components/spaces/MeHome.vue';
+import NextThings from '@/components/spaces/NextThings.vue';
+import type { NextBlock } from '@/components/spaces/NextThings.vue';
 import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
+import { greetingFor, hourFromAsOf, hourInZone } from '@/lib/greeting';
 
 type Ring = InstanceType<typeof MeHome>['$props']['ring'];
 type Week = InstanceType<typeof MeHome>['$props']['week'];
 type Station = InstanceType<typeof MeHome>['$props']['station'];
 type Tiles = InstanceType<typeof MeHome>['$props']['tiles'];
 
-defineProps<{
+const props = defineProps<{
     header: { date: string; branchName: string | null };
     today: {
         ring: Ring;
@@ -31,15 +36,41 @@ defineProps<{
         total: number;
         areas: Array<{ area: string; count: number }>;
     } | null;
+    next: NextBlock;
     routine: InstanceType<typeof MyRoutine>['$props']['routine'];
     shortcuts: Array<{ title: string; href: string }>;
 }>();
+
+const page = usePage();
+// Amirul's red-zone alert (Q-16b) is shown here as it is; the home builds no alert of its own.
+const redZone = computed(() => {
+    const perms = (page.props.auth as { permissions: string[] }).permissions;
+    const branch = (
+        page.props.branchContext as { active?: { id: number } | null } | null
+    )?.active;
+
+    return branch &&
+        (perms.includes('queue.call.own') ||
+            perms.includes('visits.triage.record.branch'))
+        ? branch.id
+        : null;
+});
+
+// Clean Look greeting: the signed-in user's own first name (already a shared page prop) and the browser clock.
+const greetingText = computed(() =>
+    greetingFor(
+        page.props.auth?.user?.name,
+        hourInZone(props.today.time?.timezone) ??
+            hourFromAsOf(props.today.asOf),
+    ),
+);
 </script>
 
 <template>
     <Head title="My day" />
     <PageFrame class="space-shell" data-classic-frame>
         <div class="space-main">
+            <RedZoneAlertBanner v-if="redZone !== null" :branch-id="redZone" />
             <PageHeader
                 title="My day"
                 :description="
@@ -49,6 +80,9 @@ defineProps<{
                 "
                 data-test="my-day-head"
             />
+            <div class="space-greeting" data-test="space-greeting">
+                <p class="space-greet">{{ greetingText }}</p>
+            </div>
 
             <!-- Today first (the clock card), then what needs acting on, then the rest of the person's own week. -->
             <MeHome
@@ -64,14 +98,20 @@ defineProps<{
                 :server-now="today.time?.serverNow ?? null"
                 :timezone="today.time?.timezone ?? null"
             />
-            <section v-else class="space-card" aria-labelledby="day-today">
+            <section
+                v-else
+                class="space-card shadow-card"
+                aria-labelledby="day-today"
+            >
                 <h2 id="day-today">Today</h2>
                 <p class="space-muted">Nothing is planned for you today.</p>
             </section>
 
+            <NextThings :next="next" />
+
             <section
                 v-if="waiting"
-                class="space-card"
+                class="space-card shadow-card"
                 aria-labelledby="day-waiting"
                 data-test="my-day-waiting"
             >
@@ -116,7 +156,7 @@ defineProps<{
 
             <section
                 v-if="today.credentials?.rows.length"
-                class="space-card"
+                class="space-card shadow-card"
                 aria-labelledby="day-cred"
             >
                 <h2 id="day-cred">Credentials due</h2>
@@ -139,12 +179,13 @@ defineProps<{
                 v-if="today.branchName"
                 :branch-name="today.branchName"
                 :as-of="today.asOf"
+                hide-branch
                 only="today"
             />
 
             <section
                 v-if="shortcuts.length"
-                class="space-card"
+                class="space-card shadow-card"
                 aria-labelledby="day-shortcuts"
             >
                 <h2 id="day-shortcuts">Shortcuts</h2>
