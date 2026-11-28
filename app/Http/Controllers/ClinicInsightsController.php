@@ -74,6 +74,9 @@ class ClinicInsightsController extends Controller
         }
         // INS-BM-1: a branch-only account (for example the Branch Manager or a CA) sees its active branch only, and its download links follow.
         $branch = $scope->resolve($actor, $filters['branch'] ?? null);
+        // INS-BM-3: a branch-only account's doctor choices are its branch's doctors, and any other doctor is refused.
+        $doctors = $scope->doctorOptions($actor, $insights);
+        $scope->enforceDoctor($actor, isset($filters['doctor']) ? (int) $filters['doctor'] : null, $insights, $doctors);
 
         return Inertia::render('Insights/Report', [
             'canOverview' => $actor->can(DirectorOverviewService::PERMISSION),
@@ -88,7 +91,7 @@ class ClinicInsightsController extends Controller
             ],
             'branches' => $scope->pickerBranches($actor, $insights->branches($actor)),
             'canSeeAllBranches' => $scope->seesOrganisation($actor),
-            'doctors' => $insights->doctors($actor),
+            'doctors' => $doctors,
             'data' => $insights->report(
                 $actor,
                 $section,
