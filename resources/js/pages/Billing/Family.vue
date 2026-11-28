@@ -4,6 +4,7 @@ import { ArrowLeft } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
+import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
@@ -106,8 +107,33 @@ const pay = () => {
         },
     );
 };
-const remove = (invoicePublicId: string) =>
-    send(`${base.value}/remove`, { invoice_public_id: invoicePublicId });
+// Owner's ship-it condition (28 Nov): a short confirmation, so one mis-tap cannot remove a member.
+const removing = ref<{ invoicePublicId: string; name: string } | null>(null);
+const removeOpen = computed({
+    get: () => removing.value !== null,
+    set: (open: boolean) => {
+        if (!open && !busy.value) {
+            removing.value = null;
+        }
+    },
+});
+const askRemove = (invoicePublicId: string, name: string) => {
+    error.value = '';
+    removing.value = { invoicePublicId, name };
+};
+const confirmRemove = () => {
+    if (!removing.value) {
+        return;
+    }
+
+    send(
+        `${base.value}/remove`,
+        { invoice_public_id: removing.value.invoicePublicId },
+        () => {
+            removing.value = null;
+        },
+    );
+};
 const restore = (invoicePublicId: string) =>
     send(`${base.value}/restore`, { invoice_public_id: invoicePublicId });
 const fieldClass =
@@ -191,7 +217,12 @@ const anchorBillingUrl = computed(
                                 variant="outline"
                                 :disabled="busy"
                                 :data-testid="`family-bill-remove-${member.visitNumber}`"
-                                @click="remove(member.invoice.publicId)"
+                                @click="
+                                    askRemove(
+                                        member.invoice.publicId,
+                                        member.patientName,
+                                    )
+                                "
                                 >Remove from family bill</Button
                             >
                         </div>
@@ -395,5 +426,14 @@ const anchorBillingUrl = computed(
                 </li>
             </ul>
         </section>
+        <OperationalConfirmDialog
+            v-model:open="removeOpen"
+            title="Remove from family bill?"
+            :description="`${removing?.name ?? 'This person'} will pay on their own billing page. No money or invoice changes, and you can put them back.`"
+            confirm-label="Remove from family bill"
+            :processing="busy"
+            :error="removing ? error : ''"
+            @confirm="confirmRemove"
+        />
     </main>
 </template>
