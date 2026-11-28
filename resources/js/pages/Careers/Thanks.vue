@@ -33,13 +33,11 @@ const copy = async () => {
     /></Head>
     <main class="mx-auto min-h-svh max-w-xl px-4 py-5 sm:px-6 sm:py-8">
         <section
-            class="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-xl shadow-zinc-950/5 dark:border-zinc-800 dark:bg-zinc-900"
+            class="overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-card)]"
         >
-            <div class="h-1.5 bg-pink-600" aria-hidden="true"></div>
+            <div class="h-1.5 bg-brand" aria-hidden="true"></div>
             <div class="space-y-4 p-5 sm:p-8" data-test="apply-thanks">
-                <p
-                    class="text-sm font-semibold text-pink-700 dark:text-pink-400"
-                >
+                <p class="text-sm font-semibold text-brand-strong">
                     {{ clinicName }}
                 </p>
                 <h1 class="text-xl font-semibold">Thank you for applying</h1>
@@ -50,7 +48,7 @@ const copy = async () => {
 
                 <div
                     v-if="statusLink"
-                    class="space-y-3 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-pink-900/60 dark:bg-pink-950/30"
+                    class="space-y-3 rounded-xl border border-border bg-card-quiet p-4"
                     data-test="apply-status-link"
                 >
                     <h2 class="text-sm font-semibold">Your private link</h2>
@@ -68,13 +66,13 @@ const copy = async () => {
                         ref="linkBox"
                         :value="statusLink"
                         readonly
-                        class="min-h-11 w-full min-w-0 rounded-lg border border-zinc-300 bg-white px-3 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-950"
+                        class="min-h-11 w-full min-w-0 rounded-lg border border-input bg-card px-3 font-mono text-xs"
                         @focus="linkBox?.select()"
                     />
                     <div class="flex flex-wrap items-center gap-3">
                         <button
                             type="button"
-                            class="inline-flex min-h-11 items-center rounded-lg bg-pink-700 px-4 text-sm font-medium text-white hover:bg-pink-800 focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+                            class="inline-flex min-h-11 items-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                             data-test="apply-status-copy"
                             @click="copy"
                         >
@@ -82,19 +80,19 @@ const copy = async () => {
                         </button>
                         <a
                             :href="statusLink"
-                            class="inline-flex min-h-11 items-center text-sm font-medium text-pink-700 underline underline-offset-4 dark:text-pink-400"
+                            class="inline-flex min-h-11 items-center text-sm font-medium text-brand-strong underline underline-offset-4"
                             >Open it now</a
                         >
                         <span
                             v-if="copied"
                             role="status"
-                            class="text-sm text-zinc-600 dark:text-zinc-400"
+                            class="text-sm text-muted-foreground"
                             >Copied.</span
                         >
                         <span
                             v-if="copyFailed"
                             role="status"
-                            class="text-sm text-zinc-600 dark:text-zinc-400"
+                            class="text-sm text-muted-foreground"
                             data-test="apply-status-copy-failed"
                             >Your browser did not copy it. Select the link above
                             and copy it.</span
@@ -103,7 +101,7 @@ const copy = async () => {
                 </div>
                 <a
                     href="/careers/apply"
-                    class="inline-flex min-h-11 items-center text-sm font-medium text-pink-700 underline underline-offset-4 dark:text-pink-400"
+                    class="inline-flex min-h-11 items-center text-sm font-medium text-brand-strong underline underline-offset-4"
                     >Apply for another position</a
                 >
             </div>
