@@ -1019,6 +1019,9 @@
     padding: 0;
     list-style: none;
 }
+.space-shell[data-classic-frame] .space-tiles.is-fill {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
 .space-shell[data-classic-frame] .space-tile {
     display: flex;
     flex-direction: column;
@@ -1046,7 +1049,7 @@
     outline-offset: 2px;
 }
 @media (min-width: 1024px) {
-    .space-shell[data-classic-frame] .space-tiles {
+    .space-shell[data-classic-frame] .space-tiles:not(.is-fill) {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
