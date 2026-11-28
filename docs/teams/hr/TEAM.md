@@ -585,6 +585,15 @@ check items, keep them"). The rest stand unless the owner changes them.
     withheld, and with nothing left the clinic total of that column is withheld. Locum corrections are never shown as
     an amount; one line says they are in the clinic total, only when at least 3 locums had one.
 
+113. CL2-HR-B Clean Look, careers pages (PR #1272, merged `79904a2a`, 2026-11-28): `Careers/Apply`, `Careers/Status` and
+    `Careers/Thanks` use the shared tokens (no `zinc-*`, `pink-*`, `red-*` or `bg-white` classes), pill buttons, the 14 px
+    card and the card shadow; wording, routes, props and tests unchanged; Daniel OK. The other HR pages (Payroll, Pay run,
+    Staff file, Appraisals, Credentials, Discipline, Incidents, Applications, Letters, Locum pay, Messages, Labour
+    cost and their detail pages) already had no hex or palette classes and sit on the shared header, tabs, chips and
+    card components, so Stage 0 had restyled them; a populated screenshot check at 1440 light, 1440 dark and 390 found
+    nothing to change. The only visible gap from the demo is the main action sitting under the description instead of
+    right of the title; that is the shared `PageHeader` (the shell owner's item) and is not changed in HR.
+
 ## 7. Open items and known limits
 
 - HR-18: HR-15g locum statement lines store the branch name, not its id, so a renamed branch's locum pay counts outside
@@ -711,6 +720,15 @@ check items, keep them"). The rest stand unless the owner changes them.
   `PayrollExportService`, and in the `hr-7a-payroll`, `hr-7c-payslips-exports` and `PayrollRunsTest` pins.
 
 - HR-22f (Suresh m5): a free time whose offered time has ended stays `waiting` in `hr_locum_availability`; the screens show it as Expired. Any later report or count of waiting free times must filter `ends_at > now`, as the 30 cap and HR's list do.
+
+- CL2-HR-B notes (2026-11-28): the `.cl2-harness` screenshot method (Vite build, stubbed Wayfinder imports, mocked
+  Inertia props, static serve, Playwright) is kept on branch `validation/cl2-hr-b-shots` under
+  `docs/clean-look-stage2/hr-b-harness/` with 57 screenshots; it needs no PHP or database. Pitfalls: a mocked page needs
+  `props.authHistoryBoundary` (`version: 2`, a UUIDv7 `epoch`) or the app reloads in a loop; dates must be ISO
+  (`YYYY-MM-DD`, `dateLabel` turns anything else into NaN; `Careers/Status` `submittedOn` and slot `start` also need
+  ISO values); the Vite dev server loops on dependency re-optimisation, so build and serve static files. Printed HR
+  letters stay white through the shared `.document-print` print rule (PRINT-1); only the on-screen preview follows
+  dark mode. Not done: `PageHeader` action position (shared), and the second HR polish PR was not needed.
 
 ## 8. Rules (every task)
 
