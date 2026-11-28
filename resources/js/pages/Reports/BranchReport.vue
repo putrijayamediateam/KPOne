@@ -4,6 +4,8 @@ import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import MultiSelectFilterChip from '@/components/reports/MultiSelectFilterChip.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
+import { PageFrame } from '@/components/ui/page-frame';
+import { PageHeader } from '@/components/ui/page-header';
 import { OperationalTable } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/presentation';
 import {
@@ -236,25 +238,22 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
 </script>
 <template>
     <Head :title="title" />
-    <main
-        class="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-5 p-4 md:p-6"
-    >
-        <header class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <h1 class="text-xl font-semibold">{{ title }}</h1>
-                <p class="text-sm text-muted-foreground">
-                    {{ branch.name }} · {{ branch.timezone }}
-                </p>
-            </div>
-            <Button
-                v-if="canExport"
-                :disabled="busy || !data || dirty"
-                @click="perform(true)"
-                >Download CSV</Button
-            >
-        </header>
+    <PageFrame width="wide">
+        <PageHeader
+            :title="title"
+            :description="`${branch.name} · ${branch.timezone}`"
+        >
+            <template #actions>
+                <Button
+                    v-if="canExport"
+                    :disabled="busy || !data || dirty"
+                    @click="perform(true)"
+                    >Download CSV</Button
+                >
+            </template>
+        </PageHeader>
         <details
-            class="rounded-lg border bg-card px-4 py-3 text-sm"
+            class="rounded-[14px] border bg-card px-4 py-3 text-[13px] shadow-card"
             data-testid="report-basis"
         >
             <summary
@@ -286,18 +285,20 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
         </details>
         <section
             aria-label="Report filters"
-            class="space-y-3 rounded-lg border bg-card p-4"
+            class="space-y-3 rounded-[14px] border bg-card p-4 shadow-card md:p-5"
         >
             <div class="flex flex-wrap items-end gap-3">
-                <label class="grid gap-1 text-sm max-sm:w-full"
+                <label
+                    class="grid gap-2 text-[13px] font-medium text-muted-foreground max-sm:w-full"
                     >From<DateField v-model="draft.from" :echo="false"
                 /></label>
-                <label class="grid gap-1 text-sm max-sm:w-full"
+                <label
+                    class="grid gap-2 text-[13px] font-medium text-muted-foreground max-sm:w-full"
                     >To<DateField v-model="draft.to" :echo="false"
                 /></label>
                 <Button :disabled="busy" @click="perform()">Run report</Button>
             </div>
-            <p class="text-xs text-muted-foreground">
+            <p class="text-[12.5px] text-muted-foreground">
                 Maximum 31 local dates. Downloads use applied filters and
                 current records at their own generation time.
             </p>
@@ -326,12 +327,12 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
         <p
             v-if="error"
             role="alert"
-            class="rounded-lg border border-destructive p-3 text-sm text-destructive"
+            class="rounded-xl bg-destructive/10 p-3 text-sm text-destructive"
         >
             {{ error }}
         </p>
         <template v-if="data">
-            <p class="text-sm">
+            <p class="text-[13px] text-muted-foreground">
                 {{ data.count }} {{ data.count === 1 ? 'row' : 'rows' }} ·
                 Generated
                 <time :datetime="data.generatedAt">{{
@@ -343,15 +344,19 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                 <div
                     v-for="(value, label) in data.totals"
                     :key="label"
-                    class="rounded-lg border bg-card p-3 text-sm"
+                    class="rounded-[14px] border bg-card p-4 text-sm shadow-card"
                 >
-                    <dt class="text-muted-foreground">{{ label }}</dt>
-                    <dd class="font-semibold tabular-nums">
+                    <dt class="text-[13px] text-muted-foreground">
+                        {{ label }}
+                    </dt>
+                    <dd
+                        class="text-xl font-semibold tracking-[-0.02em] tabular-nums"
+                    >
                         {{ label === ADJUSTMENTS ? signed(value) : value }}
                     </dd>
                     <dd
                         v-if="label === ADJUSTMENTS"
-                        class="text-xs text-muted-foreground"
+                        class="text-[12.5px] text-muted-foreground"
                     >
                         Counted on the day it was confirmed.
                     </dd>
@@ -429,7 +434,8 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                     :disabled="busy || dirty || data.page <= 1"
                     @click="perform(false, data.page - 1)"
                     >Previous</Button
-                ><span>Page {{ data.page }} of {{ data.pages }}</span
+                ><span class="text-[13px] text-muted-foreground tabular-nums"
+                    >Page {{ data.page }} of {{ data.pages }}</span
                 ><Button
                     variant="outline"
                     :disabled="busy || dirty || data.page >= data.pages"
@@ -440,10 +446,10 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
         </template>
         <p
             v-else-if="!busy && !error"
-            class="rounded-lg border border-dashed p-6 text-sm text-muted-foreground"
+            class="rounded-[14px] bg-card p-6 text-sm text-muted-foreground shadow-card"
         >
             Choose a period and run the report. Rows are not loaded
             automatically.
         </p>
-    </main>
+    </PageFrame>
 </template>

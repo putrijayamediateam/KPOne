@@ -11,7 +11,9 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Models\ClinicalEncounter;
+use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
+use App\Domain\Clinical\Models\PatientAllergyRecord;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
@@ -23,7 +25,7 @@ use Illuminate\Support\Facades\Gate;
 
 class DoctorDispensaryAttentionService
 {
-    public function __construct(private BranchAccessService $branches) {}
+    public function __construct(private BranchAccessService $branches, private DispensaryAllergyMatcher $allergyMatcher) {}
 
     // Structural navigation hint only. Do not load medicine snapshots into Queue polling.
     public function hasPendingForVisit(User $actor, Visit $visit): bool
@@ -136,6 +138,8 @@ class DoctorDispensaryAttentionService
         }
         $branch = Branch::query()->findOrFail($case->branch_id);
         $profile = PatientAllergyProfile::query()->where('organisation_id', $actor->organisation_id)->where('patient_id', $encounter->visit->patient_id)->first();
+        // The same active records the case page matches against (DispensaryDirectoryService::activeAllergyRecords).
+        $activeAllergies = $profile ? PatientAllergyRecord::query()->where('patient_allergy_profile_id', $profile->id)->where('organisation_id', $profile->organisation_id)->where('status', PatientAllergyRecord::STATUS_ACTIVE)->orderBy('id')->get() : new Collection;
 
         return [
             'caseLockVersion' => $case->lock_version,
@@ -146,10 +150,10 @@ class DoctorDispensaryAttentionService
             // review, which the page's own banner speaks about) and the date it was last reviewed or changed.
             'allergies' => [
                 'status' => $profile ? $profile->status : PatientAllergyProfile::STATUS_UNKNOWN,
-                'records' => $profile ? $profile->allergyRecords()->where('status', 'active')->orderBy('id')->pluck('allergen_text')->values()->all() : [],
+                'records' => $activeAllergies->pluck('allergen_text')->values()->all(),
                 'updatedOn' => ($profile->reviewed_at ?? $profile?->updated_at)?->setTimezone($branch->timezone)->format('j M Y'),
             ],
-            'lines' => $this->checkLines($handoff),
+            'lines' => $this->checkLines($handoff, $activeAllergies),
             'reasons' => DispensaryDoctorCheck::REASONS,
             'verifyUrl' => route('dispensary.doctor-check.verify', $case),
             'sendBackUrl' => route('dispensary.doctor-check.send-back', $case),
@@ -175,11 +179,17 @@ class DoctorDispensaryAttentionService
         return $case ? app(DispensaryDoctorCheckDirectory::class)->supervisorCheck($case, Branch::query()->findOrFail($case->branch_id)) : null;
     }
 
-    /** @return list<array<string, mixed>> */
-    private function checkLines(DispensaryHandoff $handoff): array
+    /**
+     * @param  Collection<int, PatientAllergyRecord>  $activeAllergies
+     * @return list<array<string, mixed>>
+     */
+    private function checkLines(DispensaryHandoff $handoff, Collection $activeAllergies): array
     {
         $lines = [];
         $packs = DispensaryPackDisplay::forItems($handoff->items);
+        $catalogue = $activeAllergies->isEmpty() ? new Collection : MedicineCatalogueItem::query()->where('organisation_id', $handoff->organisation_id)
+            ->whereIn('id', $handoff->items->pluck('medicine_catalogue_item_id')->filter()->unique())
+            ->get(['id', 'display_name', 'generic_name', 'allergy_groups', 'allergy_aliases'])->keyBy('id');
         foreach ($handoff->items as $item) {
             $batches = [];
             foreach ($item->allocations as $allocation) {
@@ -198,6 +208,13 @@ class DoctorDispensaryAttentionService
                 'ordered' => ['quantity' => $item->quantity_ordered, 'dosage' => $item->dosage, 'frequency' => $item->frequency, 'duration' => $item->duration],
                 'prepared' => ['quantity' => $item->quantity_dispensed, 'packText' => $packs[$item->id]['text'] ?? null, 'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'instruction' => $item->effective('administration_instruction')],
                 'batches' => $batches,
+                // DSP-29: the allergen names a line may match, by the same rule the CA's warning uses, so the doctor sees
+                // it too. A usability aid only: the server repeats its own check at save and complete. A removed line
+                // is not given, so it shows none.
+                'allergyMatches' => $item->change_state === DispensaryItem::CHANGE_REMOVED ? [] : array_map(
+                    fn (PatientAllergyRecord $record): string => $record->allergen_text,
+                    $this->allergyMatcher->matches($activeAllergies, [$item->medicine_name_snapshot, ...($catalogue->get($item->medicine_catalogue_item_id)?->allergyMatchTerms() ?? [])]),
+                ),
             ];
         }
 

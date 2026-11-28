@@ -20,7 +20,9 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status';
 import { formatAuditEventLabel, formatRoleLabel } from '@/lib/displayLabels';
 import { formatDate, formatDateTime } from '@/lib/presentation';
 import type { StaffDetail, StaffOptions } from '@/types';
@@ -92,17 +94,14 @@ const setPrimary = (assignmentId: number) => {
 
 <template>
     <Head :title="staff.name" />
-    <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
+    <PageFrame>
         <PageHeader :title="staff.name">
             <template #title-extra>
-                <Badge
-                    :variant="staff.isActive ? 'secondary' : 'destructive'"
-                    :class="
-                        staff.isActive &&
-                        'border-success/25 bg-success/10 text-success hover:bg-success/10'
-                    "
-                    >{{ staff.isActive ? 'Active' : 'Inactive' }}</Badge
-                >
+                <StatusBadge
+                    :status="staff.isActive ? 'active' : 'inactive'"
+                    :tone="staff.isActive ? 'success' : 'neutral'"
+                    :label="staff.isActive ? 'Active' : 'Inactive'"
+                />
             </template>
             <template #description>
                 <span class="[overflow-wrap:anywhere]"
@@ -151,7 +150,7 @@ const setPrimary = (assignmentId: number) => {
                     >
                         <div>
                             <div
-                                class="text-xs font-medium text-muted-foreground uppercase"
+                                class="text-[12.5px] font-medium text-muted-foreground"
                             >
                                 Work email
                             </div>
@@ -165,7 +164,7 @@ const setPrimary = (assignmentId: number) => {
                         </div>
                         <div>
                             <div
-                                class="text-xs font-medium text-muted-foreground uppercase"
+                                class="text-[12.5px] font-medium text-muted-foreground"
                             >
                                 Staff number
                             </div>
@@ -175,7 +174,7 @@ const setPrimary = (assignmentId: number) => {
                         </div>
                         <div>
                             <div
-                                class="text-xs font-medium text-muted-foreground uppercase"
+                                class="text-[12.5px] font-medium text-muted-foreground"
                             >
                                 Department
                             </div>
@@ -185,7 +184,7 @@ const setPrimary = (assignmentId: number) => {
                         </div>
                         <div>
                             <div
-                                class="text-xs font-medium text-muted-foreground uppercase"
+                                class="text-[12.5px] font-medium text-muted-foreground"
                             >
                                 Job title
                             </div>
@@ -195,7 +194,7 @@ const setPrimary = (assignmentId: number) => {
                         </div>
                         <div>
                             <div
-                                class="text-xs font-medium text-muted-foreground uppercase"
+                                class="text-[12.5px] font-medium text-muted-foreground"
                             >
                                 Sign-in configuration
                             </div>
@@ -205,7 +204,7 @@ const setPrimary = (assignmentId: number) => {
                         </div>
                         <div>
                             <div
-                                class="text-xs font-medium text-muted-foreground uppercase"
+                                class="text-[12.5px] font-medium text-muted-foreground"
                             >
                                 Created
                             </div>
@@ -257,7 +256,9 @@ const setPrimary = (assignmentId: number) => {
                                         :state="assignment.state"
                                     />
                                 </div>
-                                <div class="mt-1 text-xs text-muted-foreground">
+                                <div
+                                    class="mt-1 text-[12.5px] text-muted-foreground"
+                                >
                                     {{ label(assignment.assignmentType) }} ·
                                     <template v-if="assignment.validUntil"
                                         >{{ date(assignment.validFrom) }} to
@@ -289,7 +290,7 @@ const setPrimary = (assignmentId: number) => {
                                         staff.isActive &&
                                         assignment.validUntil
                                     "
-                                    class="max-w-44 text-right text-xs text-muted-foreground"
+                                    class="max-w-44 text-right text-[12.5px] text-muted-foreground"
                                     >Primary requires a non-expiring
                                     assignment.</span
                                 ><BranchAssignmentDialog
@@ -321,7 +322,7 @@ const setPrimary = (assignmentId: number) => {
                     ><CardContent class="space-y-5">
                         <div>
                             <div
-                                class="text-xs font-medium text-muted-foreground uppercase"
+                                class="text-[12.5px] font-medium text-muted-foreground"
                             >
                                 Current primary branch
                             </div>
@@ -334,7 +335,7 @@ const setPrimary = (assignmentId: number) => {
                         </div>
                         <div>
                             <div
-                                class="mb-2 text-xs font-medium text-muted-foreground uppercase"
+                                class="mb-2 text-[12.5px] font-medium text-muted-foreground"
                             >
                                 Roles
                             </div>
@@ -348,7 +349,7 @@ const setPrimary = (assignmentId: number) => {
                             </div>
                         </div>
                         <div
-                            class="rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground"
+                            class="rounded-md border bg-muted/20 p-3 text-[12.5px] text-muted-foreground"
                         >
                             <KeyRound
                                 class="mb-2 size-4 text-foreground"
@@ -382,7 +383,7 @@ const setPrimary = (assignmentId: number) => {
                                     )
                                 }}
                             </div>
-                            <div class="text-xs text-muted-foreground">
+                            <div class="text-[12.5px] text-muted-foreground">
                                 {{ entry.actor ?? 'System' }} ·
                                 <span class="whitespace-nowrap">{{
                                     date(entry.occurredAt)
@@ -398,5 +399,5 @@ const setPrimary = (assignmentId: number) => {
                 >
             </div>
         </div>
-    </main>
+    </PageFrame>
 </template>

@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import ReleaseStructuredValue from '@/components/website/ReleaseStructuredValue.vue';
 import type { OutputPlanPage } from '@/types/website-output-plans';
 const props = defineProps<{ outputPlans: OutputPlanPage }>();
@@ -78,32 +79,43 @@ const remove = router.on('before', (event) => {
     }
 });
 onUnmounted(remove);
-const inputClass = 'mt-1 block w-full min-w-0 rounded border bg-background p-2';
+const inputClass =
+    'mt-1 min-h-11 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9';
 </script>
 <template>
     <Head title="Website output plans"
         ><meta name="robots" content="noindex,nofollow"
     /></Head>
-    <main class="mx-auto w-full max-w-7xl min-w-0 space-y-6 p-4 md:p-6">
-        <Link href="/website/releases" class="underline">Website releases</Link>
-        <h1 class="text-2xl font-semibold">Website output plans</h1>
-        <p class="rounded-lg border bg-muted/30 p-4">
+    <main
+        class="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-6 px-4 py-6 [overflow-wrap:anywhere] lg:px-8"
+    >
+        <Link
+            href="/website/releases"
+            class="text-link underline-offset-4 hover:underline"
+            >Website releases</Link
+        >
+        <PageHeader title="Website output plans" />
+        <p class="rounded-[14px] bg-card-quiet p-4">
             Nothing is public. This does not build a website. A plan freezes
             site-level inputs only; no HTML output, artifact or deployment is
             created.
         </p>
         <div v-if="blocked" role="status">
             Branch changed. Loaded content and drafts were cleared.
-            <Link href="/website/releases/output-plans" class="underline"
+            <Link
+                href="/website/releases/output-plans"
+                class="text-link underline-offset-4 hover:underline"
                 >Reload plans</Link
             >
         </div>
         <section
             v-if="Object.keys(form.errors).length"
             role="alert"
-            class="rounded border border-destructive p-4"
+            class="rounded-[14px] border border-destructive bg-card p-4"
         >
-            <h2 class="font-semibold">Plan preparation or action blocked</h2>
+            <h2 class="text-[17px] font-semibold tracking-[-0.01em]">
+                Plan preparation or action blocked
+            </h2>
             <ul class="list-inside list-disc">
                 <li v-for="(error, key) in form.errors" :key="key">
                     {{ key }}: {{ error }}
@@ -112,7 +124,9 @@ const inputClass = 'mt-1 block w-full min-w-0 rounded border bg-background p-2';
         </section>
         <template v-if="page">
             <section aria-label="Saved output plans" class="space-y-3">
-                <h2 class="font-semibold">Saved output plans</h2>
+                <h2 class="text-[17px] font-semibold tracking-[-0.01em]">
+                    Saved output plans
+                </h2>
                 <p v-if="!page.plans.length">
                     No output plan has been prepared.
                 </p>
@@ -121,7 +135,7 @@ const inputClass = 'mt-1 block w-full min-w-0 rounded border bg-background p-2';
                         v-for="plan in page.plans"
                         :key="plan.id"
                         :href="`/website/releases/output-plans/${plan.id}`"
-                        class="min-w-0 rounded border p-4 wrap-anywhere"
+                        class="min-w-0 rounded-[10px] border bg-card-quiet p-4 wrap-anywhere"
                         ><strong>{{ plan.number }}</strong> · {{ plan.state }}
                         <p>{{ plan.releaseNumber }}</p>
                         <p>
@@ -133,9 +147,9 @@ const inputClass = 'mt-1 block w-full min-w-0 rounded border bg-background p-2';
             </section>
             <section
                 v-if="page.release"
-                class="space-y-2 rounded border p-4 wrap-anywhere"
+                class="space-y-2 rounded-[10px] border bg-card-quiet p-4 wrap-anywhere"
             >
-                <h2 class="font-semibold">
+                <h2 class="text-[17px] font-semibold tracking-[-0.01em]">
                     Bound release · {{ page.release.number }} ·
                     {{ page.release.state }}
                 </h2>
@@ -163,7 +177,9 @@ const inputClass = 'mt-1 block w-full min-w-0 rounded border bg-background p-2';
                         :class="inputClass"
                         placeholder="https://clinic.test"
                 /></label>
-                <fieldset class="min-w-0 space-y-3 rounded border p-4">
+                <fieldset
+                    class="min-w-0 space-y-3 rounded-[10px] border bg-card-quiet p-4"
+                >
                     <legend class="px-2 font-semibold">
                         Typed route aliases (3–60 characters)
                     </legend>
@@ -187,7 +203,9 @@ const inputClass = 'mt-1 block w-full min-w-0 rounded border bg-background p-2';
                             :class="inputClass"
                     /></label>
                 </fieldset>
-                <fieldset class="space-y-2 rounded border p-4">
+                <fieldset
+                    class="space-y-2 rounded-[10px] border bg-card-quiet p-4"
+                >
                     <legend class="px-2 font-semibold">
                         Fixed pages (select at least one)
                     </legend>
@@ -235,7 +253,7 @@ const inputClass = 'mt-1 block w-full min-w-0 rounded border bg-background p-2';
                         </option>
                     </select></label
                 >
-                <details class="rounded border p-4">
+                <details class="rounded-[10px] border bg-card-quiet p-4">
                     <summary>Fixed design profile · kp-soft-v1</summary>
                     <ReleaseStructuredValue :value="page.designProfile" />
                 </details>
@@ -245,7 +263,7 @@ const inputClass = 'mt-1 block w-full min-w-0 rounded border bg-background p-2';
             </form>
             <template v-if="page.detail">
                 <section
-                    class="min-w-0 space-y-3 rounded border p-4 wrap-anywhere"
+                    class="min-w-0 space-y-3 rounded-[10px] border bg-card-quiet p-4 wrap-anywhere"
                 >
                     <h2 class="text-lg font-semibold">
                         {{ page.detail.number }} · {{ page.detail.state }}
@@ -298,9 +316,11 @@ const inputClass = 'mt-1 block w-full min-w-0 rounded border bg-background p-2';
                 </section>
                 <section
                     v-if="page.canApprove"
-                    class="space-y-3 rounded border p-4"
+                    class="space-y-3 rounded-[10px] border bg-card-quiet p-4"
                 >
-                    <h2 class="font-semibold">Director decision</h2>
+                    <h2 class="text-[17px] font-semibold tracking-[-0.01em]">
+                        Director decision
+                    </h2>
                     <template
                         v-if="
                             page.detail.state === 'prepared' &&
@@ -347,8 +367,12 @@ const inputClass = 'mt-1 block w-full min-w-0 rounded border bg-background p-2';
                         This plan is closed. Prepare a new plan to continue.
                     </p>
                 </section>
-                <section class="space-y-2 rounded border p-4">
-                    <h2 class="font-semibold">Plan history</h2>
+                <section
+                    class="space-y-2 rounded-[10px] border bg-card-quiet p-4"
+                >
+                    <h2 class="text-[17px] font-semibold tracking-[-0.01em]">
+                        Plan history
+                    </h2>
                     <p
                         v-for="(action, index) in page.detail.actions"
                         :key="index"

@@ -225,7 +225,7 @@ const submit = () => {
     });
 };
 const field =
-    'block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-base text-zinc-950 focus-visible:border-pink-600 focus-visible:ring-2 focus-visible:ring-pink-600/30 focus-visible:outline-none aria-[invalid=true]:border-red-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50';
+    'block w-full rounded-lg border border-input bg-card px-3 py-2.5 text-base text-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-[invalid=true]:border-destructive';
 </script>
 
 <template>
@@ -234,9 +234,9 @@ const field =
     /></Head>
     <main class="mx-auto min-h-svh max-w-xl px-4 py-5 sm:px-6 sm:py-8">
         <section
-            class="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-xl shadow-zinc-950/5 dark:border-zinc-800 dark:bg-zinc-900"
+            class="overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-card)]"
         >
-            <div class="h-1.5 bg-pink-600" aria-hidden="true"></div>
+            <div class="h-1.5 bg-brand" aria-hidden="true"></div>
             <div class="space-y-6 p-5 sm:p-8">
                 <header class="flex items-center gap-3">
                     <img
@@ -245,9 +245,7 @@ const field =
                         class="size-11 object-contain"
                     />
                     <div class="min-w-0">
-                        <p
-                            class="text-sm font-semibold text-pink-700 dark:text-pink-400"
-                        >
+                        <p class="text-sm font-semibold text-brand-strong">
                             {{ clinicName }}
                         </p>
                         <h1 class="text-xl font-semibold">Apply for a job</h1>
@@ -256,7 +254,7 @@ const field =
 
                 <p
                     v-if="!positions.length"
-                    class="rounded-xl border border-zinc-200 p-4 text-sm dark:border-zinc-800"
+                    class="rounded-xl border border-border p-4 text-sm"
                     data-test="apply-no-positions"
                 >
                     There are no open positions right now. Please check again
@@ -271,17 +269,15 @@ const field =
                     @submit.prevent="submit"
                 >
                     <div class="space-y-2" data-test="apply-steps">
-                        <p
-                            class="text-xs font-medium text-zinc-600 dark:text-zinc-400"
-                        >
+                        <p class="text-xs font-medium text-muted-foreground">
                             Step {{ step }} of {{ STEP_COUNT }}
                         </p>
                         <div
-                            class="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800"
+                            class="h-2 overflow-hidden rounded-full bg-muted"
                             aria-hidden="true"
                         >
                             <div
-                                class="h-full rounded-full bg-pink-600 transition-all"
+                                class="h-full rounded-full bg-brand transition-all"
                                 :style="{
                                     width: `${(step / STEP_COUNT) * 100}%`,
                                 }"
@@ -294,7 +290,7 @@ const field =
                         ref="summary"
                         role="alert"
                         tabindex="-1"
-                        class="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 focus-visible:outline-2 focus-visible:outline-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+                        class="rounded-lg border border-destructive bg-destructive/10 p-3 text-sm text-destructive focus-visible:outline-2 focus-visible:outline-ring"
                         data-test="apply-error-summary"
                     >
                         <p class="font-semibold">Please check these answers.</p>
@@ -307,7 +303,7 @@ const field =
                     <p
                         v-else-if="formError"
                         role="alert"
-                        class="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+                        class="rounded-lg border border-destructive bg-destructive/10 p-3 text-sm text-destructive"
                         data-test="apply-form-error"
                     >
                         {{ formError }}
@@ -356,7 +352,7 @@ const field =
                                 v-if="form.errors.position"
                                 id="apply-position-error"
                                 role="alert"
-                                class="text-sm text-red-700 dark:text-red-400"
+                                class="text-sm text-destructive"
                             >
                                 {{ form.errors.position }}
                             </p>
@@ -411,7 +407,7 @@ const field =
                                 v-if="form.errors[item.key]"
                                 :id="`apply-${item.key}-error`"
                                 role="alert"
-                                class="text-sm text-red-700 dark:text-red-400"
+                                class="text-sm text-destructive"
                             >
                                 {{ form.errors[item.key] }}
                             </p>
@@ -461,7 +457,7 @@ const field =
                                         v-if="errorOf('preferred_branch')"
                                         id="apply-preferred_branch-error"
                                         role="alert"
-                                        class="text-sm text-red-700 dark:text-red-400"
+                                        class="text-sm text-destructive"
                                     >
                                         {{ errorOf('preferred_branch') }}
                                     </p>
@@ -491,7 +487,7 @@ const field =
                                     />
                                     <p
                                         id="apply-start_date-hint"
-                                        class="text-sm text-zinc-600 dark:text-zinc-400"
+                                        class="text-sm text-muted-foreground"
                                     >
                                         From today, within a year.
                                     </p>
@@ -499,7 +495,7 @@ const field =
                                         v-if="errorOf('start_date')"
                                         id="apply-start_date-error"
                                         role="alert"
-                                        class="text-sm text-red-700 dark:text-red-400"
+                                        class="text-sm text-destructive"
                                     >
                                         {{ errorOf('start_date') }}
                                     </p>
@@ -540,7 +536,7 @@ const field =
                                         v-if="errorOf('education')"
                                         id="apply-education-error"
                                         role="alert"
-                                        class="text-sm text-red-700 dark:text-red-400"
+                                        class="text-sm text-destructive"
                                     >
                                         {{ errorOf('education') }}
                                     </p>
@@ -574,7 +570,7 @@ const field =
                                         v-if="errorOf('years_experience')"
                                         id="apply-years_experience-error"
                                         role="alert"
-                                        class="text-sm text-red-700 dark:text-red-400"
+                                        class="text-sm text-destructive"
                                     >
                                         {{ errorOf('years_experience') }}
                                     </p>
@@ -604,7 +600,7 @@ const field =
                                             v-model="form.languages"
                                             type="checkbox"
                                             :value="l.value"
-                                            class="size-5 accent-pink-600"
+                                            class="size-5 accent-primary"
                                         />
                                         {{ l.label }}
                                     </label>
@@ -613,7 +609,7 @@ const field =
                                     v-if="errorOf('languages')"
                                     id="apply-languages-error"
                                     role="alert"
-                                    class="text-sm text-red-700 dark:text-red-400"
+                                    class="text-sm text-destructive"
                                 >
                                     {{ errorOf('languages') }}
                                 </p>
@@ -675,7 +671,7 @@ const field =
                                         v-if="errorOf(q.key)"
                                         :id="`apply-${q.key}-error`"
                                         role="alert"
-                                        class="text-sm text-red-700 dark:text-red-400"
+                                        class="text-sm text-destructive"
                                     >
                                         {{ errorOf(q.key) }}
                                     </p>
@@ -712,14 +708,14 @@ const field =
                                     v-if="errorOf('availability')"
                                     id="apply-availability-error"
                                     role="alert"
-                                    class="text-sm text-red-700 dark:text-red-400"
+                                    class="text-sm text-destructive"
                                 >
                                     {{ errorOf('availability') }}
                                 </p>
                             </div>
                             <p
                                 v-if="positionType === 'resident_doctor'"
-                                class="text-sm text-zinc-600 dark:text-zinc-400"
+                                class="text-sm text-muted-foreground"
                             >
                                 HR checks your MMC registration and APC with you
                                 at the interview.
@@ -745,7 +741,7 @@ const field =
                             ></textarea>
                             <p
                                 id="apply-message-hint"
-                                class="text-sm text-zinc-600 dark:text-zinc-400"
+                                class="text-sm text-muted-foreground"
                             >
                                 Up to 1,000 characters. Please do not include
                                 your IC number or health details.
@@ -753,7 +749,7 @@ const field =
                             <p
                                 v-if="form.errors.message"
                                 role="alert"
-                                class="text-sm text-red-700 dark:text-red-400"
+                                class="text-sm text-destructive"
                             >
                                 {{ form.errors.message }}
                             </p>
@@ -782,14 +778,14 @@ const field =
                             />
                             <p
                                 id="apply-cv-hint"
-                                class="text-sm text-zinc-600 dark:text-zinc-400"
+                                class="text-sm text-muted-foreground"
                             >
                                 One PDF file, up to {{ cvMaxMb }} MB.
                             </p>
                             <p
                                 v-if="form.errors.cv"
                                 role="alert"
-                                class="text-sm text-red-700 dark:text-red-400"
+                                class="text-sm text-destructive"
                                 data-test="apply-cv-error"
                             >
                                 {{ form.errors.cv }}
@@ -811,7 +807,7 @@ const field =
 
                     <template v-if="step === 3">
                         <section
-                            class="space-y-2 rounded-xl border border-zinc-200 p-4 text-sm dark:border-zinc-800"
+                            class="space-y-2 rounded-xl border border-border p-4 text-sm"
                             aria-labelledby="apply-privacy-title"
                             data-test="apply-privacy"
                         >
@@ -827,7 +823,7 @@ const field =
                                 the clinic sets.
                             </p>
 
-                            <p class="text-xs text-zinc-600 dark:text-zinc-400">
+                            <p class="text-xs text-muted-foreground">
                                 Notice version
                                 {{ privacyNoticeVersion }}
                             </p>
@@ -835,7 +831,7 @@ const field =
                                 <input
                                     v-model="form.privacy_accepted"
                                     type="checkbox"
-                                    class="mt-0.5 size-5 accent-pink-600"
+                                    class="mt-0.5 size-5 accent-primary"
                                     :aria-invalid="
                                         form.errors.privacy_accepted
                                             ? 'true'
@@ -852,17 +848,17 @@ const field =
                             <p
                                 v-if="form.errors.privacy_accepted"
                                 role="alert"
-                                class="text-sm text-red-700 dark:text-red-400"
+                                class="text-sm text-destructive"
                             >
                                 {{ form.errors.privacy_accepted }}
                             </p>
                             <label
-                                class="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 p-3 text-sm dark:border-zinc-800"
+                                class="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-border p-3 text-sm"
                             >
                                 <input
                                     v-model="form.talent_pool"
                                     type="checkbox"
-                                    class="mt-0.5 size-5 accent-pink-600"
+                                    class="mt-0.5 size-5 accent-primary"
                                     data-test="apply-talent-pool"
                                 />
                                 <span
@@ -882,7 +878,7 @@ const field =
                         <button
                             v-if="step > 1"
                             type="button"
-                            class="flex min-h-11 items-center justify-center rounded-xl border border-zinc-300 px-4 font-semibold hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-pink-600 focus-visible:ring-offset-2 focus-visible:outline-none sm:flex-1 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                            class="flex min-h-11 items-center justify-center rounded-full border border-input px-4 font-semibold hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none sm:flex-1"
                             data-test="apply-back"
                             @click="back"
                         >
@@ -891,7 +887,7 @@ const field =
                         <button
                             v-if="step < STEP_COUNT"
                             type="button"
-                            class="flex min-h-11 items-center justify-center rounded-xl bg-pink-700 px-4 font-semibold text-white hover:bg-pink-800 focus-visible:ring-2 focus-visible:ring-pink-600 focus-visible:ring-offset-2 focus-visible:outline-none sm:flex-1"
+                            class="flex min-h-11 items-center justify-center rounded-full bg-primary px-4 font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none sm:flex-1"
                             data-test="apply-next"
                             @click="next"
                         >
@@ -900,7 +896,7 @@ const field =
                         <button
                             v-else
                             type="submit"
-                            class="flex min-h-11 items-center justify-center rounded-xl bg-pink-700 px-4 font-semibold text-white hover:bg-pink-800 focus-visible:ring-2 focus-visible:ring-pink-600 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60 sm:flex-1"
+                            class="flex min-h-11 items-center justify-center rounded-full bg-primary px-4 font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60 sm:flex-1"
                             :disabled="form.processing"
                             data-test="apply-submit"
                         >

@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import type { Asset } from '@/types/website';
 const props = defineProps<{
     library: {
@@ -90,20 +91,22 @@ watch(
 );
 onUnmounted(stop);
 const inputClass =
-    'mt-1 w-full min-w-0 rounded-md border bg-background px-3 py-2 text-sm';
+    'mt-1 min-h-11 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9';
 </script>
 <template>
     <Head title="Website media library" />
-    <main class="mx-auto w-full max-w-7xl space-y-5 p-4 sm:p-6">
-        <Link href="/clinic-management" class="text-sm underline"
+    <main
+        class="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-6 px-4 py-6 [overflow-wrap:anywhere] lg:px-8"
+    >
+        <Link
+            href="/clinic-management"
+            class="text-sm text-link underline-offset-4 hover:underline"
             >Clinic management</Link
         >
-        <header>
-            <h1 class="text-2xl font-semibold">Media library</h1>
-            <p class="mt-1 text-muted-foreground">
-                Private website media only. Nothing is public yet.
-            </p>
-        </header>
+        <PageHeader
+            title="Media library"
+            description="Private website media only. Nothing is public yet."
+        />
         <p v-if="blocked" role="status">
             Branch changed. Loaded assets and upload drafts cleared. Reload to
             continue.
@@ -112,12 +115,12 @@ const inputClass =
             <div
                 v-if="errors.length"
                 role="alert"
-                class="rounded border border-destructive p-3 text-destructive"
+                class="rounded-[14px] border border-destructive bg-card p-3 text-destructive"
             >
                 <p v-for="error in errors" :key="error">{{ error }}</p>
             </div>
             <form
-                class="grid min-w-0 gap-4 rounded-xl border p-5 md:grid-cols-2"
+                class="grid min-w-0 gap-4 rounded-[14px] border bg-card p-5 md:grid-cols-2"
                 @submit.prevent="upload"
             >
                 <h2 class="font-semibold md:col-span-2">
@@ -192,7 +195,7 @@ const inputClass =
                 <article
                     v-for="asset in library.assets"
                     :key="asset.publicId"
-                    class="min-w-0 space-y-3 rounded-xl border p-4"
+                    class="min-w-0 space-y-3 rounded-[14px] border bg-card p-4"
                 >
                     <img
                         :src="`/website/media/${asset.publicId}/image`"

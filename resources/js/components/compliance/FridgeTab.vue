@@ -263,7 +263,7 @@ const sendMistake = () => {
         <article
             v-for="f in fridge.fridges"
             :key="f.id"
-            class="rounded-lg border bg-card p-4"
+            class="rounded-[14px] border bg-card p-4 shadow-card"
             data-test="fridge-card"
         >
             <div class="flex flex-wrap items-start justify-between gap-3">
@@ -324,9 +324,7 @@ const sendMistake = () => {
                 </li>
             </ul>
 
-            <h3
-                class="mt-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-            >
+            <h3 class="mt-4 text-[13px] font-semibold text-muted-foreground">
                 Recent readings
             </h3>
             <p
@@ -414,9 +412,7 @@ const sendMistake = () => {
                 </li>
             </ul>
 
-            <h3
-                class="mt-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-            >
+            <h3 class="mt-4 text-[13px] font-semibold text-muted-foreground">
                 Day by day
             </h3>
             <ul class="mt-1 divide-y lg:hidden" data-test="day-cards">

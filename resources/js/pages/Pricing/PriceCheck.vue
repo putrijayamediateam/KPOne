@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DisclosureText } from '@/components/ui/disclosure';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { OperationalSelect } from '@/components/ui/select';
@@ -146,9 +147,7 @@ const emptyDescription = computed(() =>
 </script>
 
 <template>
-    <main
-        class="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-4 px-4 py-6 md:px-6"
-    >
+    <PageFrame>
         <PageHeader
             title="Price list check"
             description="Every active medicine and clinical service with its current prices. Fix anything flagged before using it in billing."
@@ -493,5 +492,5 @@ const emptyDescription = computed(() =>
                 @change="(next) => visit({ page: next })"
             />
         </template>
-    </main>
+    </PageFrame>
 </template>

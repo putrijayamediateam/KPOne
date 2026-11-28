@@ -376,7 +376,7 @@ const dispensaryStatusLabel: Record<string, string> = {
         >
             <button
                 type="button"
-                class="flex w-full items-center justify-between p-4 text-left"
+                class="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-4 text-left"
                 @click="cancelling = !cancelling"
             >
                 <span
@@ -386,7 +386,7 @@ const dispensaryStatusLabel: Record<string, string> = {
                         >Cancellation is final. A cancelled Visit cannot be
                         edited or reopened.</span
                     ></span
-                ><Ban class="size-4 text-destructive" />
+                ><Ban class="size-4 shrink-0 text-destructive" />
             </button>
             <form
                 v-if="cancelling"

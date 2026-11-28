@@ -4,6 +4,7 @@ import { computed, reactive } from 'vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 
@@ -109,9 +110,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
 
 <template>
     <Head title="Panel invoices" />
-    <main
-        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-6 md:px-6"
-    >
+    <PageFrame width="wide">
         <PageHeader
             title="Panel invoices"
             description="Invoices billed to a Panel at this branch. Choose a Panel and a date range, then download the list as a CSV file."
@@ -141,7 +140,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
         </div>
 
         <form
-            class="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 md:grid-cols-4"
+            class="grid grid-cols-1 gap-3 rounded-[14px] border bg-card p-4 shadow-card md:grid-cols-4"
             @submit.prevent="search()"
         >
             <label class="grid min-w-0 gap-1 text-xs">
@@ -213,7 +212,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
 
         <div
             v-if="!ready"
-            class="rounded-xl border border-dashed p-10 text-center"
+            class="rounded-[14px] bg-card p-10 text-center shadow-card"
             data-testid="panel-invoices-empty"
         >
             <p class="font-medium">
@@ -226,14 +225,14 @@ const canDownload = computed(() => props.ready && props.total > 0);
         <template v-else>
             <p
                 v-if="truncated"
-                class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+                class="rounded-lg border bg-warning-wash p-3 text-sm text-warning"
             >
                 Only the first {{ maxRows.toLocaleString() }} invoices are shown
                 and downloaded. Narrow the date range to see the rest.
             </p>
             <div
                 v-if="rows.length === 0"
-                class="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground"
+                class="rounded-[14px] bg-card p-8 text-center text-sm text-muted-foreground shadow-card"
             >
                 No invoices match these filters.
             </div>
@@ -245,7 +244,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
                 <li
                     v-for="row in rows"
                     :key="row.invoiceNumber"
-                    class="min-w-0 rounded-xl border bg-card p-4 text-sm"
+                    class="min-w-0 rounded-[14px] border bg-card p-4 text-sm shadow-card"
                 >
                     <div class="flex min-w-0 items-start justify-between gap-3">
                         <div class="min-w-0">
@@ -407,5 +406,5 @@ const canDownload = computed(() => props.ready && props.total > 0);
                 </div>
             </div>
         </template>
-    </main>
+    </PageFrame>
 </template>
