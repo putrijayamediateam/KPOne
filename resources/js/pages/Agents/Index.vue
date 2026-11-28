@@ -116,7 +116,7 @@ const toggle = () => {
 <template>
     <Head title="AI agents" />
     <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 lg:px-8"
     >
         <PageHeader
             title="AI agents"
@@ -139,7 +139,10 @@ const toggle = () => {
             KPOne sends nothing to any AI service.
         </p>
 
-        <section class="rounded-xl border bg-card p-4" aria-labelledby="agents">
+        <section
+            class="rounded-[14px] border bg-card p-4"
+            aria-labelledby="agents"
+        >
             <h2 id="agents" class="text-sm font-semibold">Registered agents</h2>
             <div
                 v-if="agents.length === 0"
@@ -189,7 +192,7 @@ const toggle = () => {
                                     · {{ agent.department }}
                                 </template>
                             </p>
-                            <p class="text-xs text-muted-foreground">
+                            <p class="text-[12.5px] text-muted-foreground">
                                 {{
                                     agent.kind === 'build'
                                         ? 'Build agent (shown in the office only)'
@@ -199,7 +202,7 @@ const toggle = () => {
                             </p>
                         </div>
                     </div>
-                    <dl class="grid gap-1 text-xs">
+                    <dl class="grid gap-1 text-[12.5px]">
                         <div class="flex flex-wrap gap-1">
                             <dt class="text-muted-foreground">Data sources:</dt>
                             <dd
@@ -243,11 +246,11 @@ const toggle = () => {
         </section>
 
         <section
-            class="rounded-xl border bg-card p-4"
+            class="rounded-[14px] border bg-card p-4"
             aria-labelledby="activity"
         >
             <h2 id="activity" class="text-sm font-semibold">Recent activity</h2>
-            <p class="mt-1 text-xs text-muted-foreground">
+            <p class="mt-1 text-[12.5px] text-muted-foreground">
                 The latest 25 agent tasks. Times are shown in Malaysia time.
             </p>
             <div
@@ -259,7 +262,9 @@ const toggle = () => {
             <div v-else class="mt-3 overflow-x-auto">
                 <table class="w-full min-w-[720px] text-left text-sm">
                     <thead>
-                        <tr class="border-b text-xs text-muted-foreground">
+                        <tr
+                            class="border-b text-[12.5px] text-muted-foreground"
+                        >
                             <th class="py-2 pr-3 font-medium">Agent</th>
                             <th class="py-2 pr-3 font-medium">Task</th>
                             <th class="py-2 pr-3 font-medium">Branch</th>
@@ -277,7 +282,9 @@ const toggle = () => {
                             <td class="py-2 pr-3">{{ run.agent ?? '—' }}</td>
                             <td class="py-2 pr-3">
                                 {{ taskLabel(run.taskType) }}
-                                <div class="text-xs text-muted-foreground">
+                                <div
+                                    class="text-[12.5px] text-muted-foreground"
+                                >
                                     {{
                                         run.scheduled
                                             ? 'Scheduled'
@@ -293,7 +300,7 @@ const toggle = () => {
                                 />
                                 <div
                                     v-if="run.errorCode"
-                                    class="font-mono text-xs text-muted-foreground"
+                                    class="font-mono text-[12.5px] text-muted-foreground"
                                 >
                                     {{ run.errorCode }}
                                 </div>

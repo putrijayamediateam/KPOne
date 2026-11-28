@@ -385,7 +385,7 @@ const field =
                     </label>
                     <p
                         v-if="missing(receipt, form(receipt)) === null"
-                        class="rounded-md bg-muted/40 p-2 text-sm tabular-nums"
+                        class="rounded-[10px] bg-card-quiet p-2 text-sm tabular-nums"
                         data-testid="correction-summary"
                     >
                         {{ summary(receipt, form(receipt)) }}
@@ -428,7 +428,7 @@ const field =
             <div
                 v-for="c in corrections.corrections"
                 :key="c.publicId"
-                class="rounded-md bg-muted/40 p-2 text-sm"
+                class="rounded-[10px] bg-card-quiet p-2 text-sm"
             >
                 <p class="tabular-nums">
                     {{

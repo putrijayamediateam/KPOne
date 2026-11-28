@@ -7,6 +7,7 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Patient\Family\FamilyVisitGroups;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientAdministrationService;
 use App\Domain\Patient\Services\PublicIntakePayloadValidator;
@@ -33,6 +34,7 @@ class VisitRegistrationService
         private VisitReasonService $reasons,
         private AuditRecorder $audit,
         private VisitPanelNoteService $panelNotes = new VisitPanelNoteService,
+        private FamilyVisitGroups $familyGroups = new FamilyVisitGroups,
     ) {}
 
     /** @param array<string, mixed> $attributes */
@@ -140,6 +142,8 @@ class VisitRegistrationService
                         ? $validated['coverage_member_reference'] : null,
                     'coverage_panel_note' => $this->panelNotes->value($validated),
                     'registered_at' => $now,
+                    // FAM-1: family members registered at this branch today share one key (read by Billing only).
+                    'family_group_id' => $this->familyGroups->forRegistration($lockedPatient, $branch, $effectiveDate),
                     'registered_by_user_id' => $lockedActor->id,
                     'updated_by_user_id' => $lockedActor->id,
                     'lock_version' => 1,

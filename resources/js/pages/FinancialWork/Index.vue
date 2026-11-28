@@ -56,7 +56,9 @@ const turnPage = (page: number) =>
 
 <template>
     <Head :title="title" />
-    <main class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-6">
+    <main
+        class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-6 sm:px-6 lg:px-8"
+    >
         <PageHeader :title="title" :description="description">
             <template #actions>
                 <ActionLink href="/workspace" variant="secondary">
