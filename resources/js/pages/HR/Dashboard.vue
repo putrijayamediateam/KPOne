@@ -439,14 +439,14 @@ const { monthLabel, chooseMonth, hours, days } = useDashboardPage(props);
                     <template v-if="branch.month.attendance">
                         <div>
                             <dt class="text-muted-foreground">Days clocked</dt>
-                            <dd class="font-medium">
+                            <dd class="text-lg font-semibold tabular-nums">
                                 {{ branch.month.attendance.daysClocked }}
                             </dd>
                         </div>
                         <template v-if="dashboard.attendanceSettingsSaved">
                             <div>
                                 <dt class="text-muted-foreground">Late</dt>
-                                <dd class="font-medium">
+                                <dd class="text-lg font-semibold tabular-nums">
                                     {{ branch.month.attendance.late }}
                                 </dd>
                             </div>
@@ -454,7 +454,7 @@ const { monthLabel, chooseMonth, hours, days } = useDashboardPage(props);
                                 <dt class="text-muted-foreground">
                                     Left early
                                 </dt>
-                                <dd class="font-medium">
+                                <dd class="text-lg font-semibold tabular-nums">
                                     {{ branch.month.attendance.leftEarly }}
                                 </dd>
                             </div>
@@ -462,7 +462,7 @@ const { monthLabel, chooseMonth, hours, days } = useDashboardPage(props);
                                 <dt class="text-muted-foreground">
                                     No clock-in
                                 </dt>
-                                <dd class="font-medium">
+                                <dd class="text-lg font-semibold tabular-nums">
                                     {{ branch.month.attendance.noClockIn }}
                                 </dd>
                             </div>
@@ -470,7 +470,7 @@ const { monthLabel, chooseMonth, hours, days } = useDashboardPage(props);
                                 <dt class="text-muted-foreground">
                                     No clock-out
                                 </dt>
-                                <dd class="font-medium">
+                                <dd class="text-lg font-semibold tabular-nums">
                                     {{ branch.month.attendance.noClockOut }}
                                 </dd>
                             </div>
@@ -478,13 +478,13 @@ const { monthLabel, chooseMonth, hours, days } = useDashboardPage(props);
                     </template>
                     <div v-if="branch.month.overtime">
                         <dt class="text-muted-foreground">Approved overtime</dt>
-                        <dd class="font-medium">
+                        <dd class="text-lg font-semibold tabular-nums">
                             {{ hours(branch.month.overtime.approvedMinutes) }}
                         </dd>
                     </div>
                     <div v-if="dashboard.can.leave">
                         <dt class="text-muted-foreground">Leave taken</dt>
-                        <dd class="font-medium">
+                        <dd class="font-medium tabular-nums">
                             <template v-if="branch.month.leave">
                                 {{ days(branch.month.leave.days) }}
                                 ({{ branch.month.leave.people }}
@@ -501,7 +501,7 @@ const { monthLabel, chooseMonth, hours, days } = useDashboardPage(props);
                     </div>
                     <div v-if="dashboard.can.roster">
                         <dt class="text-muted-foreground">Short days</dt>
-                        <dd class="font-medium">
+                        <dd class="font-medium tabular-nums">
                             <template
                                 v-if="branch.month.shortfallDays !== null"
                             >

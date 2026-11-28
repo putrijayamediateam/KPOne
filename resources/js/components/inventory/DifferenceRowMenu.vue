@@ -30,7 +30,7 @@ function element(): HTMLElement | null {
             <button
                 ref="trigger"
                 type="button"
-                class="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:size-9"
+                class="inline-flex size-11 items-center justify-center rounded-[10px] hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:size-9"
                 :aria-label="`More actions for ${label}`"
                 data-testid="difference-row-menu"
             >

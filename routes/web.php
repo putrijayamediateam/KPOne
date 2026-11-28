@@ -99,6 +99,7 @@ use App\Http\Controllers\PanelRemittancesController;
 use App\Http\Controllers\PanelSettingsController;
 use App\Http\Controllers\PatientBillingReportController;
 use App\Http\Controllers\PatientController;
+use App\Http\Controllers\PatientFamilyController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientMergeController;
 use App\Http\Controllers\PatientSearchController;
@@ -1228,6 +1229,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', 'show')->middleware('permission:billing.view.branch,billing.summary.branch')->name('billing.show');
             Route::get('outstanding/{group}', 'outstanding')->whereIn('group', ['patient', 'panel'])->middleware(['permission:billing.view.branch,billing.summary.branch', 'sensitive.no-store'])->name('billing.outstanding');
             Route::get('payments', 'payments')->middleware('permission:billing.view.branch,billing.summary.branch')->name('billing.payments');
+            // BIL-39: the family bill (read only here); members share visits.family_group_id, written by FAM-1 only.
+            Route::get('family', 'family')->middleware(['permission:billing.view.branch,billing.summary.branch', 'sensitive.no-store'])->name('billing.family');
+            Route::post('family/payments', 'familyPayment')->middleware(['permission:payments.add.branch', 'throttle:20,1'])->name('billing.family.payment');
+            Route::post('family/remove', 'familyRemove')->middleware(['permission:billing.build.branch', 'throttle:20,1'])->name('billing.family.remove');
+            Route::post('family/restore', 'familyRestore')->middleware(['permission:billing.build.branch', 'throttle:20,1'])->name('billing.family.restore');
             Route::post('build', 'build')->middleware(['permission:billing.build.branch', 'throttle:20,1'])->name('billing.build');
             Route::post('complete', 'complete')->middleware(['permission:visits.complete.branch', 'throttle:20,1'])->name('billing.complete');
             Route::post('{invoice}/finalize', 'finalize')->middleware(['permission:billing.finalize.branch', 'throttle:20,1'])->name('billing.finalize');
@@ -1600,6 +1606,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('patients/{patient}', [PatientController::class, 'show'])
             ->middleware('permission:patients.view.organisation')
             ->name('patients.show');
+        // FAM-1: family link (existing patient permissions; no new permission).
+        Route::get('patients/{patient}/family', [PatientFamilyController::class, 'show'])
+            ->middleware(['permission:patients.view.organisation', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('patients.family.show');
+        Route::post('patients/{patient}/family/commands', [PatientFamilyController::class, 'store'])
+            ->middleware(['permission:patients.update.organisation', 'sensitive.no-store', 'throttle:30,1'])
+            ->name('patients.family.store');
         // REG-4: patient change history (field names only).
         Route::get('patients/{patient}/history', [PatientController::class, 'history'])
             ->middleware(['permission:patients.history.view.organisation', 'sensitive.no-store', 'throttle:60,1'])

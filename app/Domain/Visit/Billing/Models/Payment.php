@@ -21,6 +21,8 @@ use LogicException;
  * @property string $receipt_number
  * @property string $method_snapshot
  * @property string $payload_hash
+ * @property string|null $family_payment_id BIL-39: shared by the receipts of one family payment
+ * @property string|null $family_payload_hash BIL-39: the family request's fingerprint
  * @property CarbonImmutable $received_at
  */
 #[Guarded(['*'])]

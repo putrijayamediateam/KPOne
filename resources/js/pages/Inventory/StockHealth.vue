@@ -58,7 +58,9 @@ const plural = (count: number, one: string, many: string) =>
 
 <template>
     <Head title="Stock health" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto grid w-full max-w-7xl items-start gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-8 lg:py-6 lg:[&>*]:col-start-1 [&>a]:justify-self-start"
+    >
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -71,7 +73,7 @@ const plural = (count: number, one: string, many: string) =>
             :description="`${health.branchName} · How long stock lasts, how often it is used up, and how much is lost to expiry. Quantities only; nothing changes from this page.`"
         />
         <div
-            class="space-y-1 rounded-lg border bg-muted/40 p-3 text-sm"
+            class="space-y-2 rounded-xl border bg-card p-4 text-[13px] sm:p-5 lg:col-start-2! lg:row-span-4 lg:row-start-3"
             data-testid="stock-health-method"
         >
             <p>
@@ -83,7 +85,7 @@ const plural = (count: number, one: string, many: string) =>
                 ÷ (used + all write-offs). Longest on hand first; stock with no
                 use in the period comes first of all.
             </p>
-            <p class="text-muted-foreground">
+            <p class="rounded-xl bg-warning-wash px-3 py-2 text-warning">
                 No money figures: stock value waits for the clinic's cost
                 policy.
             </p>
@@ -94,7 +96,7 @@ const plural = (count: number, one: string, many: string) =>
             aria-label="Stock health summary"
             data-testid="stock-health-summary"
         >
-            <li class="rounded-lg border bg-card p-2 sm:p-3">
+            <li class="rounded-xl border bg-card px-3 py-3 sm:px-4">
                 <p class="text-xl font-semibold tabular-nums sm:text-2xl">
                     {{ health.summary.noUse }}
                 </p>
@@ -102,7 +104,7 @@ const plural = (count: number, one: string, many: string) =>
                     With stock but no use in the period
                 </p>
             </li>
-            <li class="rounded-lg border bg-card p-2 sm:p-3">
+            <li class="rounded-xl border bg-card px-3 py-3 sm:px-4">
                 <p class="text-xl font-semibold tabular-nums sm:text-2xl">
                     {{ health.summary.slow }}
                 </p>
@@ -110,7 +112,7 @@ const plural = (count: number, one: string, many: string) =>
                     With more than {{ health.slowDays }} days on hand
                 </p>
             </li>
-            <li class="rounded-lg border bg-card p-2 sm:p-3">
+            <li class="rounded-xl border bg-card px-3 py-3 sm:px-4">
                 <p class="text-xl font-semibold tabular-nums sm:text-2xl">
                     {{ health.summary.expiryLoss }}
                 </p>
@@ -135,7 +137,7 @@ const plural = (count: number, one: string, many: string) =>
                 <select
                     v-model.number="days"
                     @change="visit()"
-                    class="h-11 rounded-md border bg-background px-3 lg:h-9"
+                    class="h-11 rounded-[10px] border border-input bg-field-fill px-3 lg:h-9"
                     data-testid="stock-health-period"
                 >
                     <option
@@ -156,11 +158,15 @@ const plural = (count: number, one: string, many: string) =>
         >
             No stock was held or used at this branch in the period.
         </p>
-        <ul v-else class="space-y-3" aria-label="Stock health by SKU">
+        <ul
+            v-else
+            class="divide-y rounded-xl border bg-card"
+            aria-label="Stock health by SKU"
+        >
             <li
                 v-for="row in health.rows"
                 :key="row.key"
-                class="space-y-2 rounded-lg border bg-card p-3 sm:space-y-3 sm:p-4"
+                class="space-y-2 p-4 sm:space-y-3 sm:px-5"
             >
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
@@ -177,7 +183,7 @@ const plural = (count: number, one: string, many: string) =>
                         </p>
                         <p
                             v-if="row.noUse"
-                            class="rounded border px-2 py-0.5 text-sm"
+                            class="rounded-lg bg-warning-wash px-2 py-0.5 text-sm font-semibold text-warning"
                             data-testid="no-use"
                         >
                             <span class="sm:hidden">No use</span

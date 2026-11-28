@@ -513,6 +513,61 @@ class PostgresBillingRegressionTest extends TestCase
         $this->assertSame(['count' => 1, 'sen' => 4000], app(CashClosingService::class)->expected($f['branch'], $f['day']));
     }
 
+    /**
+     * BIL-39 (Kumar R1): a single payment holding the member's patient and visit makes a family payment over the same
+     * invoice wait, without a deadlock; the family payment then finds the invoice changed and records nothing.
+     */
+    public function test_bil39_a_single_payment_holding_the_invoice_makes_a_family_payment_wait_then_refuse_as_changed(): void
+    {
+        $f = $this->familyFixture();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-pay', [...$this->payArgs($f, 1500), 'hold' => true]),
+            $this->billWorker($f, 'bill-family-pay', $this->familyPayArgs($f, 4000)),
+        );
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE family'), $out);
+        $this->assertSame(1, Payment::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(0, Payment::query()->where('organisation_id', $f['organisation']->id)->whereNotNull('family_payment_id')->count());
+    }
+
+    /** BIL-39 (Kumar R1, the other order): a family payment holding first makes a single payment wait, then refuse. */
+    public function test_bil39_a_family_payment_holding_first_makes_a_single_payment_wait_then_refuse(): void
+    {
+        $f = $this->familyFixture();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-family-pay', [...$this->familyPayArgs($f, 4000), 'hold' => true]),
+            $this->billWorker($f, 'bill-pay', $this->payArgs($f, 1500)),
+        );
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE'), $out);
+        $receipt = Payment::query()->where('organisation_id', $f['organisation']->id)->sole();
+        $this->assertNotNull($receipt->family_payment_id);
+        $this->assertSame(4000, (int) $receipt->amount_sen);
+    }
+
+    /** BIL-39 (Kumar R3): the same family request sent twice at once records one set of receipts. */
+    public function test_bil39_the_same_family_request_twice_at_once_records_one_receipt(): void
+    {
+        $f = $this->familyFixture();
+        $args = $this->familyPayArgs($f, 4000);
+        $out = $this->race([$this->billWorker($f, 'bill-family-pay', $args), $this->billWorker($f, 'bill-family-pay', $args)], $f['patient']);
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, Payment::query()->where('organisation_id', $f['organisation']->id)->count());
+    }
+
+    /** BIL-39: two different family payments at once never pay more than the family owes. */
+    public function test_bil39_two_family_payments_at_once_have_one_winner(): void
+    {
+        $f = $this->familyFixture();
+        $out = $this->race([
+            $this->billWorker($f, 'bill-family-pay', $this->familyPayArgs($f, 4000)),
+            $this->billWorker($f, 'bill-family-pay', $this->familyPayArgs($f, 4000), 'ca2'),
+        ], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE family'), $out);
+        $this->assertSame(4000, app(FinancialLedger::class)->state($f['invoice']->refresh())['self_pay']);
+    }
+
     public function test_bil32_a_payment_holding_the_day_makes_todays_count_wait_and_then_count_it(): void
     {
         $f = $this->billingFixture();
@@ -1029,6 +1084,28 @@ class PostgresBillingRegressionTest extends TestCase
         return $proposal;
     }
 
+    /**
+     * BIL-39: the billing fixture's visit in a family group. The key is written directly here as a fixture; in KPOne only
+     * Patients & Registration (FAM-1) writes it, and Billing only reads it.
+     */
+    private function familyFixture(): array
+    {
+        $f = $this->billingFixture();
+        DB::table('visits')->where('id', $f['visit']->id)->update(['family_group_id' => (string) Str::uuid()]);
+        $f['visit']->refresh();
+        foreach (['ca', 'ca2'] as $key) {
+            $f[$key]->givePermissionTo(Permission::findOrCreate('billing.view.branch', 'web'));
+        }
+
+        return $f;
+    }
+
+    private function familyPayArgs(array $f, int $amount): array
+    {
+        return ['idempotency_key' => (string) Str::uuid(), 'method' => 'cash', 'reference' => null, 'amount_sen' => (string) $amount,
+            'expected_total_sen' => 4000, 'members' => [['invoice_public_id' => $f['invoice']->public_id, 'lock_version' => $f['invoice']->lock_version]]];
+    }
+
     private function payArgs(array $f, int $amount): array
     {
         return ['amount_sen' => $amount, 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()];
@@ -1422,7 +1499,7 @@ class PostgresBillingRegressionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic evidence.
-            foreach (['payment_corrections', 'issued_billing_document_prints', 'issued_billing_documents', 'invoice_credits', 'payment_refund_decisions', 'payment_refunds', 'cash_closing_locks', 'cash_closing_decisions', 'cash_closings', 'invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
+            foreach (['family_bill_exclusions', 'payment_corrections', 'issued_billing_document_prints', 'issued_billing_documents', 'invoice_credits', 'payment_refund_decisions', 'payment_refunds', 'cash_closing_locks', 'cash_closing_decisions', 'cash_closings', 'invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
                 DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
                 DB::table($table)->where('organisation_id', $id)->delete();
                 DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");

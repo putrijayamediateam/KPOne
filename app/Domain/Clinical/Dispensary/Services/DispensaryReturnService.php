@@ -141,43 +141,72 @@ final class DispensaryReturnService
     }
 
     /**
-     * DSP-7b (approved by B.E.R.N.I.S.S for the owner, 2026-11-06): the active branch's returns still waiting for a
-     * check, oldest first, for the people who may check them (the v1 rule: a CA Supervisor). Read only: each row links
-     * to its case page, where the check happens. Staff names follow the staff-directory rule; the Other note is never
-     * listed.
+     * DSP-7b: the active branch's returns waiting for a check, oldest first, 25 a page. DSP-28 (owner, 25 Nov 2026,
+     * Clean Look gap list B3 and B5): the same page also lists the returns checked this branch-local month, newest
+     * first, and both lists can be narrowed to controlled or not-controlled medicines. Read only.
      *
      * @return array<string, mixed>
      */
-    public function waitingList(User $actor, int $page): array
+    public function waitingList(User $actor, int $page, string $view = 'waiting', string $controlled = 'all', bool $withCounts = true): array
     {
         $actor = $actor->fresh()?->load(['roles.permissions', 'permissions']);
         abort_unless($actor && $actor->is_active && $actor->can('dispensary.view.branch') && $this->mayCheck($actor), 403);
         $branches = app(BranchAccessService::class);
         $branch = $branches->activeBranch($actor);
         abort_unless($branch && $branch->organisation_id === $actor->organisation_id && $branches->hasEffectiveAssignment($actor, $branch), 403);
+        $view = $view === 'checked' ? 'checked' : 'waiting';
+        $controlled = in_array($controlled, ['yes', 'no'], true) ? $controlled : 'all';
+        $monthStart = CarbonImmutable::now($branch->timezone)->startOfMonth();
+        $from = $monthStart->utc();
+        $to = $monthStart->addMonth()->utc();
 
-        $query = fn () => DB::table('dispensary_returns as r')
-            ->join('dispensary_items as i', 'i.id', '=', 'r.dispensary_item_id')
-            ->join('dispensary_cases as c', 'c.id', '=', 'r.dispensary_case_id')
-            ->join('visits as v', 'v.id', '=', 'c.visit_id')
-            ->join('patients as p', 'p.id', '=', 'v.patient_id')
-            ->leftJoin('medicine_catalogue_items as m', 'm.id', '=', 'i.medicine_catalogue_item_id')
-            ->where('r.organisation_id', $actor->organisation_id)->where('r.branch_id', $branch->id)
-            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('dispensary_return_checks as k')->whereColumn('k.dispensary_return_id', 'r.id'))
-            ->orderBy('r.recorded_at')->orderBy('r.id')
-            ->select(['r.id', 'r.public_id', 'r.quantity', 'r.reason', 'r.condition', 'r.recorded_by_user_id', 'r.recorded_at',
-                'c.public_id as case_public_id', 'v.visit_number', 'p.full_name as patient_name',
-                'i.medicine_name_snapshot', 'i.strength_snapshot', 'i.unit_snapshot', 'm.is_controlled']);
+        $base = function (bool $checked) use ($actor, $branch, $controlled, $from, $to) {
+            $q = DB::table('dispensary_returns as r')
+                ->join('dispensary_items as i', 'i.id', '=', 'r.dispensary_item_id')
+                ->join('dispensary_cases as c', 'c.id', '=', 'r.dispensary_case_id')
+                ->join('visits as v', 'v.id', '=', 'c.visit_id')
+                ->join('patients as p', 'p.id', '=', 'v.patient_id')
+                ->leftJoin('medicine_catalogue_items as m', 'm.id', '=', 'i.medicine_catalogue_item_id')
+                ->where('r.organisation_id', $actor->organisation_id)->where('r.branch_id', $branch->id);
+            if ($checked) {
+                $q->join('dispensary_return_checks as k', 'k.dispensary_return_id', '=', 'r.id')
+                    ->where('k.checked_at', '>=', $from)->where('k.checked_at', '<', $to);
+            } else {
+                $q->whereNotExists(fn ($w) => $w->selectRaw('1')->from('dispensary_return_checks as k')->whereColumn('k.dispensary_return_id', 'r.id'));
+            }
+            if ($controlled === 'yes') {
+                $q->where('m.is_controlled', true);
+            } elseif ($controlled === 'no') {
+                $q->where(fn ($w) => $w->where('m.is_controlled', false)->orWhereNull('m.is_controlled'));
+            }
+
+            return $q;
+        };
+        $columns = ['r.id', 'r.public_id', 'r.quantity', 'r.reason', 'r.condition', 'r.recorded_by_user_id', 'r.recorded_at',
+            'c.public_id as case_public_id', 'v.visit_number', 'p.full_name as patient_name',
+            'i.medicine_name_snapshot', 'i.strength_snapshot', 'i.unit_snapshot', 'm.is_controlled'];
+        $query = $view === 'checked'
+            ? fn () => $base(true)->orderByDesc('k.checked_at')->orderByDesc('k.id')->select([...$columns, 'k.outcome', 'k.refuse_reason', 'k.checked_by_user_id', 'k.checked_at'])
+            : fn () => $base(false)->orderBy('r.recorded_at')->orderBy('r.id')->select($columns);
         $paginator = $query()->paginate(25, ['*'], 'page', max(1, $page));
         // A page past the end (for example after the last return on it was checked) shows the last page instead.
         if ($paginator->total() > 0 && $paginator->currentPage() > $paginator->lastPage()) {
             $paginator = $query()->paginate(25, ['*'], 'page', $paginator->lastPage());
         }
         $rows = collect($paginator->items());
-        $names = $this->staff->visibleUsers($actor)->whereIn('id', $rows->pluck('recorded_by_user_id')->unique())->pluck('name', 'id');
+        $people = $rows->pluck('recorded_by_user_id')->merge($view === 'checked' ? $rows->pluck('checked_by_user_id') : [])->unique();
+        $names = $this->staff->visibleUsers($actor)->whereIn('id', $people)->pluck('name', 'id');
 
         return [
             'branchName' => $branch->name,
+            'view' => $view,
+            'controlled' => $controlled,
+            'monthLabel' => $monthStart->format('F Y'),
+            // The active tab's count is the paginator's total; only the other tab is counted again.
+            'counts' => $withCounts ? [
+                'waiting' => $view === 'waiting' ? $paginator->total() : $base(false)->count(),
+                'checked' => $view === 'checked' ? $paginator->total() : $base(true)->count(),
+            ] : null,
             'rows' => $rows->map(fn (\stdClass $r): array => [
                 'publicId' => (string) $r->public_id,
                 'recordedAt' => CarbonImmutable::parse($r->recorded_at)->setTimezone($branch->timezone)->format('j M Y, g:i A'),
@@ -192,11 +221,23 @@ final class DispensaryReturnService
                 'recordedBy' => $names[$r->recorded_by_user_id] ?? 'Staff member',
                 'recordedByMe' => (int) $r->recorded_by_user_id === $actor->id,
                 'caseUrl' => route('dispensary.show', ['dispensaryCase' => $r->case_public_id], absolute: false),
+                // DSP-28: only on the checked list. The Other note is never listed.
+                'outcome' => isset($r->outcome) ? (string) $r->outcome : null,
+                'refuseReason' => isset($r->refuse_reason) ? (string) $r->refuse_reason : null,
+                'checkedBy' => isset($r->checked_by_user_id) ? ($names[$r->checked_by_user_id] ?? 'Staff member') : null,
+                'checkedByMe' => isset($r->checked_by_user_id) && (int) $r->checked_by_user_id === $actor->id,
+                'checkedAt' => isset($r->checked_at) ? CarbonImmutable::parse($r->checked_at)->setTimezone($branch->timezone)->format('j M Y, g:i A') : null,
             ])->values()->all(),
             'page' => $paginator->currentPage(),
             'lastPage' => $paginator->lastPage(),
             'total' => $paginator->total(),
         ];
+    }
+
+    /** DSP-28 (Hakim): the waiting total only, for the Pharmacy space and Ask, without the tab counts. */
+    public function waitingTotal(User $actor): int
+    {
+        return (int) $this->waitingList($actor, 1, withCounts: false)['total'];
     }
 
     /** DSP-7b: the v1 checker rule, shared with the Clinic management link. */

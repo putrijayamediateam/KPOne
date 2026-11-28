@@ -241,7 +241,11 @@ async function voidReferral() {
     <main class="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6">
         <header class="flex flex-wrap items-start justify-between gap-3">
             <div>
-                <h1 class="text-2xl font-semibold">Referral letters</h1>
+                <h1
+                    class="text-[26px] font-semibold tracking-tight lg:text-3xl"
+                >
+                    Referral letters
+                </h1>
                 <p class="text-sm text-muted-foreground">
                     {{ referrals.visitNumber }} · Own referrals only
                 </p>
@@ -280,7 +284,7 @@ async function voidReferral() {
             class="grid min-w-0 gap-6 lg:grid-cols-2"
         >
             <form
-                class="min-w-0 space-y-4 rounded-lg border bg-card p-4"
+                class="min-w-0 space-y-4 rounded-xl border bg-card p-4 shadow-card"
                 @submit.prevent="prepare"
             >
                 <h2 class="text-lg font-semibold">
@@ -462,7 +466,7 @@ async function voidReferral() {
             </form>
             <section
                 aria-label="Referral preview"
-                class="min-w-0 space-y-3 rounded-lg border bg-muted p-4"
+                class="min-w-0 space-y-3 rounded-xl border bg-card-quiet p-4"
             >
                 <h2 class="text-lg font-semibold">Preview</h2>
                 <p v-if="!preview" class="text-sm">
@@ -538,7 +542,7 @@ async function voidReferral() {
             <article
                 v-for="doc in referrals.documents"
                 :key="doc.id"
-                class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4"
+                class="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4 shadow-card"
             >
                 <div>
                     <h3 class="font-semibold">{{ doc.number }}</h3>
@@ -588,7 +592,7 @@ async function voidReferral() {
             v-if="voiding && !branchChanged"
             role="dialog"
             aria-labelledby="void-title"
-            class="rounded-lg border bg-card p-4"
+            class="rounded-xl border bg-card p-4 shadow-card"
         >
             <h2 id="void-title" class="font-semibold">
                 Void {{ voiding.number }}?

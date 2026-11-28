@@ -153,6 +153,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-37 | The Resident Doctor sees the bill of their own patient's visit, view only (owner decision 24 Nov 2026 and answers: open bill and completed invoice, own patients only, every open audited, one row per payment with staff name). Design note [BIL-37-DESIGN.md](BIL-37-DESIGN.md), revision 2 after Kumar's read (approve with changes). New `billing.view_readonly.branch` (Resident Doctor only). Page `GET visits/{visit}/billing/review` (`BillingReviewService`): own patient = the encounter's attending doctor once started, otherwise the assigned doctor; no transaction or row locks; `ReadOnlyReviewAudit` event `billing.reviewed` (ids only) before anything is built; a fresh closed projection (lines, totals, paid, Panel cover, pay later, due now, payments with date, method, amount and recorder by the BIL-2 name rule); drafts never shown, a voided invoice shows only its status. "View bill" on the consultation page, the Invoices page and the visit history page, only for the own doctor once a non-draft invoice exists; those pages still show the doctor no money. Every Billing write and print stays closed. Migration `2026_11_25_200100`; existing databases need `php artisan migrate`. Synthetic data only; not production-approved. |
 | BIL-36 | Finance Officer and Director print invoices and receipts (owner decision 24 Nov 2026; answers 1C, 2A, 3A; four assertion changes approved). Design note [BIL-36-DESIGN.md](BIL-36-DESIGN.md), revision 2 after Kumar's read (approve with changes). `billing.print.branch` granted to `finance_officer` and `director`; new narrow `billing.print.patient_identity.branch` (Finance Officer only) lets the issued paper show the IC/passport and phone without patient pages, accepted by the three BIL-9 identity checks; a Finance open of an issued copy writes `billing.document_viewed` (ids only). Finance prints from the Billing and Manage payments pages (the Invoices page stays closed to them); the Director also from the Invoices page. Panel invoice rule unchanged. Migration `2026_11_25_200000`; existing databases need `php artisan migrate`. Synthetic data only; not production-approved. |
 | Panel share box at 390 px | Small layout fix (found by Syafiq, coordinator 21 Nov 2026). On a phone the Panel claim page was 447 px wide because the "Adjust Panel amount: changes the invoice" and "Change claim amount only: the invoice stays the same" buttons in `components/billing/PanelAdjustmentPanel.vue` could not wrap. Below 640 px those buttons (and the Adjust button on the Billing page) now take the full width and wrap their labels; measured 390 px with no sideways scroll; tablet and desktop unchanged. Layout only; no existing assertion changed | open |
+| CL2-BILLING | Clean Look Stage 2 restyle of the Billing pages (owner decision 27 Nov 2026; brief `docs/clean-look-stage2/billing.md`). Restyled in place, look only: Patient billing and Payments (`components/billing/BillingWorkspace.vue`), the completed-visit Invoice, Visit history, Bills to collect, Daily cash closing and month view, Terminal reconciliation and Financial work, plus token fixes in `DayCloseNotice`, `InvoiceAdjustmentDialog`, `OutstandingBills`, `ReceiptCorrections` and `ReceiptRefunds`. Page frame 16/24/32 px; workspace and Invoice headers without the white top bar, 26/600 titles; a 34 px "Due now" figure on Patient billing (existing `due_now`); amber, emerald and muted wells replaced by `warning-wash`, `success-wash`, `card-quiet` and `destructive/10`; 10 px field corners on `field-fill`; sentence-case labels; dot-plus-word cash-closing status; wide-screen Billing buttons 36 px (13 px text). No PHP, route, prop, permission, migration or money change. **One existing assertion changed, owner-approved 27 Nov (tick box, relayed):** `dd-29-billing-touch-targets.test.mjs` 28/30 px → 36/36 px. Shots on `validation/cl2-billing-shots` (`docs/validation/cl2-billing/`, 27 PNG, synthetic). CI green on `48fb5250`; auto-merge on | PR #1265 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -300,6 +301,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 47. PCA-1 (2026-11-13 and 2026-11-15, the owner; design note v3.2 approved 2026-11-15 "approve panel claim design"): Finance Officers and Directors handle Panel claims as Panel Officers do (claims, identity view, Diagnosis and Treatment filters). A Panel patient never gets a printed invoice, because the real Panel charge is known only after the Panel answers the claim; a receipt prints only for cash the patient paid. A visit counts as Panel when it was registered with Panel coverage or its invoice has a proposed or approved Panel share. Earlier invoice copies stay viewable, never reprinted. The 16 changed assertions were approved one by one in the Billing session on 2026-11-15; the coordinator concurred.
 48. PCA-2 (2026-11-15, design note v3.2 approved "approve panel claim design"; Daniel's board v10 for wording): see the PCA-2 row. Defaults the owner may overrule: an old claim-only excess (claim above the share) is refused until brought back to the share; a supplementary claim has its own plain number shown as "Supplementary to PCL-…". Claim numbers read PCL-00000123 on the new adjustment screens and the pack heading; older screens still show the bare number.
 49. Owner as accountant (2026-11-15, relayed by the coordinator: "no accountant in this so just act like one"): the current invoice and receipt layout and the footer "This is a computer-generated document. No signature is required." stand; the clinic is treated as not SST-registered (medical services), so no tax row; e-Invoice (LHDN MyInvois) is not built now and is logged for later, phased in when the clinic falls into scope. The earlier "to confirm with the clinic's accountant or tax adviser" notes are closed by this.
+50. CL2-BILLING (27 Nov 2026, tick box relayed by the coordinator): wide-screen Billing buttons are 36 px, per the Clean Look spec (was 30 px); the dd-29 assertion changed with it. Titles keep their current case ("Patient Billing", "Due Now"); the demo's sentence case was not applied, because existing assertions pin the words.
+51. BIL-39 family bill (27 Nov 2026, the owner in the Billing session, tick boxes): split oldest invoice first; part payment allowed (the split stops when the money runs out); one receipt per member invoice, no combined family receipt; build only after Nurul's family-link migration (FAM-1) merges. Recorded in `BIL-39-DESIGN.md` section 9.
 
 ## 7. Open items and known limits
 
@@ -444,6 +447,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   claim at RM 0.00."), a message not on Daniel's list of ten. Reports by day count each adjustment on its confirmation day (PCA-3). An
   adjustment after completion raises or lowers the invoice total; the completion record is kept and PostgreSQL checks
   the current total. A refund to the Panel is not available, so a minus never goes below what the Panel paid.
+- **CL2-BILLING demo-only items (not built; need their own slice and owner approval):** the demo's "Waiting to pay" list and pay-with method buttons on Patient billing; the document-preview dialog and summary strip on the Invoice view; the due-date age filter and summary strip on Bills to collect; metric tiles and group filters on the Billing board. FamilyBill is BIL-39.
+- **CL2 screenshots, how they were made:** a scratch, uncommitted PHPUnit seed (extends `BillingTestCase`, commits its transaction) on a task-owned PG18 container, then `artisan serve` with an explicit env file (DB verified with `db:show` first) and Playwright. Docker Hub refused `postgres:18` (429); `mirror.gcr.io/library/postgres:18` worked. The PG connection needs `DB_SSLMODE=disable` locally. Frontend tests and the build need a `php` → `kphp` shim first on PATH.
 - **PCA-3 limits.** Insights Payments splits sales by the visit's registered coverage, so an adjustment always counts as Panel sales even on a visit registered as self-pay. The Insights Panels table's "billed" still counts proposed and superseded shares and "rejected" is always 0: a separate small fix, not in PCA-3. Billing Detail reads the adjustment per invoice (one small query each).
 
 ## 8. Rules (every task)
@@ -524,3 +529,48 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 ## BIL-38 continuation (26 Nov 2026, Codex)
 
 Owner clarified Director price publication with staff-account administration unchanged. The three original existing-test changes and the additional IMP-1 fixture change were approved individually in this chat. See [BIL-38-DESIGN.md](BIL-38-DESIGN.md). Local implementation adds the existing publish permission to Director and an additive migration; no other role or authority definition changes. Focused PostgreSQL 18.1 validation: 39 tests, 1,087 assertions, all passed, including StaffAuthorityBoundaryTest. Full gate and independent review remain release requirements; no commit, push or PR yet. Sunday's importer remains a named Administrator.
+
+## Handoff for the next Billing session (27 Nov 2026, Farah)
+
+The old Billing session is retired; each new slice starts in a fresh session. Read this section first.
+
+**Merged since the last TEAM.md update**
+- BIL-36 (Finance Officer and Director print, `billing.print.patient_identity.branch`, `billing.document_viewed`): PR #1112.
+- BIL-37 (doctor's read-only bill, `billing.view_readonly.branch`, `billing.reviewed`): PR #1113.
+- BIL-38 (Director publishes prices): merged through Codex's PR #1131 (migration `2026_11_26_250100`). My branch
+  `feature/bil-38-director-publish-prices` (`2c2f952f3`) is **superseded; do not open a PR from it**. It also held
+  two more approved test changes (`UnifiedCatalogueSetupTest:253-272` and `ClinicalServiceCatalogueControllerTest:228-251`). The
+  owner approved them via relay but never typed it, so they were not applied. Check whether main's CI still
+  needs them before doing anything.
+
+**Open design notes (pushed; no code yet; no PR)**
+
+| Slice | Branch | SHA | State |
+|---|---|---|---|
+| BIL-33 void approval | `feature/bil-33-void-approval` | `391d23c01` | Note with the owner's answers (section 7). Waiting for Kumar's review. |
+| BIL-34 refund approval | `feature/bil-34-refund-approval` | `ca57a7b69` | Note with the owner's answers (section 7). Waiting for Kumar's review. |
+| BIL-39 family bill | `feature/bil-39-family-bill` | `f1aa87bb` | Owner answered the questions (27 Nov, note section 9). Kumar reviewed (OK to build with R1 to R5, applied; section 10). Build waits for Nurul's FAM-1 family-link migration (`visits.family_group_id`) to merge. |
+
+**Owner decisions of 25 Nov 2026 (tick boxes in the coordinator session; recorded in the notes)**
+- BIL-33:
+  - Finance Officer and CA Supervisor may ask for a void (`invoices.void.branch` also goes to `ca_supervisor`).
+  - The branch's Branch Manager approves; the Director is the fallback.
+  - A pending void does not block payment; a payment makes the request stale.
+  - New `invoices.void.approve.branch` for `branch_manager` and `director`.
+- BIL-34:
+  - Finance Officer and Director keep approving; nothing is revoked.
+  - The review threshold is a per-branch Approval Limits setting (default and missing = RM 300.00); an amount exactly
+    at the threshold needs no review.
+  - Every refund is covered, including after-completion refunds.
+  - `payments.refunds.approve.branch` goes to `branch_manager`; new `payments.refunds.review.branch` goes to
+    `finance_officer`.
+- For both: Kumar reviews first, then the owner gets the exact changed-assertion list. Nothing is built until both are done.
+
+**Next, in order**
+1. CL2-BILLING (PR #1265): CI green, auto-merge on; the coordinator updates the branch after CI-CLOCK-3. Do not merge
+   main in. Partials 1–3 of the gap list come after Monday.
+2. BIL-33, then BIL-34 (each after Kumar's review), then BIL-39 once Nurul's FAM-1 migration merges.
+3. The REL-BIL release note, later.
+
+**Environment reminders:** use a task-owned PG18 container; PHPStan runs in CI only; the GD image tests and the HR and
+Website contention tests are known cloud noise.

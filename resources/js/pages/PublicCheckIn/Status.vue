@@ -221,7 +221,7 @@ onBeforeUnmount(() => {
         lang="ms"
     >
         <section
-            class="w-full min-w-0 space-y-6 rounded-3xl border bg-white p-6 shadow-xl sm:p-9 dark:bg-zinc-900"
+            class="w-full min-w-0 space-y-6 rounded-[14px] border bg-card p-6 shadow-card sm:p-9"
         >
             <p
                 class="sr-only"
@@ -239,10 +239,12 @@ onBeforeUnmount(() => {
                     class="size-11 object-contain"
                 />
                 <div>
-                    <p class="text-sm font-semibold text-pink-700">
+                    <p class="text-sm font-semibold text-foreground">
                         KPOne · Klinik Putrijaya
                     </p>
-                    <p class="text-sm text-zinc-600">{{ status.branch }}</p>
+                    <p class="text-sm text-muted-foreground">
+                        {{ status.branch }}
+                    </p>
                 </div>
             </header>
             <div class="space-y-4 text-center">
@@ -254,7 +256,7 @@ onBeforeUnmount(() => {
                             : status.state === 'rejected' ||
                                 status.state === 'expired'
                               ? 'bg-amber-100 text-amber-700'
-                              : 'bg-pink-100 text-pink-700'
+                              : 'bg-primary/10 text-primary'
                     "
                 >
                     <CheckCircle2
@@ -277,7 +279,7 @@ onBeforeUnmount(() => {
                     >
                         {{ status.firstName }}
                     </p>
-                    <p class="text-sm font-medium text-zinc-500">
+                    <p class="text-sm font-medium text-muted-foreground">
                         Nombor queue anda
                     </p>
                     <p
@@ -289,17 +291,15 @@ onBeforeUnmount(() => {
                 <h1 v-else class="text-2xl font-semibold">
                     Status pendaftaran
                 </h1>
-                <p
-                    class="mx-auto max-w-sm leading-7 text-zinc-600 dark:text-zinc-300"
-                >
+                <p class="mx-auto max-w-sm leading-7 text-muted-foreground">
                     {{ status.message }}
                 </p>
             </div>
             <div
                 v-if="status.ahead !== null"
-                class="rounded-2xl bg-zinc-50 p-4 text-center dark:bg-zinc-800"
+                class="rounded-[14px] bg-card-quiet p-4 text-center"
             >
-                <p class="text-sm text-zinc-600 dark:text-zinc-300">
+                <p class="text-sm text-muted-foreground">
                     <template v-if="status.ahead > 0"
                         >Pesakit di hadapan anda:
                         <strong>{{ status.ahead }}</strong></template
@@ -307,7 +307,7 @@ onBeforeUnmount(() => {
                 </p>
                 <p
                     v-if="status.waitRange"
-                    class="mt-1 text-sm text-zinc-600 dark:text-zinc-300"
+                    class="mt-1 text-sm text-muted-foreground"
                 >
                     Anggaran masa menunggu: kira-kira
                     <strong
@@ -316,7 +316,7 @@ onBeforeUnmount(() => {
                         }}
                         minit</strong
                     >
-                    <span class="block text-xs text-zinc-500"
+                    <span class="block text-xs text-muted-foreground"
                         >Anggaran berdasarkan purata terkini, bukan
                         jaminan.</span
                     >
@@ -363,7 +363,7 @@ onBeforeUnmount(() => {
                         :class="
                             i === currentStep
                                 ? 'font-semibold text-zinc-900 dark:text-zinc-100'
-                                : 'text-zinc-500'
+                                : 'text-muted-foreground'
                         "
                         >{{ label
                         }}<span v-if="i < currentStep" class="sr-only">
@@ -375,7 +375,7 @@ onBeforeUnmount(() => {
             <button
                 v-if="status.state === 'accepted' && !terminal && !soundOn"
                 type="button"
-                class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-pink-700 font-semibold text-white"
+                class="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary font-semibold text-primary-foreground"
                 @click="enableSound"
             >
                 <Volume2 class="size-5" />Aktifkan bunyi pemberitahuan
@@ -401,7 +401,7 @@ onBeforeUnmount(() => {
                 <button
                     v-if="!patientLocation"
                     type="button"
-                    class="flex min-h-11 w-full items-center justify-center rounded-xl border border-pink-300 font-semibold text-pink-800"
+                    class="flex min-h-11 w-full items-center justify-center rounded-xl border border-input font-semibold text-foreground"
                     :disabled="locating"
                     @click="findNearbyBranches"
                 >
@@ -413,7 +413,7 @@ onBeforeUnmount(() => {
                 </button>
                 <p
                     v-if="locationMessage"
-                    class="text-xs text-zinc-500"
+                    class="text-xs text-muted-foreground"
                     role="status"
                 >
                     {{ locationMessage }}
@@ -430,9 +430,7 @@ onBeforeUnmount(() => {
                         :key="branch.name"
                         class="flex items-center justify-between gap-3 rounded-xl border p-3 text-sm"
                         :class="
-                            branch.current
-                                ? 'border-pink-300 bg-pink-50 dark:bg-pink-950/30'
-                                : ''
+                            branch.current ? 'border-primary bg-primary/10' : ''
                         "
                     >
                         <div class="min-w-0">
@@ -440,7 +438,7 @@ onBeforeUnmount(() => {
                                 {{ branch.name
                                 }}<span
                                     v-if="branch.current"
-                                    class="ml-2 text-xs text-pink-700"
+                                    class="ml-2 text-xs text-primary"
                                     >Cawangan anda</span
                                 >
                             </p>
@@ -464,24 +462,27 @@ onBeforeUnmount(() => {
                                 :aria-label="`Buka peta ${branch.name} (tab baharu)`"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-xs font-medium text-pink-700 underline"
+                                class="text-xs font-medium text-primary underline"
                                 >Buka peta</a
                             >
                         </div>
                         <p class="shrink-0 text-right">
                             <strong>{{ branch.waiting }}</strong>
-                            <span class="block text-xs text-zinc-500"
+                            <span class="block text-xs text-muted-foreground"
                                 >menunggu</span
                             >
                         </p>
                     </li>
                 </ul>
             </section>
-            <p v-if="patientLocation" class="text-center text-xs text-zinc-500">
+            <p
+                v-if="patientLocation"
+                class="text-center text-xs text-muted-foreground"
+            >
                 Lokasi anda hanya digunakan pada peranti ini untuk mengira jarak
                 dan tidak dihantar atau disimpan.
             </p>
-            <p class="text-center text-xs text-zinc-500">
+            <p class="text-center text-xs text-muted-foreground">
                 Halaman ini tidak menyimpan maklumat anda dalam storan pelayar.
             </p>
         </section>

@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import LittleShieldDraftPreview from '@/components/website/LittleShieldDraftPreview.vue';
 import type {
     LittlePage,
@@ -117,20 +118,20 @@ const stop = router.on('start', (event) => {
 });
 onUnmounted(stop);
 const inputClass =
-    'mt-1 w-full min-w-0 rounded-md border bg-background px-3 py-2 text-sm';
+    'mt-1 min-h-11 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9';
 </script>
 <template>
     <Head title="Little Shield" />
     <main
-        class="mx-auto w-full max-w-7xl min-w-0 space-y-5 p-4 [overflow-wrap:anywhere] sm:p-6"
+        class="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-6 px-4 py-6 [overflow-wrap:anywhere] lg:px-8"
     >
-        <Link href="/clinic-management" class="text-sm underline"
+        <Link
+            href="/clinic-management"
+            class="text-sm text-link underline-offset-4 hover:underline"
             >Clinic management</Link
         >
-        <h1 class="text-2xl font-semibold">Little Shield</h1>
-        <p
-            class="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm"
-        >
+        <PageHeader title="Little Shield" />
+        <p class="rounded-[14px] bg-warning-wash p-4 text-sm text-warning">
             Nothing is public yet. Private manual drafts only. Do not include
             child, parent or school personal data, photos of children without
             recorded consent, or any claim that guarantees outcomes. No form,
@@ -147,7 +148,7 @@ const inputClass =
         <section
             v-if="blocked"
             role="status"
-            class="space-y-3 rounded-xl border p-4 text-sm"
+            class="space-y-3 rounded-[14px] border bg-card p-4 text-sm"
         >
             <p>
                 Branch changed. Loaded drafts, coverage and poster selections
@@ -194,7 +195,7 @@ const inputClass =
             <div
                 v-if="Object.keys(form.errors).length"
                 role="alert"
-                class="rounded border border-destructive p-4 text-sm text-destructive"
+                class="rounded-[14px] border border-destructive bg-card p-4 text-sm text-destructive"
             >
                 <p v-for="(error, key) in form.errors" :key="key">
                     {{ error }}
@@ -204,7 +205,7 @@ const inputClass =
                 <form class="min-w-0 space-y-5" @submit.prevent="save">
                     <fieldset
                         :disabled="!page.canManage || form.processing"
-                        class="min-w-0 space-y-5 rounded-xl border p-5"
+                        class="min-w-0 space-y-5 rounded-[14px] border bg-card p-5"
                     >
                         <legend class="px-2 font-semibold">
                             {{ language.toUpperCase() }} draft fields
@@ -236,7 +237,7 @@ const inputClass =
                         <fieldset
                             v-for="(limits, key) in page.listLimits"
                             :key="key"
-                            class="min-w-0 space-y-3 rounded border p-3"
+                            class="min-w-0 space-y-3 rounded-[10px] border bg-card-quiet p-3"
                         >
                             <legend>
                                 {{ label(key) }} (up to {{ limits[0] }}, max
@@ -302,7 +303,7 @@ const inputClass =
                         <fieldset
                             v-for="(limits, key) in page.cardLimits"
                             :key="key"
-                            class="min-w-0 space-y-3 rounded border p-3"
+                            class="min-w-0 space-y-3 rounded-[10px] border bg-card-quiet p-3"
                         >
                             <legend>
                                 {{ label(key) }} (up to {{ limits[0] }})
@@ -310,7 +311,7 @@ const inputClass =
                             <div
                                 v-for="(card, index) in form.content[key]"
                                 :key="index"
-                                class="min-w-0 space-y-2 rounded border p-3"
+                                class="min-w-0 space-y-2 rounded-[10px] border bg-card-quiet p-3"
                             >
                                 <label class="block text-sm"
                                     >{{ label(key) }} {{ index + 1 }} title (max
@@ -426,7 +427,9 @@ const inputClass =
                                 </option>
                             </select></label
                         >
-                        <fieldset class="min-w-0 space-y-3 rounded border p-3">
+                        <fieldset
+                            class="min-w-0 space-y-3 rounded-[10px] border bg-card-quiet p-3"
+                        >
                             <legend>
                                 Poster gallery (up to 8, saved in this order)
                             </legend>
@@ -541,9 +544,11 @@ const inputClass =
             </div>
             <section
                 aria-label="Revision history"
-                class="min-w-0 space-y-3 rounded-xl border p-5"
+                class="min-w-0 space-y-3 rounded-[14px] border bg-card p-5"
             >
-                <h2 class="font-semibold">Revision history · read only</h2>
+                <h2 class="text-[17px] font-semibold tracking-[-0.01em]">
+                    Revision history · read only
+                </h2>
                 <p
                     v-if="!page.history.length"
                     class="text-sm text-muted-foreground"
