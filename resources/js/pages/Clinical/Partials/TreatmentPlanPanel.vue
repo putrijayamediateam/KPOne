@@ -736,7 +736,7 @@ defineExpose({
             <div
                 v-if="recordDrifted"
                 role="alert"
-                class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+                class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/25 bg-warning-wash p-3 text-sm text-warning-strong"
             >
                 <span class="flex items-start gap-2">
                     <AlertTriangle class="mt-0.5 size-4 shrink-0" />
@@ -756,7 +756,7 @@ defineExpose({
             <div
                 v-if="!allergyReady"
                 role="status"
-                class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+                class="rounded-md border border-warning/25 bg-warning-wash px-3 py-2 text-sm text-warning-strong"
             >
                 New or changed medicine instructions require a current Allergy
                 Profile review for this consultation. Reordering or withdrawing

@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatDateTime } from '@/lib/presentation';
 import { profileFields, weekdays } from '@/types/website';
 import type { Language, Profile, Revision } from '@/types/website';
@@ -95,23 +96,23 @@ const stop = router.on('start', (event) => {
 watch(() => props.profile.branch.id, adopt);
 onUnmounted(stop);
 const inputClass =
-    'mt-1 w-full min-w-0 rounded-md border bg-background px-3 py-2 text-sm';
+    'mt-1 min-h-11 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9';
 </script>
 <template>
     <Head title="Branch public profiles" />
-    <main class="mx-auto w-full max-w-7xl space-y-5 p-4 sm:p-6">
-        <Link href="/clinic-management" class="text-sm underline"
+    <main
+        class="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-6 px-4 py-6 [overflow-wrap:anywhere] lg:px-8"
+    >
+        <Link
+            href="/clinic-management"
+            class="text-sm text-link underline-offset-4 hover:underline"
             >Clinic management</Link
         >
-        <header>
-            <h1 class="text-2xl font-semibold">Branch public profiles</h1>
-            <p class="mt-1 text-muted-foreground">
-                {{ profile.branch.name }} · private website drafts
-            </p>
-        </header>
-        <p
-            class="rounded-lg border border-amber-400/60 bg-amber-50 p-4 text-sm text-amber-950 dark:bg-amber-950/30 dark:text-amber-100"
-        >
+        <PageHeader
+            title="Branch public profiles"
+            description="Private website drafts"
+        />
+        <p class="rounded-[14px] bg-warning-wash p-4 text-sm text-warning">
             Nothing is public yet. Saving creates an immutable draft revision.
             This screen cannot publish.
         </p>
@@ -144,19 +145,22 @@ const inputClass =
                 }}
                 · revision {{ profile.drafts[language].number }}
             </p>
-            <p v-if="!profile.canManage" class="rounded border p-3 text-sm">
+            <p
+                v-if="!profile.canManage"
+                class="rounded-[10px] border bg-card-quiet p-3 text-sm"
+            >
                 View only. You can read drafts and revision history.
             </p>
             <div
                 v-if="errors.length"
                 role="alert"
-                class="rounded border border-destructive p-3 text-destructive"
+                class="rounded-[14px] border border-destructive bg-card p-3 text-destructive"
             >
                 <p v-for="error in errors" :key="error">{{ error }}</p>
             </div>
             <div class="grid min-w-0 gap-6 xl:grid-cols-2">
                 <form
-                    class="min-w-0 space-y-5 rounded-xl border p-5"
+                    class="min-w-0 space-y-5 rounded-[14px] border bg-card p-5"
                     @submit.prevent="save"
                 >
                     <fieldset
@@ -189,7 +193,7 @@ const inputClass =
                             <div
                                 v-for="day in weekdays"
                                 :key="day"
-                                class="rounded-lg border p-3"
+                                class="rounded-[14px] border bg-card p-3"
                             >
                                 <div
                                     class="flex flex-wrap items-center justify-between gap-2"
@@ -283,7 +287,7 @@ const inputClass =
                                 v-for="(block, index) in form.content
                                     .contact_blocks"
                                 :key="index"
-                                class="space-y-2 rounded border p-3"
+                                class="space-y-2 rounded-[10px] border bg-card-quiet p-3"
                             >
                                 <label class="block text-sm"
                                     >Label (max 60)<input
@@ -332,8 +336,10 @@ const inputClass =
                 </form>
                 <div class="min-w-0 space-y-5">
                     <DraftPreview :revision="preview" />
-                    <section class="rounded-xl border p-5">
-                        <h2 class="font-semibold">
+                    <section class="rounded-[14px] border bg-card p-5">
+                        <h2
+                            class="text-[17px] font-semibold tracking-[-0.01em]"
+                        >
                             Revision history · read only
                         </h2>
                         <ul class="mt-3 space-y-2">
@@ -342,7 +348,7 @@ const inputClass =
                                 :key="revision.id ?? 0"
                             >
                                 <button
-                                    class="w-full rounded border px-3 py-2 text-left text-sm hover:bg-muted"
+                                    class="w-full rounded-[10px] border bg-card-quiet px-3 py-2 text-left text-sm hover:bg-muted"
                                     @click="selected = revision"
                                 >
                                     {{ revision.language.toUpperCase() }} ·

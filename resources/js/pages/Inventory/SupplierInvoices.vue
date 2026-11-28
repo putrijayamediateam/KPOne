@@ -357,7 +357,9 @@ const decisionError = computed(() =>
 
 <template>
     <Head title="Supplier invoices" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 text-sm lg:px-8"
+    >
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -379,7 +381,7 @@ const decisionError = computed(() =>
 
         <p
             v-if="!invoices.can.record && !invoices.can.approve"
-            class="rounded-lg border bg-muted/40 p-3 text-sm"
+            class="rounded-xl bg-card-quiet p-4 text-sm"
             data-testid="no-invoice-access"
         >
             Supplier invoices are recorded by a CA Supervisor or Finance Officer
@@ -389,10 +391,10 @@ const decisionError = computed(() =>
         <template v-else>
             <section
                 v-if="invoices.can.record"
-                class="space-y-3 rounded-lg border bg-card p-4"
+                class="space-y-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
                 aria-labelledby="record-heading"
             >
-                <h2 id="record-heading" class="text-lg font-semibold">
+                <h2 id="record-heading" class="text-[15px] font-semibold">
                     Record an invoice
                 </h2>
                 <p
@@ -411,13 +413,13 @@ const decisionError = computed(() =>
                 >
                     <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <label
-                            class="grid min-w-0 gap-1 text-sm"
+                            class="grid min-w-0 gap-2 text-[13px] font-medium"
                             for="invoice-order"
                             >Purchase order (required)
                             <select
                                 id="invoice-order"
                                 v-model="form.order"
-                                class="h-11 w-full min-w-0 rounded-md border bg-background px-3 lg:h-9"
+                                class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-foreground lg:h-9"
                                 :aria-invalid="
                                     !!fieldErrors.purchase_order_public_id
                                 "
@@ -440,7 +442,7 @@ const decisionError = computed(() =>
                             />
                         </label>
                         <label
-                            class="grid min-w-0 gap-1 text-sm"
+                            class="grid min-w-0 gap-2 text-[13px] font-medium"
                             for="invoice-number"
                             >Invoice number (required)
                             <Input
@@ -456,7 +458,7 @@ const decisionError = computed(() =>
                                 :message="fieldErrors.invoice_number"
                             />
                         </label>
-                        <div class="grid min-w-0 gap-1 text-sm">
+                        <div class="grid min-w-0 gap-2 text-[13px] font-medium">
                             <span id="invoice-date-label"
                                 >Invoice date (required)</span
                             >
@@ -473,7 +475,7 @@ const decisionError = computed(() =>
                             />
                         </div>
                         <label
-                            class="grid min-w-0 gap-1 text-sm"
+                            class="grid min-w-0 gap-2 text-[13px] font-medium"
                             for="invoice-total"
                             >Invoice total, RM (optional)
                             <Input
@@ -487,7 +489,7 @@ const decisionError = computed(() =>
                             />
                             <span
                                 id="invoice-total-help"
-                                class="text-xs text-muted-foreground"
+                                class="text-[12.5px] text-muted-foreground"
                                 >Checked against the sum of the lines.</span
                             >
                             <InputError
@@ -508,7 +510,7 @@ const decisionError = computed(() =>
                         <div
                             v-for="(line, index) in selectedOrder.lines"
                             :key="line.publicId"
-                            class="grid gap-2 rounded-lg border p-3 md:grid-cols-[1fr_10rem_10rem]"
+                            class="grid gap-2 rounded-[10px] bg-card-quiet p-3 md:grid-cols-[1fr_10rem_10rem]"
                         >
                             <p class="text-sm">
                                 <span class="font-medium">{{ line.item }}</span>
@@ -516,7 +518,7 @@ const decisionError = computed(() =>
                                     · {{ line.sku }}</span
                                 >
                                 <span
-                                    class="block text-xs text-muted-foreground"
+                                    class="block text-[12.5px] text-muted-foreground"
                                     >Received
                                     {{
                                         quantity(
@@ -533,7 +535,7 @@ const decisionError = computed(() =>
                                     }}</span
                                 >
                             </p>
-                            <label class="grid gap-1 text-sm"
+                            <label class="grid gap-2 text-[13px] font-medium"
                                 >Invoiced quantity ({{ line.stockUnit }})
                                 <Input
                                     :id="`invoice-line-${index}-quantity`"
@@ -552,7 +554,7 @@ const decisionError = computed(() =>
                                     "
                                 />
                             </label>
-                            <label class="grid gap-1 text-sm"
+                            <label class="grid gap-2 text-[13px] font-medium"
                                 >Line total, RM
                                 <Input
                                     :id="`invoice-line-${index}-total`"
@@ -628,7 +630,7 @@ const decisionError = computed(() =>
                 <li
                     v-for="invoice in invoices.invoices.rows"
                     :key="invoice.publicId"
-                    class="space-y-3 rounded-lg border bg-card p-4"
+                    class="space-y-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
                     :data-testid="`invoice-${invoice.number}`"
                 >
                     <div
@@ -660,7 +662,7 @@ const decisionError = computed(() =>
                         <li
                             v-for="(line, index) in invoice.lines"
                             :key="index"
-                            class="rounded-md border p-2 text-sm"
+                            class="rounded-[10px] border border-input p-2 text-sm"
                         >
                             <div
                                 class="flex flex-wrap items-center justify-between gap-2"
@@ -698,7 +700,7 @@ const decisionError = computed(() =>
                                     "
                                 />
                             </div>
-                            <p class="text-xs text-muted-foreground">
+                            <p class="text-[12.5px] text-muted-foreground">
                                 Ordered
                                 {{
                                     quantity(
@@ -723,7 +725,7 @@ const decisionError = computed(() =>
                             </p>
                             <p
                                 v-if="invoices.showAmounts"
-                                class="text-xs text-muted-foreground"
+                                class="text-[12.5px] text-muted-foreground"
                             >
                                 Invoiced {{ money(line.invoicedSen) }} ·
                                 Expected {{ money(line.expectedSen) }} ({{
@@ -734,7 +736,7 @@ const decisionError = computed(() =>
                             </p>
                         </li>
                     </ul>
-                    <p class="text-xs text-muted-foreground">
+                    <p class="text-[12.5px] text-muted-foreground">
                         Recorded by {{ invoice.recordedBy }} on
                         {{ invoice.recordedOn }}
                         <template v-if="invoice.decidedBy">
@@ -846,7 +848,10 @@ const decisionError = computed(() =>
                         Pick a reason to continue.
                     </p>
                 </fieldset>
-                <label class="grid gap-1 text-sm" for="decision-note">
+                <label
+                    class="grid gap-2 text-[13px] font-medium"
+                    for="decision-note"
+                >
                     <span
                         >Note{{
                             decision.reason === 'other'
@@ -870,7 +875,7 @@ const decisionError = computed(() =>
                     />
                     <span
                         id="decision-note-help"
-                        class="text-xs text-muted-foreground"
+                        class="text-[12.5px] text-muted-foreground"
                         >Up to 200 characters.</span
                     >
                     <span

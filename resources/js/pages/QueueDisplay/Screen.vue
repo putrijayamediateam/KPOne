@@ -140,6 +140,13 @@ const videoUrl = computed(() =>
 const posters = computed(() => feed.value.settings.posters);
 // Q-3: the branch's call display mode decides whether a call shows "A-012 · Ahmad Ismail".
 const displayMode = computed(() => feed.value.settings.callDisplayMode);
+// Daniel's 1366 px finding: a queue number is never cut. In number modes the first column is as wide as the number
+// (type size by breakpoint); a full name keeps the flexible column and may truncate.
+const callColumns = computed(() =>
+    displayMode.value === 'name'
+        ? 'grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]'
+        : 'grid-cols-[8.5rem_minmax(0,1fr)_auto] lg:grid-cols-[minmax(11rem,auto)_minmax(0,1fr)_auto]',
+);
 const poster = computed(
     () => posters.value[posterIndex.value % Math.max(posters.value.length, 1)],
 );
@@ -393,7 +400,7 @@ onBeforeUnmount(() => {
         :class="
             theme === 'dark'
                 ? 'bg-zinc-950 text-white'
-                : 'bg-white text-zinc-950'
+                : 'bg-[#f5f5f7] text-zinc-950'
         "
         data-testid="queue-display"
     >
@@ -402,7 +409,7 @@ onBeforeUnmount(() => {
             :class="
                 theme === 'dark'
                     ? 'border-zinc-800 bg-zinc-950'
-                    : 'border-zinc-200 bg-white'
+                    : 'border-zinc-200 bg-[#f5f5f7]'
             "
         >
             <div class="flex min-w-0 items-center gap-3">
@@ -415,7 +422,7 @@ onBeforeUnmount(() => {
                     <p
                         class="truncate text-xl font-bold tracking-wide lg:text-4xl"
                         :class="
-                            theme === 'dark' ? 'text-pink-400' : 'text-pink-700'
+                            theme === 'dark' ? 'text-white' : 'text-zinc-950'
                         "
                     >
                         Klinik Putrijaya
@@ -437,7 +444,7 @@ onBeforeUnmount(() => {
                 <div class="flex items-center gap-2">
                     <button
                         type="button"
-                        class="inline-flex min-h-10 items-center gap-2 rounded-lg border px-2.5 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:outline-none"
+                        class="inline-flex min-h-10 items-center gap-2 rounded-full border px-3.5 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#007aff] focus-visible:outline-none"
                         :class="
                             theme === 'dark'
                                 ? 'border-zinc-700 hover:bg-zinc-800'
@@ -490,7 +497,7 @@ onBeforeUnmount(() => {
                     </button>
                     <button
                         type="button"
-                        class="inline-flex min-h-10 items-center gap-2 rounded-lg border px-2.5 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:outline-none"
+                        class="inline-flex min-h-10 items-center gap-2 rounded-full border px-3.5 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#007aff] focus-visible:outline-none"
                         :class="
                             theme === 'dark'
                                 ? 'border-zinc-700 hover:bg-zinc-800'
@@ -574,13 +581,11 @@ onBeforeUnmount(() => {
                 aria-label="Queue calls"
             >
                 <div
-                    class="rounded-2xl p-5 text-center transition-colors lg:p-8"
+                    class="rounded-[28px] bg-gradient-to-br from-[#5ac8fa] via-[#007aff] to-[#0062cc] p-5 text-center text-white transition-colors lg:p-8"
                     :class="
                         current && highlightId === current.id
-                            ? 'animate-pulse bg-pink-600 text-white'
-                            : theme === 'dark'
-                              ? 'border border-zinc-800 bg-zinc-900 text-white'
-                              : 'border border-zinc-200 bg-white text-zinc-950 shadow-sm'
+                            ? 'animate-pulse'
+                            : ''
                     "
                     aria-live="assertive"
                     data-testid="current-call"
@@ -622,14 +627,14 @@ onBeforeUnmount(() => {
                             :class="
                                 current.name
                                     ? 'text-5xl leading-tight font-black lg:text-8xl'
-                                    : 'font-mono text-7xl leading-none font-black tabular-nums lg:text-[9rem]'
+                                    : 'font-mono text-7xl leading-none font-black tabular-nums lg:text-[clamp(4.5rem,min(8vw,16vh),9rem)]'
                             "
                             data-testid="current-label"
                         >
                             {{ callLabel(current) }}
                         </p>
                         <p
-                            class="mt-3 text-3xl font-bold text-balance break-words lg:text-5xl"
+                            class="mt-3 text-3xl font-bold text-balance break-words lg:text-[clamp(1.75rem,4.5vh,3rem)]"
                             data-testid="current-room"
                             ref="currentRoom"
                             :style="
@@ -641,33 +646,28 @@ onBeforeUnmount(() => {
                             {{ roomLabel(current.room, current.service) }}
                         </p>
                     </template>
-                    <p
-                        v-else
-                        class="py-8 text-2xl"
-                        :class="
-                            theme === 'dark' ? 'text-zinc-400' : 'text-zinc-500'
-                        "
-                    >
+                    <p v-else class="py-8 text-2xl text-white/90">
                         No calls yet today
                     </p>
                 </div>
 
                 <div
-                    class="min-h-0 flex-1 overflow-hidden rounded-2xl"
+                    class="min-h-0 flex-1 overflow-hidden rounded-[28px]"
                     :class="[
                         theme === 'dark'
                             ? 'bg-zinc-900'
-                            : 'border border-zinc-200 bg-white',
+                            : 'bg-white shadow-card',
                         displayMode === 'short_name' ? 'flex flex-col' : '',
                     ]"
                 >
                     <div
-                        class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] gap-3 border-b px-5 py-3 text-sm font-semibold uppercase lg:text-lg"
-                        :class="
+                        class="grid gap-3 border-b px-5 py-3 text-sm font-semibold lg:text-lg"
+                        :class="[
+                            callColumns,
                             theme === 'dark'
                                 ? 'border-zinc-700 text-zinc-300'
-                                : 'border-zinc-200 text-zinc-600'
-                        "
+                                : 'border-zinc-200 text-zinc-600',
+                        ]"
                     >
                         <span>Number</span>
                         <span>Room</span>
@@ -683,13 +683,14 @@ onBeforeUnmount(() => {
                         <li
                             v-for="call in previous"
                             :key="call.id"
-                            class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] items-center gap-3 border-b px-5 last:border-0"
+                            class="grid items-center gap-3 border-b px-5 last:border-0"
                             :class="[
+                                callColumns,
                                 displayMode === 'short_name' ? 'py-2' : 'py-3',
                                 highlightId === call.id
                                     ? theme === 'dark'
-                                        ? 'border-zinc-800 bg-pink-950/50 text-pink-100'
-                                        : 'border-zinc-200 bg-pink-100 text-pink-950'
+                                        ? 'border-zinc-800 bg-blue-950/60 text-blue-100'
+                                        : 'border-zinc-200 bg-blue-50 text-blue-950'
                                     : theme === 'dark'
                                       ? 'border-zinc-800'
                                       : 'border-zinc-200',
@@ -715,14 +716,14 @@ onBeforeUnmount(() => {
                             >
                             <span
                                 v-else
-                                class="truncate text-3xl font-bold lg:text-5xl"
+                                class="truncate text-3xl font-bold lg:text-[clamp(1.75rem,5vh,3rem)]"
                                 :class="
                                     call.name ? '' : 'font-mono tabular-nums'
                                 "
                                 >{{ callLabel(call) }}</span
                             >
                             <span
-                                class="truncate text-xl font-semibold lg:text-3xl"
+                                class="min-w-0 text-xl leading-tight font-semibold break-words lg:text-[clamp(1.125rem,3.2vh,1.875rem)]"
                                 >{{ roomLabel(call.room, call.service) }}</span
                             >
                             <span
@@ -747,7 +748,7 @@ onBeforeUnmount(() => {
             >
                 <div
                     v-if="videoUrl"
-                    class="aspect-video w-full shrink-0 overflow-hidden rounded-2xl bg-black"
+                    class="aspect-video w-full shrink-0 overflow-hidden rounded-[28px] bg-black"
                     :class="posters.length === 0 ? 'flex-1' : ''"
                 >
                     <iframe
@@ -761,11 +762,11 @@ onBeforeUnmount(() => {
                 </div>
                 <div
                     v-if="poster"
-                    class="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl"
+                    class="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[28px]"
                     :class="
                         theme === 'dark'
                             ? 'bg-zinc-900'
-                            : 'border border-zinc-200 bg-zinc-100'
+                            : 'bg-white shadow-card'
                     "
                 >
                     <img
@@ -777,11 +778,11 @@ onBeforeUnmount(() => {
                 </div>
                 <div
                     v-if="!videoUrl && !poster"
-                    class="flex flex-1 items-center justify-center rounded-2xl p-10 text-center text-3xl"
+                    class="flex flex-1 items-center justify-center rounded-[28px] p-10 text-center text-3xl"
                     :class="
                         theme === 'dark'
                             ? 'bg-zinc-900 text-zinc-300'
-                            : 'border border-zinc-200 bg-zinc-100 text-zinc-600'
+                            : 'bg-white text-zinc-600 shadow-card'
                     "
                 >
                     Thank you for choosing Klinik Putrijaya.
@@ -789,7 +790,7 @@ onBeforeUnmount(() => {
             </section>
         </main>
 
-        <footer class="overflow-hidden bg-pink-700 py-2 text-white">
+        <footer class="overflow-hidden bg-[#006ae0] py-2 text-white">
             <p
                 class="queue-display-ticker text-xl font-semibold whitespace-nowrap lg:text-3xl"
             >
@@ -800,7 +801,7 @@ onBeforeUnmount(() => {
         <button
             v-if="!soundOn && !sessionEnded"
             type="button"
-            class="fixed bottom-14 left-3 z-40 rounded-xl bg-pink-700 px-5 py-3 text-lg font-bold text-white shadow-xl focus:ring-4 focus:ring-pink-300 focus:outline-none lg:bottom-16 lg:text-2xl"
+            class="fixed right-24 bottom-14 z-40 rounded-full bg-[#006ae0] px-6 py-3 text-lg font-bold text-white shadow-xl focus:ring-4 focus:ring-[#6ba6ff] focus:outline-none lg:bottom-16 lg:text-2xl"
             autofocus
             @click="start"
         >
@@ -820,7 +821,7 @@ onBeforeUnmount(() => {
             </p>
             <a
                 href="/login"
-                class="rounded-xl bg-pink-700 px-8 py-4 text-2xl font-bold"
+                class="rounded-full bg-[#006ae0] px-8 py-4 text-2xl font-bold"
                 >Sign in</a
             >
         </div>

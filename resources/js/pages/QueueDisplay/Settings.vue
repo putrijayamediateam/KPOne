@@ -163,7 +163,7 @@ const removePoster = (posterId: string) => {
 
 <template>
     <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-[1280px] flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8"
     >
         <PageHeader
             title="Queue Display (TV)"
@@ -171,12 +171,12 @@ const removePoster = (posterId: string) => {
         />
 
         <section
-            class="flex flex-wrap items-end justify-between gap-3 rounded-xl border bg-card p-4"
+            class="flex flex-wrap items-end justify-between gap-3 rounded-[14px] border bg-card p-4 shadow-card sm:p-5"
         >
-            <label class="grid gap-1 text-xs">
+            <label class="grid gap-2 text-[13px] font-medium">
                 Branch
                 <select
-                    class="h-9 rounded-md border bg-background px-3 text-sm"
+                    class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11"
                     :value="branch.id"
                     @change="selectBranch"
                 >
@@ -189,7 +189,7 @@ const removePoster = (posterId: string) => {
                     </option>
                 </select>
             </label>
-            <div class="text-xs text-muted-foreground">
+            <div class="text-[12.5px] text-muted-foreground">
                 The TV signs in with a <strong>Queue Display (TV)</strong> staff
                 account assigned to this branch and opens the screen
                 automatically.
@@ -197,15 +197,15 @@ const removePoster = (posterId: string) => {
                     :href="screenUrl"
                     target="_blank"
                     rel="noopener"
-                    class="ml-1 font-medium text-primary underline"
+                    class="ml-1 font-medium text-link underline"
                     >Preview screen</a
                 >
             </div>
         </section>
 
-        <section class="rounded-xl border bg-card p-4">
-            <h2 class="text-sm font-semibold">Rooms</h2>
-            <p class="mt-1 text-xs text-muted-foreground">
+        <section class="rounded-[14px] border bg-card p-4 shadow-card sm:p-5">
+            <h2 class="text-[15px] font-semibold">Rooms</h2>
+            <p class="mt-1 text-[12.5px] text-muted-foreground">
                 Doctors choose their consultation room for the day in the
                 Consultation queue; once a branch has a consultation room, Call
                 In is blocked until the doctor has chosen one. The TV shows that
@@ -218,11 +218,11 @@ const removePoster = (posterId: string) => {
                 class="mt-4 grid gap-3 md:grid-cols-[1fr_2fr_120px_auto] md:items-end"
                 @submit.prevent="addRoom"
             >
-                <label class="grid gap-1 text-xs">
+                <label class="grid gap-2 text-[13px] font-medium">
                     Type
                     <select
                         v-model="roomForm.kind"
-                        class="h-9 rounded-md border bg-background px-3 text-sm"
+                        class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11"
                     >
                         <option
                             v-for="(label, kind) in kindLabels"
@@ -234,7 +234,7 @@ const removePoster = (posterId: string) => {
                     </select>
                     <InputError :message="roomForm.errors.kind" />
                 </label>
-                <label class="grid gap-1 text-xs">
+                <label class="grid gap-2 text-[13px] font-medium">
                     Name shown on the TV
                     <Input
                         v-model="roomForm.name"
@@ -244,7 +244,7 @@ const removePoster = (posterId: string) => {
                     />
                     <InputError :message="roomForm.errors.name" />
                 </label>
-                <label class="grid gap-1 text-xs">
+                <label class="grid gap-2 text-[13px] font-medium">
                     Order
                     <Input
                         v-model.number="roomForm.sort_order"
@@ -269,7 +269,9 @@ const removePoster = (posterId: string) => {
             <div v-else class="mt-4 overflow-x-auto">
                 <table class="w-full min-w-[640px] text-left text-sm">
                     <thead>
-                        <tr class="border-b text-xs text-muted-foreground">
+                        <tr
+                            class="border-b bg-card-quiet text-[13px] text-muted-foreground"
+                        >
                             <th class="py-2 pr-3 font-medium">Name</th>
                             <th class="py-2 pr-3 font-medium">Type</th>
                             <th class="py-2 pr-3 font-medium">Order</th>
@@ -373,14 +375,14 @@ const removePoster = (posterId: string) => {
             </div>
         </section>
 
-        <section class="rounded-xl border bg-card p-4">
-            <h2 class="text-sm font-semibold">Screen content</h2>
+        <section class="rounded-[14px] border bg-card p-4 shadow-card sm:p-5">
+            <h2 class="text-[15px] font-semibold">Screen content</h2>
             <form class="mt-4 grid gap-3" @submit.prevent="saveSettings">
-                <label class="grid max-w-md gap-1 text-xs">
+                <label class="grid max-w-md gap-2 text-[13px] font-medium">
                     Call patients by
                     <select
                         v-model="settingsForm.call_display_mode"
-                        class="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm"
+                        class="h-9 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11"
                         data-testid="call-display-mode"
                         aria-describedby="call-display-mode-help"
                     >
@@ -396,7 +398,7 @@ const removePoster = (posterId: string) => {
                     </select>
                     <span
                         id="call-display-mode-help"
-                        class="text-muted-foreground"
+                        class="text-[12.5px] font-normal text-muted-foreground"
                         data-testid="call-display-mode-help"
                     >
                         {{ callModeHelp }}
@@ -405,7 +407,7 @@ const removePoster = (posterId: string) => {
                         :message="settingsForm.errors.call_display_mode"
                     />
                 </label>
-                <label class="grid gap-1 text-xs">
+                <label class="grid gap-2 text-[13px] font-medium">
                     Scrolling text (shown at the bottom of the TV)
                     <Input
                         v-model="settingsForm.ticker_text"
@@ -414,7 +416,7 @@ const removePoster = (posterId: string) => {
                     />
                     <InputError :message="settingsForm.errors.ticker_text" />
                 </label>
-                <label class="grid gap-1 text-xs">
+                <label class="grid gap-2 text-[13px] font-medium">
                     YouTube video link (plays muted on a loop)
                     <Input
                         v-model="settingsForm.youtube_url"
@@ -424,7 +426,7 @@ const removePoster = (posterId: string) => {
                     />
                     <InputError :message="settingsForm.errors.youtube_url" />
                 </label>
-                <label class="grid max-w-xs gap-1 text-xs">
+                <label class="grid max-w-xs gap-2 text-[13px] font-medium">
                     Seconds per poster
                     <Input
                         v-model.number="settingsForm.poster_seconds"
@@ -443,11 +445,11 @@ const removePoster = (posterId: string) => {
             </form>
         </section>
 
-        <section class="rounded-xl border bg-card p-4">
-            <h2 class="text-sm font-semibold">
+        <section class="rounded-[14px] border bg-card p-4 shadow-card sm:p-5">
+            <h2 class="text-[15px] font-semibold">
                 Posters ({{ settings.posters.length }} of {{ maxPosters }})
             </h2>
-            <p class="mt-1 text-xs text-muted-foreground">
+            <p class="mt-1 text-[12.5px] text-muted-foreground">
                 JPG, PNG or WebP, up to 5 MB each. Posters rotate on the TV. Do
                 not upload anything that identifies a patient.
             </p>
@@ -458,7 +460,7 @@ const removePoster = (posterId: string) => {
                 class="mt-4 flex flex-wrap items-end gap-3"
                 @submit.prevent="uploadPoster"
             >
-                <label class="grid gap-1 text-xs">
+                <label class="grid gap-2 text-[13px] font-medium">
                     Poster image
                     <input
                         ref="posterInput"

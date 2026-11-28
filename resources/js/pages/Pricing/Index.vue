@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/state';
@@ -232,9 +233,7 @@ const toggleCharge = (charge: ChargeRow) => {
 </script>
 
 <template>
-    <main
-        class="mx-auto flex w-full max-w-6xl min-w-0 flex-1 flex-col gap-6 px-4 py-6 md:px-6"
-    >
+    <PageFrame>
         <PageHeader title="Pricing">
             <template #description>
                 Manage charge definitions, price books and published prices.
@@ -687,5 +686,5 @@ const toggleCharge = (charge: ChargeRow) => {
                 </template>
             </OperationalTable>
         </div>
-    </main>
+    </PageFrame>
 </template>

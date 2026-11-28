@@ -201,7 +201,7 @@ const saveSettings = () => {
             <div
                 v-for="(sec, s) in sections"
                 :key="s"
-                class="grid gap-3 rounded-lg border bg-card p-4"
+                class="grid gap-3 rounded-[14px] border bg-card p-4 shadow-card"
                 data-test="checklist-section"
             >
                 <div class="grid gap-1.5">

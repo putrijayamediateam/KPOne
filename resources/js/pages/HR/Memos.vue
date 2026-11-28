@@ -519,7 +519,7 @@ const {
                             v-model="form.body"
                             rows="8"
                             :maxlength="memos.options.maxBody"
-                            class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none aria-[invalid=true]:border-destructive"
+                            class="w-full rounded-[10px] border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none aria-[invalid=true]:border-destructive"
                             aria-describedby="memo-body-help"
                             :aria-invalid="errors.body ? 'true' : undefined"
                         ></textarea>
