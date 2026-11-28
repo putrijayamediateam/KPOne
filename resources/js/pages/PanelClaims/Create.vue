@@ -86,7 +86,9 @@ const fieldAnnouncedErrors = new Set(['submitted_date', 'remarks', 'photos']);
 
 <template>
     <Head title="Create panel claim" />
-    <main class="mx-auto w-full max-w-[1400px] space-y-6 px-4 py-6">
+    <main
+        class="mx-auto w-full max-w-[1400px] space-y-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
+    >
         <form class="space-y-6" @submit.prevent="createClaim">
             <header class="flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
@@ -96,7 +98,11 @@ const fieldAnnouncedErrors = new Set(['submitted_date', 'remarks', 'photos']);
                         class="rounded p-2 hover:bg-muted"
                         >←</Link
                     >
-                    <h1 class="text-2xl font-semibold">Create panel claim</h1>
+                    <h1
+                        class="text-[26px] font-semibold tracking-[-0.02em] text-foreground lg:text-[30px]"
+                    >
+                        Create panel claim
+                    </h1>
                 </div>
                 <div class="flex items-center gap-3">
                     <Button variant="outline" as-child>

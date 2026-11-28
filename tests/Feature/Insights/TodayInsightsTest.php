@@ -96,9 +96,18 @@ class TodayInsightsTest extends BillingTestCase
 
     public function test_branch_selection_is_organisation_scoped_and_invalid_branches_are_not_found(): void
     {
-        $actor = $this->actor('ca');
-        $this->actingAs($actor);
+        // INS-BM-1 (owner, 27 Nov 2026, option A): a branch-only account (here a CA) sees its own branch only.
+        $this->actingAs($this->actor('ca'));
+        $this->get(route('insights.today', ['branch' => 'PUCHONG']))->assertForbidden();
+        $this->get(route('insights.today'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('branch', $this->branch->code)
+                ->has('branches', 1)
+                ->where('branches.0.code', $this->branch->code));
 
+        // An organisation account still chooses any branch of its own organisation.
+        $this->actingAs($this->actor('director'));
         $this->get(route('insights.today', ['branch' => 'PUCHONG']))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page

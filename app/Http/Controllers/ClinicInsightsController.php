@@ -6,6 +6,7 @@ use App\Domain\Agents\Ask\AskSwitch;
 use App\Domain\Shared\Services\ClinicInsightsReportService;
 use App\Domain\Shared\Services\ClinicInsightsService;
 use App\Domain\Shared\Services\DailyReportExportService;
+use App\Domain\Shared\Services\InsightsBranchScope;
 use App\Domain\Shared\Services\SalesSummaryExportService;
 use App\Domain\Visit\Billing\Overview\DirectorOverviewService;
 use App\Models\User;
@@ -18,7 +19,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ClinicInsightsController extends Controller
 {
-    public function today(Request $request, ClinicInsightsService $insights): Response
+    public function today(Request $request, ClinicInsightsService $insights, InsightsBranchScope $scope): Response
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 403);
@@ -26,11 +27,13 @@ class ClinicInsightsController extends Controller
         $filters = $request->validate([
             'branch' => ['sometimes', 'string', 'max:40'],
         ]);
-        $branch = $filters['branch'] ?? 'all';
+        // INS-BM-1: a branch-only account (for example the Branch Manager or a CA) sees its active branch only.
+        $branch = $scope->resolve($actor, $filters['branch'] ?? null);
 
         return Inertia::render('Insights/Today', [
             'branch' => $branch,
-            'branches' => $insights->todayBranches($actor),
+            'branches' => $scope->pickerBranches($actor, $insights->todayBranches($actor)),
+            'canSeeAllBranches' => $scope->seesOrganisation($actor),
             'report' => $insights->today($actor, $branch),
             'canOverview' => $actor->can(DirectorOverviewService::PERMISSION),
         ]);
@@ -50,7 +53,7 @@ class ClinicInsightsController extends Controller
         ]);
     }
 
-    public function report(Request $request, ClinicInsightsReportService $insights, string $section): Response
+    public function report(Request $request, ClinicInsightsReportService $insights, InsightsBranchScope $scope, string $section): Response
     {
         abort_unless(in_array($section, ['sales', 'in-clinic', 'payments', 'inventory', 'patients'], true), 404);
 
@@ -69,24 +72,27 @@ class ClinicInsightsController extends Controller
         if ($to < $from) {
             throw ValidationException::withMessages(['to' => 'The end date must be on or after the start date.']);
         }
+        // INS-BM-1: a branch-only account (for example the Branch Manager or a CA) sees its active branch only, and its download links follow.
+        $branch = $scope->resolve($actor, $filters['branch'] ?? null);
 
         return Inertia::render('Insights/Report', [
             'canOverview' => $actor->can(DirectorOverviewService::PERMISSION),
-            'dailyDownloadUrl' => in_array($section, ['sales', 'payments'], true) && $actor->can($section === 'sales' ? SalesSummaryExportService::PERMISSION : DailyReportExportService::PAYMENTS_PERMISSION) ? route($section === 'sales' ? 'insights.daily-sales.download' : 'insights.daily-receipts.download', ['from' => $from, 'to' => $to, 'branch' => $filters['branch'] ?? 'all', 'doctor' => $filters['doctor'] ?? null]) : null,
-            'summaryDownloadUrl' => $section === 'sales' && $actor->can(SalesSummaryExportService::PERMISSION) ? route('insights.sales-summary.download', ['from' => $from, 'to' => $to, 'branch' => $filters['branch'] ?? 'all', 'doctor' => $filters['doctor'] ?? null]) : null,
+            'dailyDownloadUrl' => in_array($section, ['sales', 'payments'], true) && $actor->can($section === 'sales' ? SalesSummaryExportService::PERMISSION : DailyReportExportService::PAYMENTS_PERMISSION) ? route($section === 'sales' ? 'insights.daily-sales.download' : 'insights.daily-receipts.download', ['from' => $from, 'to' => $to, 'branch' => $branch, 'doctor' => $filters['doctor'] ?? null]) : null,
+            'summaryDownloadUrl' => $section === 'sales' && $actor->can(SalesSummaryExportService::PERMISSION) ? route('insights.sales-summary.download', ['from' => $from, 'to' => $to, 'branch' => $branch, 'doctor' => $filters['doctor'] ?? null]) : null,
             'filters' => [
                 'section' => $section,
-                'branch' => $filters['branch'] ?? 'all',
+                'branch' => $branch,
                 'from' => $from,
                 'to' => $to,
                 'doctor' => isset($filters['doctor']) ? (int) $filters['doctor'] : null,
             ],
-            'branches' => $insights->branches($actor),
+            'branches' => $scope->pickerBranches($actor, $insights->branches($actor)),
+            'canSeeAllBranches' => $scope->seesOrganisation($actor),
             'doctors' => $insights->doctors($actor),
             'data' => $insights->report(
                 $actor,
                 $section,
-                $filters['branch'] ?? 'all',
+                $branch,
                 $from,
                 $to,
                 isset($filters['doctor']) ? (int) $filters['doctor'] : null,
@@ -94,7 +100,7 @@ class ClinicInsightsController extends Controller
         ]);
     }
 
-    public function downloadSalesSummary(Request $request, SalesSummaryExportService $exports): StreamedResponse
+    public function downloadSalesSummary(Request $request, SalesSummaryExportService $exports, InsightsBranchScope $scope): StreamedResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 403);
@@ -106,7 +112,7 @@ class ClinicInsightsController extends Controller
                 'doctor' => ['sometimes', 'nullable', 'integer', 'min:1'],
             ]);
             $default = CarbonImmutable::now('Asia/Kuala_Lumpur')->subDay()->toDateString();
-            $result = $exports->download($actor, $filters['branch'] ?? 'all', $filters['from'] ?? $default, $filters['to'] ?? $default, isset($filters['doctor']) ? (int) $filters['doctor'] : null);
+            $result = $exports->download($actor, $filters['branch'] ?? $scope->defaultScope($actor), $filters['from'] ?? $default, $filters['to'] ?? $default, isset($filters['doctor']) ? (int) $filters['doctor'] : null);
         } catch (ValidationException $e) {
             throw $e->redirectTo(route('insights.report', ['section' => 'sales']));
         }
@@ -116,7 +122,7 @@ class ClinicInsightsController extends Controller
         }, $result['name'], ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'no-store, private']);
     }
 
-    public function downloadDailyReport(Request $request, DailyReportExportService $exports, string $dataset): StreamedResponse
+    public function downloadDailyReport(Request $request, DailyReportExportService $exports, InsightsBranchScope $scope, string $dataset): StreamedResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 403);
@@ -129,7 +135,7 @@ class ClinicInsightsController extends Controller
                 'doctor' => ['sometimes', 'nullable', 'integer', 'min:1'],
             ]);
             $default = CarbonImmutable::now('Asia/Kuala_Lumpur')->subDay()->toDateString();
-            $result = $exports->download($actor, $dataset, $filters['branch'] ?? 'all', $filters['from'] ?? $default, $filters['to'] ?? $default, isset($filters['doctor']) ? (int) $filters['doctor'] : null);
+            $result = $exports->download($actor, $dataset, $filters['branch'] ?? $scope->defaultScope($actor), $filters['from'] ?? $default, $filters['to'] ?? $default, isset($filters['doctor']) ? (int) $filters['doctor'] : null);
         } catch (ValidationException $e) {
             throw $e->redirectTo(route('insights.report', ['section' => $section]));
         }

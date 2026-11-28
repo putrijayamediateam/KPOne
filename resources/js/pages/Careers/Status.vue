@@ -217,13 +217,11 @@ const closedWell = computed(() => props.application?.stage === 'passed');
     /></Head>
     <main class="mx-auto min-h-svh max-w-xl px-4 py-5 sm:px-6 sm:py-8">
         <section
-            class="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-xl shadow-zinc-950/5 dark:border-zinc-800 dark:bg-zinc-900"
+            class="overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-card)]"
         >
-            <div class="h-1.5 bg-pink-600" aria-hidden="true"></div>
+            <div class="h-1.5 bg-brand" aria-hidden="true"></div>
             <div class="space-y-5 p-5 sm:p-8" data-test="status-page">
-                <p
-                    class="text-sm font-semibold text-pink-700 dark:text-pink-400"
-                >
+                <p class="text-sm font-semibold text-brand-strong">
                     {{ clinicName }}
                 </p>
 
@@ -231,38 +229,32 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                     <h1 class="text-xl font-semibold">Your application</h1>
                     <dl class="grid gap-3 text-sm sm:grid-cols-2">
                         <div class="min-w-0">
-                            <dt class="text-zinc-600 dark:text-zinc-400">
-                                Position
-                            </dt>
+                            <dt class="text-muted-foreground">Position</dt>
                             <dd class="font-medium break-words">
                                 {{ application.position }}
                             </dd>
                         </div>
                         <div>
-                            <dt class="text-zinc-600 dark:text-zinc-400">
-                                Sent on
-                            </dt>
+                            <dt class="text-muted-foreground">Sent on</dt>
                             <dd class="font-medium">{{ submitted }}</dd>
                         </div>
                         <div>
-                            <dt class="text-zinc-600 dark:text-zinc-400">
-                                Reference
-                            </dt>
+                            <dt class="text-muted-foreground">Reference</dt>
                             <dd class="font-mono font-medium">
                                 {{ application.reference }}
                             </dd>
                         </div>
                     </dl>
                     <div
-                        class="rounded-2xl border p-4"
+                        class="rounded-xl border p-4"
                         :class="
                             application.open || closedWell
-                                ? 'border-pink-200 bg-pink-50 dark:border-pink-900/60 dark:bg-pink-950/30'
-                                : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950'
+                                ? 'border-border bg-card-quiet'
+                                : 'border-border bg-card-quiet'
                         "
                         data-test="status-stage"
                     >
-                        <p class="text-sm text-zinc-600 dark:text-zinc-400">
+                        <p class="text-sm text-muted-foreground">
                             Where it is now
                         </p>
                         <p class="text-lg font-semibold">
@@ -272,7 +264,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
 
                     <section
                         v-if="application.interview?.confirmed"
-                        class="rounded-2xl border border-pink-200 p-4 dark:border-pink-900/60"
+                        class="rounded-xl border border-border p-4"
                         aria-labelledby="interview-heading"
                         data-test="status-interview"
                     >
@@ -307,7 +299,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         </p>
                         <div
                             v-if="application.documents?.length"
-                            class="mt-4 space-y-2 border-t border-pink-200 pt-3 dark:border-pink-900/60"
+                            class="mt-4 space-y-2 border-t border-border pt-3"
                             data-test="status-documents"
                         >
                             <h3 class="text-sm font-semibold">
@@ -320,13 +312,13 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 >
                                     <a
                                         :href="`/careers/status/documents/${doc.id}`"
-                                        class="inline-flex min-h-11 items-center gap-2 text-sm font-medium break-words text-pink-700 dark:text-pink-400"
+                                        class="inline-flex min-h-11 items-center gap-2 text-sm font-medium break-words text-brand-strong"
                                         ><span
                                             class="underline underline-offset-4"
                                             >{{ doc.title }}</span
                                         >
                                         <span
-                                            class="font-normal text-zinc-600 dark:text-zinc-400"
+                                            class="font-normal text-muted-foreground"
                                             >PDF · {{ doc.size }}</span
                                         ></a
                                     >
@@ -387,7 +379,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             <p
                                 v-if="errors.starts"
                                 role="alert"
-                                class="text-sm font-medium text-red-700 dark:text-red-400"
+                                class="text-sm font-medium text-destructive"
                                 data-test="status-slots-error"
                             >
                                 {{ errors.starts }}
@@ -403,7 +395,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             <details
                                 v-for="(day, i) in application.interview.days"
                                 :key="day.date"
-                                class="group rounded-lg border border-zinc-200 dark:border-zinc-800"
+                                class="group rounded-lg border border-border"
                                 :open="i === 0"
                                 data-test="status-slots-day"
                             >
@@ -417,7 +409,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                     {{ day.label }}
                                     <span
                                         v-if="chosenIn(day.slots)"
-                                        class="font-normal text-pink-700 dark:text-pink-400"
+                                        class="font-normal text-brand-strong"
                                         >· {{ chosenIn(day.slots) }} chosen /
                                         dipilih</span
                                     >
@@ -426,7 +418,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                     <label
                                         v-for="slot in day.slots"
                                         :key="slot.start"
-                                        class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm has-[:checked]:border-pink-600 has-[:checked]:bg-pink-50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 dark:has-[:checked]:bg-pink-950/40"
+                                        class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm has-[:checked]:border-primary has-[:checked]:bg-accent has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50"
                                     >
                                         <input
                                             type="checkbox"
@@ -457,12 +449,12 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                     <li
                                         v-for="start in chosen"
                                         :key="start"
-                                        class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-1 text-sm dark:border-zinc-800"
+                                        class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-1 text-sm"
                                     >
                                         {{ slotLabels[start] ?? start }}
                                         <button
                                             type="button"
-                                            class="inline-flex min-h-11 items-center px-2 text-sm font-medium text-pink-700 underline underline-offset-4 dark:text-pink-400"
+                                            class="inline-flex min-h-11 items-center px-2 text-sm font-medium text-brand-strong underline underline-offset-4"
                                             :aria-label="`Remove ${slotLabels[start] ?? start}`"
                                             @click="toggle(start)"
                                         >
@@ -472,7 +464,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 </ul>
                             </div>
                             <div
-                                class="sticky bottom-0 flex flex-wrap items-center gap-3 border-t border-zinc-200 bg-white py-3 dark:border-zinc-800 dark:bg-zinc-900"
+                                class="sticky bottom-0 flex flex-wrap items-center gap-3 border-t border-border bg-card py-3"
                             >
                                 <p
                                     role="status"
@@ -484,7 +476,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 </p>
                                 <button
                                     type="button"
-                                    class="inline-flex min-h-11 items-center rounded-lg bg-pink-700 px-4 text-sm font-medium text-white hover:bg-pink-800 focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
+                                    class="inline-flex min-h-11 items-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
                                     :disabled="chosen.length !== 3 || sending"
                                     data-test="status-slots-send"
                                     @click="sendPicks"
@@ -514,7 +506,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         </h2>
                         <p
                             v-if="!application.messages.length"
-                            class="text-sm text-zinc-600 dark:text-zinc-400"
+                            class="text-sm text-muted-foreground"
                         >
                             No messages yet.
                         </p>
@@ -526,11 +518,9 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             <li
                                 v-for="(m, i) in application.messages"
                                 :key="i"
-                                class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
+                                class="rounded-xl border border-border p-4"
                             >
-                                <p
-                                    class="text-xs text-zinc-600 dark:text-zinc-400"
-                                >
+                                <p class="text-xs text-muted-foreground">
                                     <time :datetime="m.at">{{
                                         date(m.at)
                                     }}</time>
@@ -549,7 +539,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
 
                     <section
                         v-if="application.pool?.consented"
-                        class="space-y-3 border-t border-zinc-200 pt-5 dark:border-zinc-800"
+                        class="space-y-3 border-t border-border pt-5"
                         aria-labelledby="pool-heading"
                         data-test="status-pool"
                     >
@@ -572,14 +562,14 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             <p
                                 v-if="errors.pool"
                                 role="alert"
-                                class="text-sm text-red-700 dark:text-red-400"
+                                class="text-sm text-destructive"
                             >
                                 {{ errors.pool }}
                             </p>
                             <button
                                 v-if="!leavingPool"
                                 type="button"
-                                class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:outline-none dark:border-zinc-700 dark:hover:bg-zinc-800"
+                                class="inline-flex min-h-11 items-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                 data-test="status-pool-leave"
                                 @click="leavingPool = true"
                             >
@@ -587,7 +577,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             </button>
                             <div
                                 v-else
-                                class="space-y-3 rounded-xl border border-zinc-300 p-4 dark:border-zinc-700"
+                                class="space-y-3 rounded-xl border border-input p-4"
                                 role="group"
                                 aria-labelledby="pool-confirm-title"
                                 data-test="status-pool-confirm"
@@ -603,7 +593,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 <div class="flex flex-wrap gap-3">
                                     <button
                                         type="button"
-                                        class="inline-flex min-h-11 items-center rounded-lg bg-pink-700 px-4 text-sm font-medium text-white hover:bg-pink-800 focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
+                                        class="inline-flex min-h-11 items-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
                                         :disabled="poolBusy"
                                         data-test="status-pool-leave-yes"
                                         @click="leavePool"
@@ -612,7 +602,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                     </button>
                                     <button
                                         type="button"
-                                        class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+                                        class="inline-flex min-h-11 items-center rounded-full border border-input px-4 text-sm font-medium"
                                         @click="leavingPool = false"
                                     >
                                         Stay in it
@@ -624,23 +614,23 @@ const closedWell = computed(() => props.application?.stage === 'passed');
 
                     <section
                         v-if="application.open"
-                        class="space-y-3 border-t border-zinc-200 pt-5 dark:border-zinc-800"
+                        class="space-y-3 border-t border-border pt-5"
                     >
-                        <p class="text-sm text-zinc-600 dark:text-zinc-400">
+                        <p class="text-sm text-muted-foreground">
                             Tell us you are no longer applying. We keep your
                             application for now.
                         </p>
                         <p
                             v-if="errors.withdraw"
                             role="alert"
-                            class="text-sm text-red-700 dark:text-red-400"
+                            class="text-sm text-destructive"
                         >
                             {{ errors.withdraw }}
                         </p>
                         <button
                             v-if="!confirming"
                             type="button"
-                            class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:outline-none dark:border-zinc-700 dark:hover:bg-zinc-800"
+                            class="inline-flex min-h-11 items-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                             ref="withdrawButton"
                             data-test="status-withdraw"
                             @click="askWithdraw"
@@ -649,7 +639,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         </button>
                         <div
                             v-else
-                            class="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/60 dark:bg-red-950/30"
+                            class="space-y-3 rounded-xl border border-destructive bg-destructive/10 p-4"
                             ref="confirmPanel"
                             tabindex="-1"
                             role="group"
@@ -668,7 +658,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             <div class="flex flex-wrap gap-3">
                                 <button
                                     type="button"
-                                    class="inline-flex min-h-11 items-center rounded-lg bg-red-700 px-4 text-sm font-medium text-white hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
+                                    class="inline-flex min-h-11 items-center rounded-full bg-destructive px-4 text-sm font-medium text-primary-foreground hover:bg-destructive/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
                                     :disabled="withdrawing"
                                     data-test="status-withdraw-yes"
                                     @click="withdraw"
@@ -677,7 +667,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 </button>
                                 <button
                                     type="button"
-                                    class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+                                    class="inline-flex min-h-11 items-center rounded-full border border-input px-4 text-sm font-medium"
                                     @click="keepIt"
                                 >
                                     Keep it
@@ -687,17 +677,17 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                     </section>
                     <section
                         v-if="application.canDelete"
-                        class="space-y-3 border-t border-zinc-200 pt-5 dark:border-zinc-800"
+                        class="space-y-3 border-t border-border pt-5"
                         data-test="status-delete"
                     >
-                        <p class="text-sm text-zinc-600 dark:text-zinc-400">
+                        <p class="text-sm text-muted-foreground">
                             Remove your application and the details you sent us,
                             including your CV, now.
                         </p>
                         <p
                             v-if="errors.erase"
                             role="alert"
-                            class="text-sm text-red-700 dark:text-red-400"
+                            class="text-sm text-destructive"
                         >
                             {{ errors.erase }}
                         </p>
@@ -705,7 +695,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             v-if="!askingDelete"
                             ref="deleteButton"
                             type="button"
-                            class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:outline-none dark:border-zinc-700 dark:hover:bg-zinc-800"
+                            class="inline-flex min-h-11 items-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                             data-test="status-delete-ask"
                             @click="askDelete"
                         >
@@ -714,7 +704,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         <div
                             v-else
                             ref="deletePanel"
-                            class="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/60 dark:bg-red-950/30"
+                            class="space-y-3 rounded-xl border border-destructive bg-destructive/10 p-4"
                             tabindex="-1"
                             role="group"
                             aria-labelledby="delete-confirm-title"
@@ -737,7 +727,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             <div class="flex flex-wrap gap-3">
                                 <button
                                     type="button"
-                                    class="inline-flex min-h-11 items-center rounded-lg bg-red-700 px-4 text-sm font-medium text-white hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
+                                    class="inline-flex min-h-11 items-center rounded-full bg-destructive px-4 text-sm font-medium text-primary-foreground hover:bg-destructive/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
                                     :disabled="deleting"
                                     data-test="status-delete-yes"
                                     @click="erase"
@@ -746,7 +736,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 </button>
                                 <button
                                     type="button"
-                                    class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+                                    class="inline-flex min-h-11 items-center rounded-full border border-input px-4 text-sm font-medium"
                                     @click="keepDetails"
                                 >
                                     Keep it
@@ -761,7 +751,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                     <p
                         v-if="exchanging"
                         role="status"
-                        class="text-sm text-zinc-600 dark:text-zinc-400"
+                        class="text-sm text-muted-foreground"
                     >
                         Opening your application…
                     </p>
@@ -777,7 +767,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         <p
                             v-if="errors.link"
                             role="alert"
-                            class="text-sm font-medium text-red-700 dark:text-red-400"
+                            class="text-sm font-medium text-destructive"
                             data-test="status-link-error"
                         >
                             {{ errors.link }}
@@ -789,7 +779,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
 
                         <a
                             href="/careers/apply"
-                            class="inline-flex min-h-11 items-center text-sm font-medium text-pink-700 underline underline-offset-4 dark:text-pink-400"
+                            class="inline-flex min-h-11 items-center text-sm font-medium text-brand-strong underline underline-offset-4"
                             data-test="status-apply"
                             >Apply for a job</a
                         >

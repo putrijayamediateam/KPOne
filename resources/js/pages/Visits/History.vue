@@ -76,13 +76,15 @@ const totals = computed(() => {
 
 <template>
     <Head :title="`Visit ${history.visit.visitNumber}`" />
-    <main class="flex flex-1 flex-col gap-4 p-4 md:p-6">
+    <main class="flex flex-1 flex-col gap-4 px-4 py-5 sm:px-6 lg:px-8">
         <header class="flex flex-wrap items-center gap-3">
             <ActionLink :href="history.links.back">
                 <ArrowLeft class="size-3.5" />
                 {{ history.links.backLabel }}
             </ActionLink>
-            <h1 class="text-xl font-semibold tracking-tight">
+            <h1
+                class="text-[26px] leading-tight font-semibold tracking-[-0.02em]"
+            >
                 Completed visit {{ history.visit.visitNumber }}
             </h1>
             <StatusBadge
@@ -154,7 +156,7 @@ const totals = computed(() => {
                 </section>
                 <section class="rounded-xl border bg-card p-4 text-sm">
                     <h2
-                        class="mb-2 text-xs font-semibold text-muted-foreground uppercase"
+                        class="mb-2 text-[13px] font-semibold text-muted-foreground"
                     >
                         Visit
                     </h2>
@@ -203,7 +205,7 @@ const totals = computed(() => {
                             {{ history.consultation.startedAt }}
                         </div>
                         <dl
-                            class="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-3 sm:grid-cols-4"
+                            class="grid grid-cols-2 gap-2 rounded-[10px] bg-card-quiet p-3 sm:grid-cols-4"
                         >
                             <div>
                                 <dt class="text-xs text-muted-foreground">
@@ -299,7 +301,7 @@ const totals = computed(() => {
                         </dl>
                         <div>
                             <div
-                                class="text-xs font-semibold text-muted-foreground uppercase"
+                                class="text-[13px] font-semibold text-muted-foreground"
                             >
                                 Diagnoses
                             </div>
@@ -323,7 +325,7 @@ const totals = computed(() => {
                                     >
                                     <span
                                         v-if="diagnosis.isPrimary"
-                                        class="ml-1 text-xs font-medium text-emerald-700"
+                                        class="ml-1 text-xs font-medium text-success"
                                         >Primary</span
                                     >
                                 </li>
@@ -331,7 +333,7 @@ const totals = computed(() => {
                         </div>
                         <div>
                             <div
-                                class="text-xs font-semibold text-muted-foreground uppercase"
+                                class="text-[13px] font-semibold text-muted-foreground"
                             >
                                 Clinical note
                             </div>
@@ -394,7 +396,7 @@ const totals = computed(() => {
                                 data-testid="ordered-vs-dispensed"
                             >
                                 <div
-                                    class="rounded-md bg-muted/40 p-2 text-xs"
+                                    class="rounded-[10px] bg-card-quiet p-2 text-xs"
                                     data-testid="ordered-side"
                                 >
                                     <div class="font-medium">Ordered</div>
@@ -427,7 +429,7 @@ const totals = computed(() => {
                                     </div>
                                 </div>
                                 <div
-                                    class="rounded-md bg-muted/40 p-2 text-xs"
+                                    class="rounded-[10px] bg-card-quiet p-2 text-xs"
                                     data-testid="dispensed-side"
                                 >
                                     <div class="font-medium">Dispensed</div>
@@ -602,7 +604,7 @@ const totals = computed(() => {
                 >
                     <div class="flex items-center justify-between gap-2">
                         <h2
-                            class="text-xs font-semibold text-muted-foreground uppercase"
+                            class="text-[13px] font-semibold text-muted-foreground"
                         >
                             Invoice {{ history.financial.invoiceNumber }}
                         </h2>
@@ -653,7 +655,7 @@ const totals = computed(() => {
                         class="mt-3 border-t pt-2"
                     >
                         <div
-                            class="mb-1 text-xs font-semibold text-muted-foreground uppercase"
+                            class="mb-1 text-[13px] font-semibold text-muted-foreground"
                         >
                             Payments
                         </div>
