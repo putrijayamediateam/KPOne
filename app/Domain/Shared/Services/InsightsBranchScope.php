@@ -56,6 +56,35 @@ final class InsightsBranchScope
         return array_values(array_filter($options, static fn (array $option): bool => $option['code'] === $code));
     }
 
+    /**
+     * INS-BM-3 (owner decision 28 Nov 2026): the doctor filter's choices. An organisation account sees every doctor; a
+     * branch-only account sees the doctors of its active branch (assigned there today, or who saw patients there in the
+     * last year).
+     *
+     * @return list<array{id: int, name: string, branch: string}>
+     */
+    public function doctorOptions(User $actor, ClinicInsightsReportService $reports): array
+    {
+        return $reports->doctors($actor, $this->seesOrganisation($actor) ? null : $this->activeBranch($actor));
+    }
+
+    /**
+     * Refuses a branch-only account's doctor filter that is not among its choices (owner decision 28 Nov 2026: refuse
+     * with 403 rather than show zeros).
+     *
+     * The choices are loaded only when there is something to check; a page that already has them passes them in.
+     *
+     * @param  list<array{id: int, name: string, branch: string}>|null  $options
+     */
+    public function enforceDoctor(User $actor, ?int $doctorId, ClinicInsightsReportService $reports, ?array $options = null): void
+    {
+        if ($doctorId === null || $this->seesOrganisation($actor)) {
+            return;
+        }
+        $options ??= $this->doctorOptions($actor, $reports);
+        abort_unless(in_array($doctorId, array_column($options, 'id'), true), 403);
+    }
+
     private function activeBranch(User $actor): Branch
     {
         $branch = $this->branches->activeBranch($actor);

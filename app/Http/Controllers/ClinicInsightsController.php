@@ -74,6 +74,9 @@ class ClinicInsightsController extends Controller
         }
         // INS-BM-1: a branch-only account (for example the Branch Manager or a CA) sees its active branch only, and its download links follow.
         $branch = $scope->resolve($actor, $filters['branch'] ?? null);
+        // INS-BM-3: a branch-only account's doctor choices are its branch's doctors, and any other doctor is refused.
+        $doctors = $scope->doctorOptions($actor, $insights);
+        $scope->enforceDoctor($actor, isset($filters['doctor']) ? (int) $filters['doctor'] : null, $insights, $doctors);
 
         return Inertia::render('Insights/Report', [
             'canOverview' => $actor->can(DirectorOverviewService::PERMISSION),
@@ -88,7 +91,7 @@ class ClinicInsightsController extends Controller
             ],
             'branches' => $scope->pickerBranches($actor, $insights->branches($actor)),
             'canSeeAllBranches' => $scope->seesOrganisation($actor),
-            'doctors' => $insights->doctors($actor),
+            'doctors' => $doctors,
             'data' => $insights->report(
                 $actor,
                 $section,
@@ -100,7 +103,7 @@ class ClinicInsightsController extends Controller
         ]);
     }
 
-    public function downloadSalesSummary(Request $request, SalesSummaryExportService $exports, InsightsBranchScope $scope): StreamedResponse
+    public function downloadSalesSummary(Request $request, SalesSummaryExportService $exports, InsightsBranchScope $scope, ClinicInsightsReportService $insights): StreamedResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 403);
@@ -112,6 +115,8 @@ class ClinicInsightsController extends Controller
                 'doctor' => ['sometimes', 'nullable', 'integer', 'min:1'],
             ]);
             $default = CarbonImmutable::now('Asia/Kuala_Lumpur')->subDay()->toDateString();
+            // INS-BM-3: the same doctor rule as the page, so a download cannot widen it.
+            $scope->enforceDoctor($actor, isset($filters['doctor']) ? (int) $filters['doctor'] : null, $insights);
             $result = $exports->download($actor, $filters['branch'] ?? $scope->defaultScope($actor), $filters['from'] ?? $default, $filters['to'] ?? $default, isset($filters['doctor']) ? (int) $filters['doctor'] : null);
         } catch (ValidationException $e) {
             throw $e->redirectTo(route('insights.report', ['section' => 'sales']));
@@ -122,7 +127,7 @@ class ClinicInsightsController extends Controller
         }, $result['name'], ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'no-store, private']);
     }
 
-    public function downloadDailyReport(Request $request, DailyReportExportService $exports, InsightsBranchScope $scope, string $dataset): StreamedResponse
+    public function downloadDailyReport(Request $request, DailyReportExportService $exports, InsightsBranchScope $scope, ClinicInsightsReportService $insights, string $dataset): StreamedResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 403);
@@ -135,6 +140,8 @@ class ClinicInsightsController extends Controller
                 'doctor' => ['sometimes', 'nullable', 'integer', 'min:1'],
             ]);
             $default = CarbonImmutable::now('Asia/Kuala_Lumpur')->subDay()->toDateString();
+            // INS-BM-3: the same doctor rule as the page, so a download cannot widen it.
+            $scope->enforceDoctor($actor, isset($filters['doctor']) ? (int) $filters['doctor'] : null, $insights);
             $result = $exports->download($actor, $dataset, $filters['branch'] ?? $scope->defaultScope($actor), $filters['from'] ?? $default, $filters['to'] ?? $default, isset($filters['doctor']) ? (int) $filters['doctor'] : null);
         } catch (ValidationException $e) {
             throw $e->redirectTo(route('insights.report', ['section' => $section]));
