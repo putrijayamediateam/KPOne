@@ -10,13 +10,14 @@ import type { NextBlock } from '@/components/spaces/NextThings.vue';
 import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
+import { greetingFor, hourFromAsOf, hourInZone } from '@/lib/greeting';
 
 type Ring = InstanceType<typeof MeHome>['$props']['ring'];
 type Week = InstanceType<typeof MeHome>['$props']['week'];
 type Station = InstanceType<typeof MeHome>['$props']['station'];
 type Tiles = InstanceType<typeof MeHome>['$props']['tiles'];
 
-defineProps<{
+const props = defineProps<{
     header: { date: string; branchName: string | null };
     today: {
         ring: Ring;
@@ -54,6 +55,15 @@ const redZone = computed(() => {
         ? branch.id
         : null;
 });
+
+// Clean Look greeting: the signed-in user's own first name (already a shared page prop) and the browser clock.
+const greetingText = computed(() =>
+    greetingFor(
+        page.props.auth?.user?.name,
+        hourInZone(props.today.time?.timezone) ??
+            hourFromAsOf(props.today.asOf),
+    ),
+);
 </script>
 
 <template>
@@ -70,6 +80,9 @@ const redZone = computed(() => {
                 "
                 data-test="my-day-head"
             />
+            <div class="space-greeting" data-test="space-greeting">
+                <p class="space-greet">{{ greetingText }}</p>
+            </div>
 
             <!-- Today first (the clock card), then what needs acting on, then the rest of the person's own week. -->
             <MeHome
