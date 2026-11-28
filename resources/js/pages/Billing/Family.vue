@@ -14,9 +14,13 @@ import { myr, toSen } from '@/types/billing';
 // money action other than the family payment stays on the member's own Billing page.
 const props = defineProps<{ family: FamilyBillPage }>();
 
-const names = computed(() =>
-    props.family.members.map((member) => member.patientName).join(' and '),
-);
+const names = computed(() => {
+    const all = props.family.members.map((member) => member.patientName);
+
+    return all.length > 1
+        ? `${all.slice(0, -1).join(', ')} and ${all[all.length - 1]}`
+        : (all[0] ?? '');
+});
 const base = computed(
     () =>
         `/visits/${encodeURIComponent(props.family.anchorVisitNumber)}/billing/family`,
@@ -121,7 +125,7 @@ const anchorBillingUrl = computed(
 <template>
     <Head title="Family bill" />
     <main
-        class="mx-auto w-full max-w-6xl space-y-4 px-4 py-6 md:px-6 lg:px-8"
+        class="mx-auto w-full max-w-6xl space-y-4 px-4 py-6 md:px-6 lg:px-8 max-lg:[&_[data-slot=button]]:min-h-11 max-lg:[&_input]:min-h-11 max-lg:[&_select]:min-h-11"
         data-testid="family-bill"
     >
         <PageHeader
@@ -164,8 +168,8 @@ const anchorBillingUrl = computed(
                     :aria-label="`${member.patientName}, ${member.invoice.number ?? 'invoice'}`"
                     data-testid="family-bill-member"
                 >
-                    <div class="flex flex-wrap items-start gap-3">
-                        <div class="min-w-0 flex-1">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start">
+                        <div class="min-w-0 sm:flex-1">
                             <h2 class="text-[15px] font-semibold break-words">
                                 {{ member.patientName }}
                             </h2>
