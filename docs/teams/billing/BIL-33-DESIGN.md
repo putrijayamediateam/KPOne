@@ -108,3 +108,35 @@ Proposal: a test helper `voidApproved()` that requests and then approves. Each c
 - Q4: new `invoices.void.approve.branch` approved for `branch_manager` and `director`.
 - Kumar's review comes first (the owner chose to wait), and the exact changed-assertion list goes to the owner before
   the build.
+
+## 8. Kumar's review (28 Nov 2026)
+
+Reviewed at `391d23c0`. Verdict: OK to build after these changes (K1 to K5 apply to the design above; K6 waits for the
+owner). The coordinator holds the build until after the Monday 30 Nov test.
+
+- **K1 Lock order.** Request, approve, reject and withdraw lock as every invoice writer does:
+  `BillingContextService::lock` (patient, then visit), the BIL-32 day gate, the invoice row, then the request row. This
+  replaces "actor, request row, day gate, invoice" in section 2.
+- **K2 Director fallback.** "The branch has no Branch Manager" means no active user with `branch_manager` holding a
+  currently effective assignment at that branch, checked inside the decide transaction. A Director's approval is refused
+  while such a Branch Manager exists. Tested both ways.
+- **K3 Decide idempotency.** Approve, reject and withdraw send the request's `lock_version` and an idempotency key; the
+  same decision repeated returns it, and a different decision on a decided request is refused.
+- **K4 One pending request.** An exact retry of the request returns the existing pending row; any other request while
+  one is pending is refused ("A void is already waiting").
+- **K5 Stale.** A version change is refused without writing inside the refusing transaction (a write there would be
+  rolled back). The request shows as stale by comparing its `invoice_version` with the invoice's current version; it can
+  then only be rejected or withdrawn.
+- **K6 Wording (owner).** The Billing page changes from "Void for reissue" to an ask-and-wait flow. Proposed strings:
+  "Ask for void", "Void waiting for the Branch Manager", "Withdraw", "Approve void", "Reject". They need Siti's sketch,
+  Daniel's look and the owner's wording approval.
+- **Waiting list.** BIL-31 has no code yet, so its waiting counts cannot be extended; the Branch Manager (or the Director
+  as fallback) gets a "Voids waiting" list instead.
+- **Existing tests that change** (each voids through `billing.void` or the service and would now get a pending request;
+  a `voidApproved()` helper requests, then approves as a Branch Manager): `MoneyFlowWalkTest` (4 places),
+  `TransactionReportTest`, `PatientBillingReportTest`, `MedicineSalesReportTest`, `DailyReportExportTest`,
+  `PayLaterCollectionTest`, `PanelInvoicePrintingTest`, `OutstandingBillsTest`, `InvoiceBillToTest`,
+  `InvoiceActivityTest`, `FinancialSettlementTest`, `DoctorBillingReviewTest`, `DailyCloseLockTest`,
+  `BillingDisplayFixesTest`, `PostgresBillingRegressionTest` and its `bill-void` worker mode. `RoleOneRolesTest` still
+  holds (the Branch Manager gets the approve permission, not `invoices.void.branch`). No frontend assertion pins the void
+  button. The exact per-assertion list comes from the build's full run and goes to the owner before any PR.
