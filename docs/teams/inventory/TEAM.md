@@ -422,10 +422,10 @@ Session stock-b (Hana Lead for this slice, Mei Ling Reviewer, Wei Jie designer),
 restyle in place for the owner's boss's test on Mon 30 Nov 08:30 MYT. No PHP, route, prop, payload, permission,
 migration, validation, money or test-assertion change in any of the PRs below.
 
-| PR | Branch @ head | Scope | State (27 Nov, 16:30 UTC) |
+| PR | Branch @ head | Scope | State (28 Nov, 00:30 UTC) |
 |---|---|---|---|
-| #1268 (1/2) | `feature/cl2-stock-b-1` @ `c3b54818` | `PurchaseRequests`, `SupplierInvoices`, `SupplierReturns`, `SupplierTerms`, `ReorderSuggestions`, `BranchReplenishment`, `Skus`, `OpeningImport`; components `VerifiedReceivingForm`, `ReceivingReviews`, `TransferReceiptForm`, `TransferDifferences`, `MyDifferenceReports`, `ReportDifferenceSheet`, `PackConversionBlock` | CI green, auto-merge on, in the merge queue |
-| #1284 (2/2) | `feature/cl2-stock-b-2` @ `547b451f` | Only the "Purchase Orders & Receiving" and "Stock Requests & Transfers" sections of `InventoryOperationsPanel.vue` (13 lines) | Opened 27 Nov at the owner's request, ahead of the coordinator's hold for stock-a's #1270 (a merge-tree check showed no conflict: different lines of the same file). Main merged in; gate green (2220/2220 frontend tests); auto-merge on |
+| #1268 (1/2) | `feature/cl2-stock-b-1` @ `2ea29ce2` | `PurchaseRequests`, `SupplierInvoices`, `SupplierReturns`, `SupplierTerms`, `ReorderSuggestions`, `BranchReplenishment`, `Skus`, `OpeningImport`; components `VerifiedReceivingForm`, `ReceivingReviews`, `TransferReceiptForm`, `TransferDifferences`, `MyDifferenceReports`, `ReportDifferenceSheet`, `PackConversionBlock` | **Merged** 27 Nov 2026, 20:39 UTC |
+| #1284 (2/2) | `feature/cl2-stock-b-2` @ `79a1252b` | Only the "Purchase Orders & Receiving" and "Stock Requests & Transfers" sections of `InventoryOperationsPanel.vue` (13 lines) | **Merged** 27 Nov 2026, 21:23 UTC. Opened at the owner's request ahead of the coordinator's hold for stock-a's #1270; #1270 merged first and no conflict arose (different lines of the same file) |
 | PR 3 | `feature/cl2-stock-b-3` @ `7fc631a9` | `InventoryServicesSettings/Suppliers.vue`, `MedicineDetails.vue` | **Dropped** (coordinator): Adlina restyled both in #1264. Branch left unused; do not open it |
 
 **File ownership agreed through B.E.R.N.I.S.S (27 Nov):** stock-a owns `Inventory/Index.vue` and
