@@ -7,6 +7,7 @@ use App\Domain\Agents\Models\AiAgent;
 use App\Domain\Agents\Models\AiAgentRun;
 use App\Domain\Agents\Services\AgentRunRecorder;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Shared\Services\InsightsBranchScope;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Validator;
@@ -17,7 +18,10 @@ use Illuminate\Support\Facades\Validator;
  * run's agent is in the requester's organisation, enabled and allowed the tool; the requester is active,
  * is the person who asked for the run (when the run has one) and holds the tool's permission; the branch
  * is the run's branch (when the run has one), active and in the organisation, and a `.branch` tool needs a
- * branch where the requester has an effective assignment; the input matches the tool's schema. The result
+ * branch where the requester has an effective assignment, and so does every tool for a branch-only requester
+ * (INS-BM-2, below: the requested branch must be the requester's; a tool's own output rules, such as the
+ * inventory balances tool listing other branches' stock for transfer suggestions, are unchanged); the input
+ * matches the tool's schema. The result
  * is scanned for personal data. Nothing here writes clinic data.
  */
 final class AgentToolGateway
@@ -27,6 +31,7 @@ final class AgentToolGateway
         private BranchAccessService $branches,
         private AggregatePayloadGuard $guard,
         private AgentRunRecorder $recorder,
+        private InsightsBranchScope $scope,
     ) {}
 
     /**
@@ -66,6 +71,13 @@ final class AgentToolGateway
         }
         if (str_ends_with($tool->requiredPermission(), '.branch') && ($branch === null || ! $this->branches->hasEffectiveAssignment($requester, $branch))) {
             throw new AuthorizationException('You may not see this data for this branch.');
+        }
+        // INS-BM-2 (follow-up to INS-BM-1, owner decision 27 Nov 2026, option A): a branch-only requester (no
+        // `branch_context.switch.organisation`: the Branch Manager, CA, CA Supervisor, Resident Doctor, Medical Assistant)
+        // reads every data source, including the organisation-permission Insights ones, only for a branch where it works
+        // today, never across branches or the whole organisation. Organisation accounts are unchanged.
+        if (! $this->scope->seesOrganisation($requester) && ($branch === null || ! $this->branches->hasEffectiveAssignment($requester, $branch))) {
+            throw new AuthorizationException('You may see this data only for your own branch.');
         }
 
         $validated = Validator::make($input, $tool->inputSchema())->validate();
