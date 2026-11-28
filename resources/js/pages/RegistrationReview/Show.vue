@@ -344,21 +344,25 @@ watch(
 
 <template>
     <Head title="Registration Review" />
-    <main class="flex flex-1 flex-col gap-6 p-4 md:p-7">
+    <main
+        class="mx-auto flex w-full max-w-[1280px] flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8"
+    >
         <header
             class="flex flex-col justify-between gap-3 md:flex-row md:items-start"
         >
             <div>
                 <Link
                     href="/registration?tab=qr-intake"
-                    class="mb-2 inline-flex items-center gap-1 text-xs font-medium text-brand-strong hover:underline"
+                    class="mb-2 inline-flex items-center gap-1 text-[13px] font-medium text-link hover:underline"
                 >
                     <ArrowLeft class="size-3.5" /> Registration · QR Intake
                 </Link>
                 <p class="text-sm text-muted-foreground">
                     {{ visitOptions.branch.name }}
                 </p>
-                <h1 class="text-2xl font-semibold tracking-tight">
+                <h1
+                    class="text-[26px] font-semibold tracking-[-0.02em] text-foreground lg:text-[30px]"
+                >
                     Registration Review
                 </h1>
                 <p class="font-mono text-xs text-muted-foreground">
@@ -375,7 +379,7 @@ watch(
             {{ actionError }}
         </div>
         <form
-            class="grid gap-5 xl:grid-cols-2"
+            class="grid gap-5 2xl:grid-cols-2"
             @submit.prevent="saveCorrection"
         >
             <Card
@@ -387,15 +391,17 @@ watch(
                     ></CardHeader
                 ><CardContent class="grid gap-4">
                     <label class="grid gap-1"
-                        ><span class="text-sm font-medium">Full name</span
+                        ><span class="text-[13px] font-medium">Full name</span
                         ><input
                             v-model="correction.full_name"
-                            class="h-10 rounded-md border bg-background px-3" /><InputError
+                            class="h-9 rounded-[10px] border border-input bg-field-fill px-3 max-lg:h-11" /><InputError
                             :message="correction.errors.full_name"
                     /></label>
-                    <div class="grid grid-cols-2 items-start gap-3">
+                    <div
+                        class="grid items-start gap-3 sm:grid-cols-[minmax(11rem,1fr)_minmax(9rem,1fr)]"
+                    >
                         <label class="grid gap-1"
-                            ><span class="text-sm font-medium"
+                            ><span class="text-[13px] font-medium"
                                 >Date of birth</span
                             ><DateField
                                 v-model="correction.date_of_birth" /><InputError
@@ -403,7 +409,7 @@ watch(
                                     correction.errors.date_of_birth
                                 " /></label
                         ><label class="grid gap-1"
-                            ><span class="text-sm font-medium">Gender</span
+                            ><span class="text-[13px] font-medium">Gender</span
                             ><OperationalSelect
                                 v-model="correction.sex"
                                 :options="sexOptions"
@@ -412,12 +418,12 @@ watch(
                     </div>
                     <div class="grid content-start gap-2">
                         <label class="grid gap-1"
-                            ><span class="text-sm font-medium"
+                            ><span class="text-[13px] font-medium"
                                 >Mobile phone</span
                             ><input
                                 v-model="correction.mobile_phone"
                                 type="tel"
-                                class="h-10 rounded-md border bg-background px-3" /><InputError
+                                class="h-9 rounded-[10px] border border-input bg-field-fill px-3 max-lg:h-11" /><InputError
                                 :message="correction.errors.mobile_phone"
                         /></label>
                     </div>
@@ -429,23 +435,25 @@ watch(
                         id-prefix="correction-contact"
                     />
                     <label class="grid gap-1.5"
-                        ><span class="text-sm font-medium"
+                        ><span class="text-[13px] font-medium"
                             >Nationality country code</span
                         ><input
                             v-model="correction.nationality_code"
                             maxlength="2"
                             placeholder="MY"
-                            class="h-10 rounded-md border bg-background px-3 text-sm uppercase"
+                            class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm uppercase max-lg:h-11"
                             :aria-invalid="
                                 !!correction.errors.nationality_code
                             " /><InputError
                             :message="correction.errors.nationality_code"
                     /></label>
-                    <div class="grid grid-cols-[8rem_1fr] gap-2">
+                    <div
+                        class="grid gap-2 sm:grid-cols-[minmax(8rem,10rem)_minmax(0,1fr)] md:col-span-2"
+                    >
                         <select
                             v-model="correction.identifier_type"
                             aria-label="Identifier type"
-                            class="h-10 rounded-md border bg-background px-2"
+                            class="h-9 rounded-[10px] border border-input bg-field-fill px-2 max-lg:h-11"
                         >
                             <option value="nric">NRIC</option>
                             <option value="passport">Passport</option></select
@@ -457,23 +465,23 @@ watch(
                     </div>
                     <template v-if="correction.submission_type === 'guardian'">
                         <label class="grid gap-1">
-                            <span class="text-sm font-medium"
+                            <span class="text-[13px] font-medium"
                                 >Guardian name</span
                             >
                             <input
                                 v-model="correction.guardian_name"
-                                class="h-10 rounded-md border bg-background px-3"
+                                class="h-9 rounded-[10px] border border-input bg-field-fill px-3 max-lg:h-11"
                             />
                         </label>
                         <div class="grid content-start gap-2">
                             <label class="grid gap-1">
-                                <span class="text-sm font-medium"
+                                <span class="text-[13px] font-medium"
                                     >Guardian contact</span
                                 >
                                 <input
                                     v-model="correction.guardian_contact_number"
                                     type="tel"
-                                    class="h-10 rounded-md border bg-background px-3"
+                                    class="h-9 rounded-[10px] border border-input bg-field-fill px-3 max-lg:h-11"
                                 />
                             </label>
                         </div>
@@ -487,14 +495,15 @@ watch(
                         them to the OTC waiting list with a B number.
                     </p>
                     <label v-if="!medicineOnly" class="grid gap-1"
-                        ><span class="text-sm font-medium">Visit purpose</span
+                        ><span class="text-[13px] font-medium"
+                            >Visit purpose</span
                         ><OperationalSelect
                             v-model="correction.visit_purpose"
                             :options="visitPurposeOptions"
                             label="Visit purpose"
                     /></label>
                     <label class="grid gap-1"
-                        ><span class="text-sm font-medium">{{
+                        ><span class="text-[13px] font-medium">{{
                             medicineOnly
                                 ? 'Medicine needed (optional)'
                                 : 'Chief complaint / main reason'
@@ -503,15 +512,15 @@ watch(
                             v-model="correction.chief_complaint"
                             rows="3"
                             maxlength="500"
-                            class="rounded-md border bg-background px-3 py-2"
+                            class="rounded-[10px] border border-input bg-field-fill px-3 py-2"
                         ></textarea>
                     </label>
                     <label v-if="!medicineOnly" class="grid gap-1"
-                        ><span class="text-sm font-medium">Duration</span
+                        ><span class="text-[13px] font-medium">Duration</span
                         ><input
                             v-model="correction.complaint_duration"
                             maxlength="120"
-                            class="h-10 rounded-md border bg-background px-3"
+                            class="h-9 rounded-[10px] border border-input bg-field-fill px-3 max-lg:h-11"
                     /></label>
                     <div
                         class="rounded-lg border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong md:col-span-2"
@@ -525,7 +534,7 @@ watch(
                         </p>
                     </div>
                     <label class="grid gap-1"
-                        ><span class="text-sm font-medium"
+                        ><span class="text-[13px] font-medium"
                             >Patient-reported coverage</span
                         ><OperationalSelect
                             v-model="correction.coverage_type"
@@ -536,11 +545,11 @@ watch(
                     <label
                         v-if="correction.coverage_type === 'panel'"
                         class="grid gap-1"
-                        ><span class="text-sm font-medium"
+                        ><span class="text-[13px] font-medium"
                             >Patient-reported Panel</span
                         ><select
                             v-model="correction.panel_id"
-                            class="h-10 rounded-md border bg-background px-3"
+                            class="h-9 rounded-[10px] border border-input bg-field-fill px-3 max-lg:h-11"
                         >
                             <option :value="null">Select a Panel</option>
                             <option
@@ -565,7 +574,7 @@ watch(
                             </p>
                         </div>
                         <label class="grid gap-1"
-                            ><span class="text-sm font-medium"
+                            ><span class="text-[13px] font-medium"
                                 >Verified coverage *</span
                             ><OperationalSelect
                                 v-model="acceptance.coverage_type"
@@ -577,7 +586,7 @@ watch(
                         <label
                             v-if="acceptance.coverage_type === 'panel'"
                             class="grid gap-1"
-                            ><span class="text-sm font-medium"
+                            ><span class="text-[13px] font-medium"
                                 >Verified Panel *</span
                             ><OperationalSelect
                                 v-model="acceptance.panel_id"
@@ -588,13 +597,13 @@ watch(
                         <label
                             v-if="acceptance.coverage_type === 'panel'"
                             class="grid gap-1"
-                            ><span class="text-sm font-medium"
+                            ><span class="text-[13px] font-medium"
                                 >Verified member reference (if available)</span
                             ><input
                                 v-model="acceptance.coverage_member_reference"
                                 maxlength="100"
                                 autocomplete="off"
-                                class="h-10 rounded-md border bg-background px-3" /><InputError
+                                class="h-9 rounded-[10px] border border-input bg-field-fill px-3 max-lg:h-11" /><InputError
                                 :message="
                                     acceptance.errors.coverage_member_reference
                                 "
@@ -619,19 +628,19 @@ watch(
                     <label
                         v-if="correction.coverage_type === 'panel'"
                         class="grid gap-1"
-                        ><span class="text-sm font-medium"
+                        ><span class="text-[13px] font-medium"
                             >Patient-reported member reference</span
                         ><input
                             v-model="correction.coverage_member_reference"
                             maxlength="100"
-                            class="h-10 rounded-md border bg-background px-3" />
+                            class="h-9 rounded-[10px] border border-input bg-field-fill px-3 max-lg:h-11" />
                         <InputError
                             :message="
                                 correction.errors.coverage_member_reference
                             "
                     /></label>
                     <div
-                        class="rounded-md bg-muted p-3 text-xs text-muted-foreground"
+                        class="rounded-[10px] bg-card-quiet p-3 text-xs text-muted-foreground"
                     >
                         Consent {{ intake.privacyNoticeVersion }} recorded
                         {{ intake.consentedAt }}. Consent details cannot be
@@ -681,7 +690,7 @@ watch(
                             >Contact decision
                             <select
                                 v-model="acceptance.guardian_choice"
-                                class="min-h-11 w-full rounded-md border bg-background px-3"
+                                class="min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3"
                             >
                                 <option value="">Choose explicitly</option>
                                 <option value="keep">
@@ -696,7 +705,7 @@ watch(
                             >Incoming relationship (confirm before saving)
                             <select
                                 v-model="acceptance.guardian_relationship"
-                                class="min-h-11 w-full rounded-md border bg-background px-3"
+                                class="min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3"
                             >
                                 <option value="">Select relationship</option>
                                 <option value="mother">Mother</option>
@@ -760,12 +769,14 @@ watch(
                     </div>
                     <p
                         v-if="intake.duplicateCandidates.length === 0"
-                        class="rounded-lg bg-muted p-3 text-sm text-muted-foreground"
+                        class="rounded-[10px] bg-card-quiet p-3 text-sm text-muted-foreground"
                     >
                         No soft or exact duplicate candidate was found.
                     </p>
                     <fieldset class="grid gap-2">
-                        <legend class="text-sm font-medium">Resolution</legend>
+                        <legend class="text-[13px] font-medium">
+                            Resolution
+                        </legend>
                         <label class="flex items-center gap-2"
                             ><input
                                 v-model="acceptance.resolution"
@@ -783,10 +794,11 @@ watch(
                     <label
                         v-if="acceptance.resolution === 'match'"
                         class="grid gap-1"
-                        ><span class="text-sm font-medium">Patient number</span
+                        ><span class="text-[13px] font-medium"
+                            >Patient number</span
                         ><input
                             v-model="acceptance.patient_number"
-                            class="h-10 rounded-md border bg-background px-3" /><InputError
+                            class="h-9 rounded-[10px] border border-input bg-field-fill px-3 max-lg:h-11" /><InputError
                             :message="acceptance.errors.patient_number"
                     /></label>
                     <label
@@ -820,7 +832,7 @@ watch(
                     @submit.prevent="accept"
                 >
                     <label v-if="!medicineOnly" class="grid gap-1"
-                        ><span class="text-sm font-medium">Doctor</span
+                        ><span class="text-[13px] font-medium">Doctor</span
                         ><OperationalSelect
                             v-model="acceptance.assigned_doctor_user_id"
                             :options="doctorOptions"
@@ -830,7 +842,7 @@ watch(
                             "
                     /></label>
                     <label class="grid gap-1"
-                        ><span class="text-sm font-medium">Priority</span
+                        ><span class="text-[13px] font-medium">Priority</span
                         ><OperationalSelect
                             v-model="acceptance.priority"
                             :options="priorityOptions"
@@ -890,7 +902,7 @@ watch(
                         >Rejection category</span
                     ><select
                         v-model="rejectionCategory"
-                        class="h-9 rounded-md border bg-background px-2"
+                        class="h-9 rounded-[10px] border border-input bg-field-fill px-2 max-lg:h-11"
                     >
                         <option
                             v-for="category in rejectionCategories"
