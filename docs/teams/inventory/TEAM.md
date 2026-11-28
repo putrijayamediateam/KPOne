@@ -374,7 +374,9 @@ card and sheet tokens #1129, spec #1119) is on main. Shared components only, no 
 OK + Mei Ling OK + green CI on the exact head with main contained). B.E.R.N.I.S.S put it FIRST, before the HQ slices.
 
 **Merged since 24 Nov:** REL-STK (#1105), STK-45 Report a difference (#1110), TOAST-INV (#1111), IMP-1 catalogue
-import (#1122; decision 51).
+import (#1122; decision 51). **27 Nov:** STK-FLAKY-1 (#1258, merged as `55df1271`): `ExpiryAlertDaysTest` checks the
+SKU-update audit field by field instead of searching for the substring `365`, which a random UUID matched in about
+1 run in 200; owner-approved assertion change, test only (the service records field names, never values).
 
 **Open branches (all pushed; no PR open for any of them; each was built on main of 25 Nov and needs main merged in
 only when B.E.R.N.I.S.S calls its turn):**
