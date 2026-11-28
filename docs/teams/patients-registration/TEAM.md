@@ -253,7 +253,7 @@ Backlog: "(edited)" kept after a save (decision 34; needs a server change).
 
 Brief: `docs/clean-look-stage2/triage.md` on `claude/relaxed-edison-t8klk2`. Look only: restyled in place, with no PHP, route, payload, permission, migration or assertion change. Coordinator: B.E.R.N.I.S.S.
 
-- **PR #1263** `feature/cl2-triage` (`1594190bd`, two commits on main `9d663157`). Open (ready, not draft) as of 27 Nov; the coordinator merges it after CI, Farhana's check and Daniel's look.
+- **PR #1263** `feature/cl2-triage` (`1594190bd`, two commits on main `9d663157`). CI green on that head. **Merged** on 28 Nov 2026 as `35406faf`, after `main` was merged into the branch (`2f1627d9`).
   - `Triage/Show.vue`:
     - cards use the 14 px radius and `shadow-card`; status boxes use the `-wash` backgrounds;
     - headings 15/600, labels 13/500, help 12.5;
