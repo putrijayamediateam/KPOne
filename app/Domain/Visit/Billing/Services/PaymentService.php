@@ -20,8 +20,11 @@ class PaymentService
 {
     public function __construct(private BillingContextService $context, private FinancialLedger $ledger, private BillingNumberGenerator $numbers, private AuditRecorder $audit, private BranchDayGate $gate) {}
 
-    /** @param array<string,mixed> $a */
-    public function add(User $actor, Visit $visit, Invoice $invoice, array $a): Payment
+    /**
+     * @param  array<string,mixed>  $a
+     * @param  array{id: string, hash: string}|null  $family  BIL-39: set only by FamilyBillPaymentService, never from a request
+     */
+    public function add(User $actor, Visit $visit, Invoice $invoice, array $a, ?array $family = null): Payment
     {
         Validator::make($a, ['idempotency_key' => ['required', 'uuid'], 'method' => ['required', 'string', 'max:40'], 'reference' => ['nullable', 'string', 'max:100', 'regex:/\A[A-Za-z0-9 ._\/-]+\z/']])->validate();
         $amount = ExactMoney::sen($a['amount_sen'] ?? null);
@@ -29,7 +32,7 @@ class PaymentService
             throw ValidationException::withMessages(['amount_sen' => 'A receipt must be positive.']);
         }
 
-        return DB::transaction(function () use ($actor, $visit, $invoice, $a, $amount): Payment {
+        return DB::transaction(function () use ($actor, $visit, $invoice, $a, $amount, $family): Payment {
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $a['expected_branch_id'] ?? null, 'payments.add.branch');
             $this->gate->guard($branch, null, false, 'payment'); // BIL-32: a new receipt belongs to today.
             Organisation::query()->whereKey($actor->organisation_id)->sharedLock()->firstOrFail();
@@ -63,7 +66,8 @@ class PaymentService
             $payment = new Payment;
             $payment->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'branch_id' => $branch->id, 'patient_id' => $visit->patient_id,
                 'payment_method_id' => $method->id, 'receipt_number' => $receiptNumber, 'amount_sen' => $amount, 'currency' => 'MYR', 'method_snapshot' => $method->name,
-                'status' => 'posted', 'reference' => $a['reference'] ?? null, 'idempotency_key' => $a['idempotency_key'], 'payload_hash' => $hash, 'received_at' => now()->utc(), 'recorded_by_user_id' => $actor->id, 'lock_version' => 1])->save();
+                'status' => 'posted', 'reference' => $a['reference'] ?? null, 'idempotency_key' => $a['idempotency_key'], 'payload_hash' => $hash, 'received_at' => now()->utc(), 'recorded_by_user_id' => $actor->id, 'lock_version' => 1,
+                'family_payment_id' => $family['id'] ?? null, 'family_payload_hash' => $family['hash'] ?? null])->save();
             $allocation = new PaymentAllocation;
             $settled = max(0, $amount - $state['due_now']);
             $debt = $settled > 0 ? PatientReceivable::query()->where('invoice_id', $invoice->id)->where('status', 'approved')->sole() : null;

@@ -6,12 +6,19 @@ use App\Domain\Clinical\Services\CompleteConsultationService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Family\PatientFamilyService;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
+use App\Domain\Visit\Billing\Models\FamilyBillExclusion;
 use App\Domain\Visit\Billing\Models\Invoice;
+use App\Domain\Visit\Billing\Models\Payment;
+use App\Domain\Visit\Billing\Models\PaymentAllocation;
+use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
+use App\Domain\Visit\Billing\Services\FinancialLedger;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -93,6 +100,137 @@ class FamilyBillTest extends BillingTestCase
         $other = $this->actor('ca', $elsewhere);
         $this->selectBranch($other, $elsewhere);
         $this->get(route('billing.family', $first))->assertNotFound();
+    }
+
+    public function test_a_family_payment_pays_oldest_first_one_receipt_each_and_a_retry_returns_the_same_receipts(): void
+    {
+        $doctor = $this->doctor();
+        $ca = $this->actor('ca');
+        [$first, $firstInvoice] = $this->invoiceFor($doctor, $ca, 4000);
+        [$second, $secondInvoice] = $this->invoiceFor($doctor, $ca, 2500);
+        $this->link($ca, $first, $second);
+        $this->cash($first);
+        $input = $this->payInput([$firstInvoice, $secondInvoice], 6500, '5000');
+
+        $this->selectBranch($ca);
+        $this->post(route('billing.family.payment', $second), $input)->assertRedirect(route('billing.family', $second))->assertSessionHasNoErrors();
+        $receipts = Payment::query()->orderBy('id')->get();
+        $this->assertCount(2, $receipts);
+        $this->assertSame([4000, 1000], $receipts->pluck('amount_sen')->map(fn ($v): int => (int) $v)->all());
+        $this->assertSame(1, $receipts->pluck('family_payment_id')->unique()->count());
+        $this->assertNotNull($receipts[0]->family_payment_id);
+        $this->assertSame(1, $receipts->pluck('family_payload_hash')->unique()->count());
+        $this->assertSame([$firstInvoice->id, $secondInvoice->id], PaymentAllocation::query()->orderBy('id')->pluck('invoice_id')->map(fn ($v): int => (int) $v)->all());
+        $this->assertSame(0, app(FinancialLedger::class)->state($firstInvoice->refresh())['due_now']);
+        $this->assertSame(1500, app(FinancialLedger::class)->state($secondInvoice->refresh())['due_now']);
+        $audit = DB::table('audit_logs')->where('event', 'billing.family_payment_recorded')->sole();
+        $this->assertStringNotContainsString('Synthetic Visit Patient', (string) $audit->metadata);
+
+        // The same press again: the same two receipts, although the family now owes less.
+        $this->post(route('billing.family.payment', $second), $input)->assertSessionHasNoErrors();
+        $this->assertSame(2, Payment::query()->count());
+        // The same key with a changed amount is refused and records nothing.
+        $this->post(route('billing.family.payment', $second), [...$input, 'amount_sen' => '6000'])->assertSessionHasErrors('payment');
+        $this->assertSame(2, Payment::query()->count());
+
+        // The rest of the family total, as a new payment: only the second invoice is still owed.
+        $this->post(route('billing.family.payment', $second), $this->payInput([$firstInvoice->refresh(), $secondInvoice->refresh()], 1500, '1500'))->assertSessionHasNoErrors();
+        $this->assertSame(3, Payment::query()->count());
+        $this->assertSame(0, app(FinancialLedger::class)->state($secondInvoice->refresh())['due_now']);
+    }
+
+    public function test_a_stale_version_total_or_amount_refuses_the_whole_family_payment(): void
+    {
+        $doctor = $this->doctor();
+        $ca = $this->actor('ca');
+        [$first, $firstInvoice] = $this->invoiceFor($doctor, $ca, 4000);
+        [$second, $secondInvoice] = $this->invoiceFor($doctor, $ca, 2500);
+        $this->link($ca, $first, $second);
+        $this->cash($first);
+        $this->selectBranch($ca);
+
+        $stale = $this->payInput([$firstInvoice, $secondInvoice], 6500, '6500');
+        $stale['members'][1]['lock_version'] = $secondInvoice->lock_version + 5;
+        $this->post(route('billing.family.payment', $first), $stale)->assertRedirect(route('billing.family', $first))->assertSessionHasErrors('family');
+        $this->post(route('billing.family.payment', $first), $this->payInput([$firstInvoice, $secondInvoice], 6000, '1000'))->assertSessionHasErrors('family');
+        $this->post(route('billing.family.payment', $first), $this->payInput([$firstInvoice], 4000, '1000'))->assertSessionHasErrors('family');
+        $this->post(route('billing.family.payment', $first), $this->payInput([$firstInvoice, $secondInvoice], 6500, '6600'))->assertSessionHasErrors('amount_sen');
+        $this->assertSame(0, Payment::query()->count());
+
+        // A payment needs payments.add.branch; a Panel Officer may view but not pay.
+        $panel = $this->actor('panel_officer');
+        $this->selectBranch($panel);
+        $this->post(route('billing.family.payment', $first), $this->payInput([$firstInvoice, $secondInvoice], 6500, '6500'))->assertForbidden();
+        $this->assertSame(0, Payment::query()->count());
+    }
+
+    public function test_remove_and_put_back_change_only_the_family_bill(): void
+    {
+        $doctor = $this->doctor();
+        $ca = $this->actor('ca');
+        [$first, $firstInvoice] = $this->invoiceFor($doctor, $ca, 4000);
+        [$second, $secondInvoice] = $this->invoiceFor($doctor, $ca, 2500);
+        $this->link($ca, $first, $second);
+        $before = $secondInvoice->refresh()->lock_version;
+
+        $this->selectBranch($ca);
+        $input = ['expected_branch_id' => $this->branch->id, 'invoice_public_id' => $secondInvoice->public_id];
+        $this->post(route('billing.family.remove', $first), $input)->assertRedirect(route('billing.family', $first))->assertSessionHasNoErrors();
+        $this->post(route('billing.family.remove', $first), $input)->assertSessionHasNoErrors(); // a repeat records nothing
+        $this->assertSame(1, FamilyBillExclusion::query()->count());
+        $this->assertSame($before, $secondInvoice->refresh()->lock_version);
+        $this->get(route('billing.family', $first))->assertInertia(fn (Assert $page) => $page
+            ->has('family.members', 1)->where('family.totalDueNowSen', 4000)
+            ->has('family.removed', 1)->where('family.removed.0.invoicePublicId', $secondInvoice->public_id)->where('family.can.remove', true));
+        $this->get(route('billing.show', $first))->assertInertia(fn (Assert $page) => $page->where('billing.familyBillUrl', null));
+
+        $this->post(route('billing.family.restore', $first), $input)->assertSessionHasNoErrors();
+        $this->post(route('billing.family.restore', $first), $input)->assertSessionHasNoErrors();
+        $this->get(route('billing.family', $first))->assertInertia(fn (Assert $page) => $page->has('family.members', 2)->has('family.removed', 0));
+        $row = FamilyBillExclusion::query()->sole();
+        $this->assertNotNull($row->restored_at);
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'billing.family_bill_member_removed')->count());
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'billing.family_bill_member_restored')->count());
+
+        // Remove needs billing.build.branch: a Finance Officer may view the family bill but not change it.
+        $finance = $this->actor('finance_officer');
+        $this->selectBranch($finance);
+        $this->post(route('billing.family.remove', $first), $input)->assertForbidden();
+
+        if (DB::getDriverName() === 'pgsql') {
+            $this->assertRefusedByDatabase(fn () => DB::table('family_bill_exclusions')->where('id', $row->id)->delete());
+            $this->assertRefusedByDatabase(fn () => DB::table('family_bill_exclusions')->where('id', $row->id)->update(['restored_at' => now()->utc()]));
+        }
+    }
+
+    private function assertRefusedByDatabase(\Closure $write): void
+    {
+        DB::beginTransaction();
+        try {
+            $write();
+            $this->fail('The database accepted a write it must refuse.');
+        } catch (QueryException) {
+            $this->addToAssertionCount(1);
+        } finally {
+            DB::rollBack();
+        }
+    }
+
+    private function cash(Visit $visit): void
+    {
+        $method = new PaymentMethod;
+        $method->forceFill(['organisation_id' => $visit->organisation_id, 'code' => 'cash', 'name' => 'Synthetic cash'])->save();
+    }
+
+    /**
+     * @param  list<Invoice>  $invoices
+     * @return array<string, mixed>
+     */
+    private function payInput(array $invoices, int $totalSen, string $amountSen): array
+    {
+        return ['expected_branch_id' => $this->branch->id, 'idempotency_key' => (string) Str::uuid(), 'method' => 'cash', 'reference' => null,
+            'amount_sen' => $amountSen, 'expected_total_sen' => $totalSen,
+            'members' => array_map(fn (Invoice $invoice): array => ['invoice_public_id' => $invoice->public_id, 'lock_version' => $invoice->refresh()->lock_version], $invoices)];
     }
 
     /** @return array{Visit, Invoice} */

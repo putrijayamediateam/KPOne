@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
+import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import type { FamilyBillPage } from '@/types/billing';
-import { myr } from '@/types/billing';
+import { myr, toSen } from '@/types/billing';
 
 // BIL-39: the family bill. Read only here: each member keeps their own invoice, coverage and receipts, and every
 // money action other than the family payment stays on the member's own Billing page.
@@ -16,6 +17,98 @@ const props = defineProps<{ family: FamilyBillPage }>();
 const names = computed(() =>
     props.family.members.map((member) => member.patientName).join(' and '),
 );
+const base = computed(
+    () =>
+        `/visits/${encodeURIComponent(props.family.anchorVisitNumber)}/billing/family`,
+);
+const payable = computed(() =>
+    props.family.members.filter((member) => !member.invoice.correctionHold),
+);
+const form = reactive({ amount: '', method: '', reference: '' });
+const busy = ref(false);
+const error = ref('');
+// One retry key per attempt: a repeat of the same press returns the same receipts.
+const attemptKey = ref(crypto.randomUUID());
+const method = computed(() =>
+    props.family.methods.find((m) => m.code === form.method),
+);
+const amountSen = computed(() => toSen(form.amount));
+const amountNumber = computed(() =>
+    amountSen.value === null ? null : Number(amountSen.value),
+);
+const canSubmit = computed(
+    () =>
+        props.family.can.pay &&
+        props.family.totalDueNowSen > 0 &&
+        amountNumber.value !== null &&
+        amountNumber.value > 0 &&
+        amountNumber.value <= props.family.totalDueNowSen &&
+        form.method !== '' &&
+        (!method.value?.requiresReference || form.reference.trim() !== ''),
+);
+const fillTotal = () => {
+    form.amount = (props.family.totalDueNowSen / 100).toFixed(2);
+};
+const send = (
+    url: string,
+    data: Record<string, unknown>,
+    after?: () => void,
+) => {
+    if (busy.value) {
+        return;
+    }
+
+    busy.value = true;
+    error.value = '';
+    router.post(
+        url,
+        { expected_branch_id: props.family.expectedBranchId, ...data },
+        {
+            preserveScroll: true,
+            onError: (errors) => {
+                error.value =
+                    Object.values(errors)[0] ??
+                    'The request could not be completed.';
+            },
+            onSuccess: () => after?.(),
+            onFinish: () => {
+                busy.value = false;
+            },
+        },
+    );
+};
+const pay = () => {
+    if (!canSubmit.value || amountSen.value === null) {
+        return;
+    }
+
+    send(
+        `${base.value}/payments`,
+        {
+            idempotency_key: attemptKey.value,
+            amount_sen: amountSen.value,
+            method: form.method,
+            reference: form.reference.trim() || null,
+            expected_total_sen: props.family.totalDueNowSen,
+            members: payable.value.map((member) => ({
+                invoice_public_id: member.invoice.publicId,
+                lock_version: member.invoice.lockVersion,
+            })),
+        },
+        () => {
+            form.amount = '';
+            form.reference = '';
+            attemptKey.value = crypto.randomUUID();
+        },
+    );
+};
+const remove = (invoicePublicId: string) =>
+    send(`${base.value}/remove`, { invoice_public_id: invoicePublicId });
+const restore = (invoicePublicId: string) =>
+    send(`${base.value}/restore`, { invoice_public_id: invoicePublicId });
+const fieldClass =
+    'mt-1 h-10 w-full rounded-[10px] border border-input bg-field-fill px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+
 const anchorBillingUrl = computed(
     () =>
         props.family.members.find(
@@ -82,9 +175,22 @@ const anchorBillingUrl = computed(
                                 {{ member.coverage ?? 'Self-pay' }}
                             </p>
                         </div>
-                        <ActionLink :href="member.billingUrl" variant="outline"
-                            >Open billing</ActionLink
-                        >
+                        <div class="flex flex-wrap gap-2">
+                            <ActionLink
+                                :href="member.billingUrl"
+                                variant="outline"
+                                >Open billing</ActionLink
+                            >
+                            <Button
+                                v-if="family.can.remove"
+                                type="button"
+                                variant="outline"
+                                :disabled="busy"
+                                :data-testid="`family-bill-remove-${member.visitNumber}`"
+                                @click="remove(member.invoice.publicId)"
+                                >Remove from family bill</Button
+                            >
+                        </div>
                     </div>
                     <p v-if="member.invoice.correctionHold" class="mt-2">
                         <StatusBadge
@@ -169,6 +275,74 @@ const anchorBillingUrl = computed(
                     this order until the money runs out.
                 </p>
                 <p
+                    v-if="error"
+                    role="alert"
+                    class="rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive"
+                >
+                    {{ error }}
+                </p>
+                <form
+                    v-if="family.can.pay && family.totalDueNowSen > 0"
+                    class="grid gap-3 border-t pt-3"
+                    data-testid="family-bill-pay"
+                    @submit.prevent="pay"
+                >
+                    <label class="text-[13px] font-medium" for="family-amount"
+                        >Amount received (RM)
+                        <input
+                            id="family-amount"
+                            v-model="form.amount"
+                            inputmode="decimal"
+                            autocomplete="off"
+                            :class="fieldClass"
+                            placeholder="0.00"
+                        />
+                    </label>
+                    <button
+                        type="button"
+                        class="w-fit text-[13px] font-medium text-link underline-offset-2 hover:underline"
+                        @click="fillTotal"
+                    >
+                        Use the family total
+                    </button>
+                    <label class="text-[13px] font-medium" for="family-method"
+                        >Payment method
+                        <select
+                            id="family-method"
+                            v-model="form.method"
+                            :class="fieldClass"
+                        >
+                            <option value="" disabled>Select a method</option>
+                            <option
+                                v-for="m in family.methods"
+                                :key="m.code"
+                                :value="m.code"
+                            >
+                                {{ m.name }}
+                            </option>
+                        </select>
+                    </label>
+                    <label
+                        v-if="method?.requiresReference"
+                        class="text-[13px] font-medium"
+                        for="family-reference"
+                        >Reference
+                        <input
+                            id="family-reference"
+                            v-model="form.reference"
+                            maxlength="100"
+                            autocomplete="off"
+                            :class="fieldClass"
+                        />
+                    </label>
+                    <Button type="submit" :disabled="busy || !canSubmit"
+                        >Take family payment</Button
+                    >
+                    <p class="text-xs text-muted-foreground">
+                        One receipt is recorded for each person's invoice.
+                    </p>
+                </form>
+                <p
                     v-if="family.paused"
                     class="rounded-xl border border-warning/25 bg-warning-wash p-3 text-xs text-warning-strong"
                     role="status"
@@ -178,5 +352,44 @@ const anchorBillingUrl = computed(
                 </p>
             </aside>
         </div>
+
+        <section
+            v-if="family.removed.length"
+            class="rounded-xl border bg-card p-4 sm:p-5"
+            aria-labelledby="family-removed-heading"
+            data-testid="family-bill-removed"
+        >
+            <h2 id="family-removed-heading" class="text-[15px] font-semibold">
+                Removed from the family bill
+            </h2>
+            <p class="text-[13px] text-muted-foreground">
+                These people pay on their own billing page.
+            </p>
+            <ul class="mt-2 divide-y">
+                <li
+                    v-for="person in family.removed"
+                    :key="person.visitNumber"
+                    class="flex min-h-12 flex-wrap items-center justify-between gap-2 py-2"
+                >
+                    <span class="min-w-0 text-sm"
+                        ><span class="font-medium">{{
+                            person.patientName
+                        }}</span>
+                        <span class="text-muted-foreground">
+                            · {{ person.patientNumber }} ·
+                            {{ person.invoiceNumber }}</span
+                        ></span
+                    >
+                    <Button
+                        v-if="family.can.remove"
+                        type="button"
+                        variant="outline"
+                        :disabled="busy"
+                        @click="restore(person.invoicePublicId)"
+                        >Put back</Button
+                    >
+                </li>
+            </ul>
+        </section>
     </main>
 </template>

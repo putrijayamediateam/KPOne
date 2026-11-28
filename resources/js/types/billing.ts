@@ -415,6 +415,14 @@ export type FamilyBillPage = {
     members: FamilyBillMember[];
     totalDueNowSen: number;
     linesShown: boolean;
-    can: { pay: boolean };
+    removed: {
+        visitNumber: string;
+        patientName: string;
+        patientNumber: string;
+        invoicePublicId: string;
+        invoiceNumber: string | null;
+    }[];
+    methods: { code: string; name: string; requiresReference: boolean }[];
+    can: { pay: boolean; remove: boolean };
     paused: boolean;
 };

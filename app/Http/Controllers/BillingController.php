@@ -10,6 +10,8 @@ use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\BillingDirectoryService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
+use App\Domain\Visit\Billing\Services\FamilyBillExclusionService;
+use App\Domain\Visit\Billing\Services\FamilyBillPaymentService;
 use App\Domain\Visit\Billing\Services\FamilyBillService;
 use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
@@ -54,6 +56,27 @@ class BillingController extends Controller
         abort_if($family === null, 404);
 
         return Inertia::render('Billing/Family', ['family' => $family]);
+    }
+
+    public function familyPayment(Request $request, Visit $visit, FamilyBillPaymentService $service): RedirectResponse
+    {
+        $this->stayOnFamilyBill($visit, fn () => $service->pay($request->user(), $visit, $request->only(['expected_branch_id', 'idempotency_key', 'method', 'reference', 'amount_sen', 'expected_total_sen', 'members'])));
+
+        return to_route('billing.family', $visit)->with('success', 'Family payment recorded. Each person has their own receipt.');
+    }
+
+    public function familyRemove(Request $request, Visit $visit, FamilyBillExclusionService $service): RedirectResponse
+    {
+        $this->stayOnFamilyBill($visit, fn () => $service->remove($request->user(), $visit, $request->only(['expected_branch_id', 'invoice_public_id'])));
+
+        return to_route('billing.family', $visit);
+    }
+
+    public function familyRestore(Request $request, Visit $visit, FamilyBillExclusionService $service): RedirectResponse
+    {
+        $this->stayOnFamilyBill($visit, fn () => $service->restore($request->user(), $visit, $request->only(['expected_branch_id', 'invoice_public_id'])));
+
+        return to_route('billing.family', $visit);
     }
 
     public function build(Request $request, Visit $visit, BillingBuilderService $service): RedirectResponse
@@ -275,6 +298,15 @@ class BillingController extends Controller
      * NAV-02: a refused billing action must land back on this billing page, not on whatever
      * full page the session last recorded (the app sends Referrer-Policy: no-referrer).
      */
+    private function stayOnFamilyBill(Visit $visit, \Closure $action): void
+    {
+        try {
+            $action();
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('billing.family', $visit));
+        }
+    }
+
     private function stayOnBilling(Visit $visit, \Closure $action): void
     {
         try {

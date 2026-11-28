@@ -3,8 +3,10 @@
 namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Visit\Billing\Models\FamilyBillExclusion;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceLine;
+use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -72,6 +74,15 @@ final class FamilyBillService
                 ];
             })->values()->all();
             $payable = array_filter($members, fn (array $m): bool => ! $m['invoice']['correctionHold']);
+            $removedInvoices = $this->openInvoices($visit, true);
+            $removedVisits = Visit::query()->whereIn('id', $removedInvoices->pluck('visit_id'))->with('patient:id,patient_number,full_name')->get()->keyBy('id');
+            $removed = $removedInvoices->map(fn (Invoice $invoice): array => [
+                'visitNumber' => $removedVisits[$invoice->visit_id]->visit_number,
+                'patientName' => $removedVisits[$invoice->visit_id]->patient->full_name,
+                'patientNumber' => $removedVisits[$invoice->visit_id]->patient->patient_number,
+                'invoicePublicId' => $invoice->public_id,
+                'invoiceNumber' => $invoice->invoice_number,
+            ])->values()->all();
 
             return [
                 'familyGroupId' => $visit->family_group_id,
@@ -81,7 +92,9 @@ final class FamilyBillService
                 'members' => $members,
                 'totalDueNowSen' => array_sum(array_map(fn (array $m): int => (int) $m['invoice']['state']['due_now'], $payable)),
                 'linesShown' => $showLines,
-                'can' => ['pay' => $actor->can('payments.add.branch') && ! $paused],
+                'removed' => $removed,
+                'methods' => $actor->can('payments.add.branch') ? PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->operational()->orderBy('sort_order')->orderBy('name')->get()->map(fn ($m): array => ['code' => $m->code, 'name' => $m->name, 'requiresReference' => $m->requires_reference])->all() : [],
+                'can' => ['pay' => $actor->can('payments.add.branch') && ! $paused, 'remove' => $actor->can('billing.build.branch')],
                 'paused' => $paused,
             ];
         });
@@ -102,13 +115,17 @@ final class FamilyBillService
 
     /**
      * Open invoices of the family group at the anchor visit's branch: the visit's current (not void) finalised invoice on a
-     * still-registered visit, oldest finalised first (the owner's split order).
+     * still-registered visit, oldest finalised first (the owner's split order). Removed members (an open
+     * family_bill_exclusions row) are left out, or, with $excluded, are the only ones returned.
      *
      * @return Collection<int, Invoice>
      */
-    private function openInvoices(Visit $visit): Collection
+    public function openInvoices(Visit $visit, bool $excluded = false): Collection
     {
+        $open = FamilyBillExclusion::query()->select('invoice_id')->whereColumn('invoice_id', 'invoices.id')->whereNull('restored_at');
+
         return Invoice::query()
+            ->when($excluded, fn ($q) => $q->whereExists($open), fn ($q) => $q->whereNotExists($open))
             ->where('organisation_id', $visit->organisation_id)
             ->where('branch_id', $visit->branch_id)
             ->where('status', 'finalized')
