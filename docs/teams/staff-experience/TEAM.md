@@ -31,7 +31,7 @@ server-built `ShellMenu` (#1125)**. Fonts are self-hosted in `public/fonts` (Gei
 
 ### CL2-HOMES2 (Clean Look stage 2, area homes and Insights; 27 Nov 2026, Kavitha and Aiman)
 Brief: restyle the area homes and Insights in place to match the demo; frontend only; no PHP, route, permission, migration, payload or
-assertion change. State on 28 Nov 2026: **#1260 merged (27 Nov, 22:08 UTC) and #1280 merged (27 Nov, 22:27 UTC); #1278 was still open, waiting in the Clean Look merge line (head `2c2ee748`, base `84d09da5`); check its state before relying on it.**
+assertion change. State on 28 Nov 2026: **all three are merged: #1260 (27 Nov, 22:08 UTC), #1280 (27 Nov, 22:27 UTC) and #1278 (28 Nov, 06:02 UTC).**
 - **#1260** (merged) `feature/cl2-homes2` (frozen at `b10de601`): `shadow-card` on every `space-card` (`Spaces/Show.vue`, `SpaceAskPanel.vue`,
   `MyRoutine.vue`); Insights cards get the soft shadow; Dashboard pink hover and Overview amber dots use tokens; the routine tick uses
   `--primary`; a greeting line ("Good morning, <first name>") on the department homes and My day; up to four count tiles under the greeting,
@@ -39,7 +39,7 @@ assertion change. State on 28 Nov 2026: **#1260 merged (27 Nov, 22:08 UTC) and #
   tabs, greeting, tiles, as-of line, Me home and recent activity spanning both. Why columns and not a grid: a row grid with
   `align-items: start` left holes under short cards (Daniel's "right column ends early"). Cards use `break-inside: avoid`.
   The change also restyles the #1135 CA, supervisor and doctor homes; Daniel re-checked them.
-- **#1278** (open) `fix/shell-locum-home`: the rail logo and phone-header logo link to `workspace.defaultUrl` (`/workspace`, which redirects via
+- **#1278** (merged) `fix/shell-locum-home`: the rail logo and phone-header logo link to `workspace.defaultUrl` (`/workspace`, which redirects via
   `WorkspaceLandingService`) instead of `/dashboard`, which is 403 for a locum. `WorkspaceHeader.vue` still has `/dashboard` but nothing
   imports it and `r1c4-main-menu-navigation.test.mjs` pins it. Also hardens `NextThings.vue` (only a well-formed poll payload replaces the
   block). The console error `reading 'live'` was **not reproduced** on 11 of 12 roles; the hardening is not a proven root cause.
