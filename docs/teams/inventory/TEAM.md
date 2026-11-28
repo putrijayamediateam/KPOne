@@ -131,6 +131,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | STK-33 | Stock health (`/inventory/stock-health`): days on hand, turnover and expiry loss per SKU and location, quantities only | #626 |
 | DD-75, DD-76 | Inventory task links: three groups side by side from 1024 px, folding groups with a count on phones (44 px summaries); a two-line Pilot readiness card pointing to the pharmacist review pack | #629 |
 | DD tiles | Inventory summary tiles (SKUs with stock, Total batches, Expired batches) stay in one row at every width, sentence case; fits 320 px | #633 (in batch #634) |
+| CL2-STOCK-A | Clean Look Stage 2, restyled in place (classes only): Inventory hub, the hub's operations panel outside the purchasing and transfer sections, Stock health, Stock count and Write-off, Batch holds, Recalls, Treatment room usage, Controlled register and its detail, Stock review | #1270, merged 27 Nov as `228446747` |
+| CL2-STOCK-A2 | Clean Look for Pilot readiness, Medicine sales and the difference row menu (classes only) | #1275, merged 27 Nov as `d4a42f8a5` |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -366,6 +368,106 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 
 ## 7. Open items and known limits
 
+### Handoff, 27 Nov 2026 (Zulkifli's session retired; owner decision: one slice per fresh session)
+
+**Next slice: Clean Look Stage 1 restyle** of the Inventory pages in place (stock, receiving, count, Report a
+difference), due Sat 28 Nov 20:00 MYT, for the Puchong live test on Mon 30 Nov. Stage 0 (tokens #1120, shell #1125,
+card and sheet tokens #1129, spec #1119) is on main. Shared components only, no duplicate pages; fast process (Daniel
+OK + Mei Ling OK + green CI on the exact head with main contained). B.E.R.N.I.S.S put it FIRST, before the HQ slices.
+
+**Merged since 24 Nov:** REL-STK (#1105), STK-45 Report a difference (#1110), TOAST-INV (#1111), IMP-1 catalogue
+import (#1122; decision 51).
+
+**Open branches (all pushed; no PR open for any of them; each was built on main of 25 Nov and needs main merged in
+only when B.E.R.N.I.S.S calls its turn):**
+
+| Slice | Branch | Head | State |
+|---|---|---|---|
+| STK-50 + STK-51 (Director-only PO approval, close and short-close; Finance-only supplier bill decisions) | `feature/stk-50-51-approver-narrowing` | `4e1bed537` | Built; Mei Ling code OK. Owner ticked it and every listed assertion. **Open:** owner tick for `tests/Feature/InventoryWalkSeederTest.php:87-90` (approver Finance Officer → Director); that one test fails until then. Adds TEAM.md decision 52 on the branch. Pre-deploy check: `model_has_permissions` has no rows for the two narrowed permissions. |
+| STK-47 + STK-60 (central store HQ page, Thursday request day) | `feature/stk-47-60-central-store` | `a3d41c388` | Built; Mei Ling code OK. **To do:** change "No dispensing data" to Daniel's "No use in 30 days" (muted, no colour); shots 1440 and 390, light and dark; owner answers (below); TEAM.md decision. |
+| STK-48 (RFQ before the PO) | `feature/stk-48-rfq` | `caf642d0c` | Built incl. Mei Ling's fixes (edit form keeps estimates for cost-view holders, two-process races). **To do:** Mei Ling's re-check of `a4852e0e8..caf642d0c` (cut off by the usage limit); shots; owner link answer; TEAM.md decision. |
+| STK-46 (cost typed by hand, second-person check) | `feature/stk-46-hand-typed-cost` | `b62d84357` | Design note final (rev 2 + Daniel); **not built** (the build was cut off before any commit). |
+| STK-49 (payment terms, bill due dates, Paid in Bukku) | `feature/stk-49-supplier-bill-due-dates` | `92408ed5a` | Design note final (rev 2 + Daniel); **not built**. Merge after STK-51. |
+| STK-61 (Return on a waiting write-off; Change quantity / Not sent at dispatch) | `feature/stk-61-writeoff-return-dispatch-quantity` | `55eca2fd8` | Design note final (rev 2, Daniel's conditions and three settled points); **not built**. Send the exact changed-assertion lines for the dispatch rule to B.E.R.N.I.S.S when built. |
+
+Design notes for all six live on their branches as `docs/teams/inventory/STK-<n>-DESIGN.md` (STK-47-60 and STK-61
+as named). Backup branches pushed on 27 Nov: `backup/feature-stk-52-pack-conversion-local`,
+`backup/validation-stk-43-reorder-sold-shots-local`, plus several old `validation/*-shots` branches and `pr678`.
+
+**Owner decisions of 25 Nov not yet in section 6** (each slice's PR records its own decision; do not ask again):
+- STK-50/51 approved with all listed assertion changes (decision 52 on its branch).
+- STK-46: new permissions `inventory.cost.enter.organisation` (finance_officer, store_admin) and
+  `inventory.cost.check.organisation` (finance_officer, store_admin, director); replay rule (a), correct the average
+  from the start with a "Changed on <date>" note on Stock value and the journal CSV; pre-STK-10B receipts may take a
+  hand cost labelled "pre-STK-10B cost".
+- STK-49: "Payment terms (days)" on the Suppliers settings page, with the one changed assertion in
+  `tests/Frontend/supplier-settings.test.mjs` approved; Paid in Bukku has no second check. Adlina agreed the label
+  and asked for a small update route on `SupplierSettingsController`/`SupplierSettingsService` (field map, so contacts
+  can follow; don't reuse the old PATCH); she reviews the diff.
+- STK-61: the remainder after a partial dispatch becomes a NEW request.
+
+**Questions still with the owner (via B.E.R.N.I.S.S):**
+1. May the Central store (STK-47) and Quotes/RFQs (STK-48) links go in the Inventory task links? That changes
+   `tests/Frontend/dd-12-inventory-headers.test.mjs` (lines ~21-50, the exact list of 18 links; line ~69, "Orders and
+   suppliers · 7").
+2. The request-day reminder: show it only to people who can send a store request (stock-request create plus
+   `inventory.warehouse.organisation`; recommended), or let CAs request from the store.
+3. `InventoryWalkSeederTest.php:87-90` (above).
+
+**Known limits recorded by the builds:** the central store's "Open" links reach only requests the Inventory panel
+lists (the branch's 50 newest); a store-wide request list is a follow-up. RFQ prices and quote versions are on the RFQ
+(`current_quote_id`), not the PO.
+
+### CL2-STOCK-B, 27 Nov 2026: Clean Look Stage 2 for purchasing, receiving, suppliers and transfers
+
+Session stock-b (Hana Lead for this slice, Mei Ling Reviewer, Wei Jie designer), coordinator B.E.R.N.I.S.S. Look-only
+restyle in place for the owner's boss's test on Mon 30 Nov 08:30 MYT. No PHP, route, prop, payload, permission,
+migration, validation, money or test-assertion change in any of the PRs below.
+
+| PR | Branch @ head | Scope | State (28 Nov, 00:30 UTC) |
+|---|---|---|---|
+| #1268 (1/2) | `feature/cl2-stock-b-1` @ `2ea29ce2` | `PurchaseRequests`, `SupplierInvoices`, `SupplierReturns`, `SupplierTerms`, `ReorderSuggestions`, `BranchReplenishment`, `Skus`, `OpeningImport`; components `VerifiedReceivingForm`, `ReceivingReviews`, `TransferReceiptForm`, `TransferDifferences`, `MyDifferenceReports`, `ReportDifferenceSheet`, `PackConversionBlock` | **Merged** 27 Nov 2026, 20:39 UTC |
+| #1284 (2/2) | `feature/cl2-stock-b-2` @ `79a1252b` | Only the "Purchase Orders & Receiving" and "Stock Requests & Transfers" sections of `InventoryOperationsPanel.vue` (13 lines) | **Merged** 27 Nov 2026, 21:23 UTC. Opened at the owner's request ahead of the coordinator's hold for stock-a's #1270; #1270 merged first and no conflict arose (different lines of the same file) |
+| PR 3 | `feature/cl2-stock-b-3` @ `7fc631a9` | `InventoryServicesSettings/Suppliers.vue`, `MedicineDetails.vue` | **Dropped** (coordinator): Adlina restyled both in #1264. Branch left unused; do not open it |
+
+**File ownership agreed through B.E.R.N.I.S.S (27 Nov):** stock-a owns `Inventory/Index.vue` and
+`InventoryOperationsPanel.vue` except the two sections above, which stock-b owns; stock-b owns `BranchReplenishment`
+and every page and component in PR 1. The Suppliers and Medicine details settings pages are Catalogue & settings
+(Adlina), as CLEAN-LOOK-SPEC section 11 says.
+
+**How the restyle was done (copy it for later Inventory pages):** page frame `mx-auto flex w-full max-w-7xl flex-col
+gap-6 px-4 py-6 lg:px-8`; top-level boxes `rounded-xl border bg-card p-4 shadow-card sm:p-5`; long lists as one card
+with `divide-y`; a box inside a card is a `rounded-[10px] bg-card-quiet` well (never a bordered box, never a well in a
+well); raw buttons are pills (`rounded-full`, outline `border-input` for row actions, one `bg-primary` fill per view);
+raw fields `rounded-[10px] border-input bg-field-fill`; status chips get a `bg-current` dot plus the word; card titles
+15/600, labels 13/500, help 12.5; palette classes replaced by `warning-wash`, `success-wash`, `destructive/10`.
+
+**Pinned class strings kept on purpose** (changing them changes an assertion, which needs the owner's tick):
+`stk16` select `h-11 rounded-md border bg-background px-3 lg:h-9` (ReorderSuggestions); `stk18` summary
+`rounded-md border bg-muted p-2 text-sm` (PurchaseRequests); `stk10b` `grid gap-1 text-sm` before "Total paid"
+(VerifiedReceivingForm); `stk13` the SupplierTerms price label needs `canSeeCost` within 80 characters, so its labels
+stay `gap-1 text-sm`; `stk30`/`stk43` the ReorderSuggestions `<dt class="text-muted-foreground">`; `stk6` needs a
+`dark:` class in `TransferDifferences`; `co6` pins the two panel `<section>`/`<h3>` lines; `receipt-row-labels` pins
+the receipt line labels and `rounded-lg border p-2 sm:grid-cols-2`.
+
+**Demo-only (not built):** InvRfq (STK-48 not merged); the demo's three-column work layout with Approval and
+Printable order side panels; the "Ask for these" side card on reorder suggestions; toasts with "Next" links.
+
+**Left as is, for a later look PR:** `PurchaseOrderPrint` (prints stay white); the filled Approve buttons on panel
+rows (B.E.R.N.I.S.S: OK for now); the pinned `stk16` select and `stk18` summary still use the old look.
+
+**Evidence:** screenshots on `validation/cl2-stock-b-shots` (folder `cl2-stock-b-shots/`, with `pr2/` and `pr3/`),
+1440 light, 1440 dark and 390 light, none scrolls sideways. Task-owned Postgres 18 with `KPOneDemoSetupSeeder` and
+`KPOneInventoryWalkSeeder`, plus synthetic records made through the app: one purchase request, one partial receipt
+(200 capsule) and one stock request Store → Dispensary.
+
+**Working notes for the next session:** the walk seeder needs `KPOnePresentationSeeder` then `KPOneDemoSetupSeeder`
+first, and a local Postgres container needs `DB_SSLMODE=disable`. Serve with PHP's built-in server and Laravel's
+`vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php` router, or the built assets get redirected.
+`nav-02-top-bar` fails unless a `php` shim pointing to `kphp` is first on PATH. If Docker Hub rate-limits the
+`postgres:18` pull, retry after a minute.
+
+
 - **Recall lifting with one Director (owner, 16 Nov 2026: "note it, decide before go-live"):** only a Director
   holds `inventory.recalls.lift.organisation`, and the Director who started a recall can never lift it (STK-25:
   service and PostgreSQL). With one Director, a recall started in the pilot cannot be lifted. Options to decide
@@ -450,6 +552,45 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   caps a SKU's own alert days at 90, so a SKU set above 90 can be expiring on the page before the analyst sees it.
   Patient-returns stock is left out of the at-risk list by the same rule as "Expiring soon" (tested by STK-11), not by
   a test of its own.
+
+### Clean Look Stage 2, stock pages (Mei Ling, 27 Nov 2026)
+
+**PRs:** #1270 (`feature/cl2-stock-a`) merged 27 Nov 16:59 UTC as `228446747` (head `7574bab6`, CI green on that
+head). #1275 (`feature/cl2-stock-a-2`) merged 27 Nov 21:48 UTC as `d4a42f8a5` (head `d3707d3a`). The coordinator updates
+branches from main (do not merge main in yourself). Shots:
+`validation/cl2-stock-a-shots`, folders `docs/validation/cl2-stock-a/` and `docs/validation/cl2-stock-a-2/` (1440
+light, 1440 dark, 390 light; synthetic data from `KPOneInventoryWalkSeeder`).
+
+**File ownership (coordinator, 27 Nov):** stock-a owns `Inventory/Index.vue`, `InventoryOperationsPanel.vue` except
+the "Purchase Orders & Receiving" and "Stock Requests & Transfers" sections, StockHealth, GovernedStock, BatchHolds,
+Recalls, TreatmentUsage, ControlledRegister and Show, StockReview, Readiness, MedicineSales, DifferenceRowMenu and
+InventoryReferenceDataPanel (no change needed). Stock-b owns BranchReplenishment, the purchasing, receiving,
+supplier and transfer pages and the other `components/inventory` files. `StockValue.vue` is in the Reports PR.
+`ScanInput.vue` (shared with Dispensary) and the print pages stay unchanged.
+
+**What changed:** spec page padding (16/24/32), `rounded-xl border bg-card` cards (shared shadow), token fields
+(`border-input`, `bg-field-fill`, 10 px), pill buttons 44 px below 1024 and 36 px from 1024 (`self-center` in
+stretched flex rows, or they become circles on phones), `card-quiet` table headers and wells, `warning-wash` and
+destructive washes instead of amber or red palette classes, one filled button per view (Treatment room usage
+Search buttons are outline). No wording, route, prop, server, permission, migration or assertion change.
+
+**Pinned classes kept as they are (tests):** `min-h-11 w-full rounded border px-3 disabled:opacity-40 sm:w-auto
+lg:min-h-9` (stk23, GovernedStock Start count); `group rounded-lg border bg-card` (stk44, Medicine sales
+disclosure); the hub's `[&_thead_th]:text-sm`, `font-semibold`, `grid grid-cols-3 gap-2 sm:gap-3`, `lg:grid
+lg:grid-cols-3`; the title-case headings in InventoryOperationsPanel (i2-inventory-operations). Prettier sorts
+Tailwind classes, so a class added inside a pinned string moves into it and breaks the test: leave pinned strings
+alone. StockHealth keeps its flat template (the side card is placed by grid columns), because extra nesting
+re-wraps the explanation text that stk33 matches across lines.
+
+**Demo-only, not built:** InvLanes, InvTimeline, InvMyWork, InventoryFlow (maps and trackers); the demo's
+master-detail layouts (pick a row, selected-batch panel, "Who does what" side help) on holds, counts, write-off,
+recalls, usage and the controlled register; Stock health's expandable rows and clickable filter tiles.
+
+**Tooling notes:** the cloud session's system PHP is 8.3, so `npm run build` (Wayfinder) and frontend tests that call
+PHP need a `php` shim to `kphp` first on PATH. A task-owned Postgres 18 needs `DB_SSLMODE=disable`. Serve with
+`php -S` and Laravel's `server.php` router, or built assets return HTML. Seed order for populated stock shots:
+`migrate:fresh --seed`, then `KPOnePresentationSeeder`, `KPOneDemoSetupSeeder`, `KPOneInventoryWalkSeeder`; sign in
+as `demo.ca_supervisor` (Medicine sales needs `demo.director`).
 
 ## 8. Rules (every task)
 

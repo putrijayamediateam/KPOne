@@ -182,7 +182,7 @@ const submit = () => {
                 </div>
                 <div class="overflow-hidden rounded-lg border">
                     <div
-                        class="hidden grid-cols-[minmax(8rem,0.8fr)_minmax(12rem,1.5fr)_minmax(10rem,1fr)] gap-3 bg-muted/60 px-3 py-2 text-xs font-medium tracking-wide text-muted-foreground uppercase sm:grid"
+                        class="hidden grid-cols-[minmax(8rem,0.8fr)_minmax(12rem,1.5fr)_minmax(10rem,1fr)] gap-3 bg-card-quiet px-3 py-2 text-[13px] font-semibold text-muted-foreground sm:grid"
                     >
                         <span>Price tier</span>
                         <span>Coverage</span>

@@ -18,7 +18,9 @@ const format = (value: number, money: boolean, unit: string) =>
 </script>
 
 <template>
-    <section class="rounded-xl border border-border bg-card p-4 md:p-5">
+    <section
+        class="rounded-xl border border-border bg-card p-4 shadow-card md:p-5"
+    >
         <h2 class="text-xs font-medium text-muted-foreground">{{ title }}</h2>
         <p class="mt-2 text-sm font-semibold text-foreground">
             <template v-if="current === previous"

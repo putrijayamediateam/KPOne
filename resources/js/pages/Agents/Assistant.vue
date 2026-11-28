@@ -175,7 +175,7 @@ const scopeText = computed(() => {
 <template>
     <Head title="Quick answers" />
     <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 lg:px-8"
     >
         <PageHeader
             title="Quick answers"
@@ -235,7 +235,7 @@ const scopeText = computed(() => {
             >
                 <h2 id="answer-heading" class="sr-only">Answer</h2>
                 <form
-                    class="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+                    class="grid gap-3 rounded-[14px] border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
                     @submit.prevent="ask"
                 >
                     <div class="grid min-w-0 gap-1 text-sm">
@@ -293,7 +293,7 @@ const scopeText = computed(() => {
                 <div
                     v-if="error"
                     role="alert"
-                    class="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm"
+                    class="rounded-[14px] border border-destructive/40 bg-destructive/10 p-4 text-sm"
                     data-test="assistant-error"
                 >
                     {{ error }}
@@ -302,7 +302,7 @@ const scopeText = computed(() => {
                 <div aria-live="polite" class="grid min-w-0 gap-4">
                     <article
                         v-if="answer"
-                        class="grid min-w-0 gap-3 rounded-xl border bg-card p-4"
+                        class="grid min-w-0 gap-3 rounded-[14px] border bg-card p-4"
                         data-test="assistant-answer"
                     >
                         <header class="grid gap-1">
@@ -315,7 +315,7 @@ const scopeText = computed(() => {
                                 {{ answer.label }}
                             </h3>
                             <p
-                                class="text-xs text-muted-foreground"
+                                class="text-[12.5px] text-muted-foreground"
                                 data-test="assistant-scope"
                             >
                                 {{ scopeText }}
@@ -447,7 +447,7 @@ const scopeText = computed(() => {
                         </template>
                         <p
                             v-if="answer.truncated"
-                            class="text-xs text-muted-foreground"
+                            class="text-[12.5px] text-muted-foreground"
                             data-test="assistant-truncated"
                         >
                             Showing the first {{ answer.rows.length }} of
@@ -457,7 +457,7 @@ const scopeText = computed(() => {
                     </article>
                     <p
                         v-else-if="!error"
-                        class="rounded-xl border border-dashed p-6 text-sm text-muted-foreground"
+                        class="rounded-[14px] border border-dashed p-6 text-sm text-muted-foreground"
                     >
                         Choose a question, then press Answer.
                     </p>

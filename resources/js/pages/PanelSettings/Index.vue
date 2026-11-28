@@ -93,7 +93,7 @@ const tabs: { key: 'all' | 'active' | 'archived'; label: string }[] = [
 <template>
     <Head title="Checkout settings" />
     <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
     >
         <PageHeader
             title="Checkout settings"
@@ -222,7 +222,7 @@ const tabs: { key: 'all' | 'active' | 'archived'; label: string }[] = [
                                     class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
                                     :class="
                                         panel.isActive
-                                            ? 'bg-green-600'
+                                            ? 'bg-success'
                                             : 'bg-muted-foreground/40'
                                     "
                                     @click="toggle(panel)"

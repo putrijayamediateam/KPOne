@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Identity\Services\DirectorBootstrapService;
 use App\Domain\Organisation\Models\Branch;
+use Carbon\CarbonImmutable;
 use Database\Seeders\KPOneReferenceSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -41,6 +42,11 @@ class TrialDataEndToEndTest extends TestCase
         Storage::fake('local');
         config(['app.url' => 'https://'.self::HOST, 'trial-data.allowed' => true, 'panel-claims.auto_create' => true]);
         $cheras = Branch::query()->where('code', 'CHERAS')->firstOrFail();
+        // CI-CLOCK-3: the phases close and recount "today", so a first run before local midnight and a rerun after it
+        // differ by a day's records. Run at the latest past local noon (BASELINE 6.21: dates in the branch time zone);
+        // TrialDataCommandTest covers the minutes around midnight.
+        $noon = CarbonImmutable::now($cheras->timezone)->startOfDay()->addHours(12);
+        $this->travelTo($noon->isFuture() ? $noon->subDay() : $noon);
         $director = app(DirectorBootstrapService::class)->bootstrap([
             'name' => 'Owner Director', 'email' => 'owner.director@example.com', 'staff_number' => 'OWNER-0001',
             'job_title' => 'Director', 'branch_id' => $cheras->id, 'credential_strategy' => 'google_only',

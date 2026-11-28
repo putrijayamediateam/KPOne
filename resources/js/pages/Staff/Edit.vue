@@ -10,6 +10,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import type { StaffDetail, StaffOptions } from '@/types';
 
@@ -31,7 +32,7 @@ const submit = () => form.patch(`/staff/${props.staff.id}`);
 
 <template>
     <Head :title="`Edit ${staff.name}`" />
-    <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
+    <PageFrame width="narrow">
         <PageHeader
             title="Edit staff profile"
             description="Identity and employment fields only. Roles, status and branches are managed separately."
@@ -122,5 +123,5 @@ const submit = () => form.patch(`/staff/${props.staff.id}`);
                 </form>
             </CardContent></Card
         >
-    </main>
+    </PageFrame>
 </template>

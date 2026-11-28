@@ -220,7 +220,7 @@ test('the display has re-enterable fullscreen, a light/dark theme control and cl
     assert.ok(screen.includes('@click="toggleTheme"'));
     assert.ok(screen.includes(':aria-pressed="theme === \'dark\'"'));
     assert.ok(screen.includes('src="/kp-mark.png"'));
-    assert.ok(screen.includes('bg-pink-700'));
+    assert.ok(screen.includes('bg-[#006ae0]'));
     assert.ok(screen.includes('bg-zinc-950'));
 
     for (const visibleMalayCopy of [

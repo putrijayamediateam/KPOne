@@ -83,7 +83,7 @@ onBeforeUnmount(() => controller?.abort());
             <p
                 v-if="error"
                 role="alert"
-                class="mb-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+                class="mb-3 rounded-md border border-warning/25 bg-warning-wash p-3 text-sm text-warning-strong"
             >
                 {{ error }}
             </p>
@@ -182,11 +182,7 @@ onBeforeUnmount(() => controller?.abort());
                 </header>
 
                 <section>
-                    <h3
-                        class="mb-2 text-xs font-semibold tracking-wide uppercase"
-                    >
-                        Vitals
-                    </h3>
+                    <h3 class="mb-2 text-[13px] font-semibold">Vitals</h3>
                     <dl class="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
                         <div>
                             <dt class="text-muted-foreground">
@@ -241,13 +237,11 @@ onBeforeUnmount(() => controller?.abort());
                 </section>
 
                 <section>
-                    <h3
-                        class="mb-2 text-xs font-semibold tracking-wide uppercase"
-                    >
+                    <h3 class="mb-2 text-[13px] font-semibold">
                         Clinical Note
                     </h3>
                     <p
-                        class="rounded-md bg-muted/25 p-3 leading-relaxed whitespace-pre-wrap"
+                        class="rounded-md bg-card-quiet p-3 leading-relaxed whitespace-pre-wrap"
                     >
                         {{
                             selected.encounter.clinicalNote ??
@@ -257,11 +251,7 @@ onBeforeUnmount(() => controller?.abort());
                 </section>
 
                 <section>
-                    <h3
-                        class="mb-2 text-xs font-semibold tracking-wide uppercase"
-                    >
-                        Diagnoses
-                    </h3>
+                    <h3 class="mb-2 text-[13px] font-semibold">Diagnoses</h3>
                     <ol
                         v-if="selected.diagnoses.length"
                         class="divide-y border-y"
@@ -275,7 +265,7 @@ onBeforeUnmount(() => controller?.abort());
                                 {{ index + 1 }}. {{ diagnosis.diagnosisText }}
                                 <span
                                     v-if="diagnosis.isPrimary"
-                                    class="text-[11px] text-emerald-800"
+                                    class="text-xs text-success"
                                     >Primary</span
                                 >
                             </div>

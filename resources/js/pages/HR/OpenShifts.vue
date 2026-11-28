@@ -65,7 +65,7 @@ const description = computed(() =>
 
 <template>
     <Head title="Open shifts" />
-    <div class="mx-auto flex w-full max-w-5xl flex-col gap-4 p-4 lg:p-6">
+    <div class="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 md:px-5">
         <PageHeader
             eyebrow="KPOne HR"
             title="Open shifts"
