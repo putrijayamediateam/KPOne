@@ -31,19 +31,19 @@ server-built `ShellMenu` (#1125)**. Fonts are self-hosted in `public/fonts` (Gei
 
 ### CL2-HOMES2 (Clean Look stage 2, area homes and Insights; 27 Nov 2026, Kavitha and Aiman)
 Brief: restyle the area homes and Insights in place to match the demo; frontend only; no PHP, route, permission, migration, payload or
-assertion change. State at the time of writing: **#1260, #1278 and #1280 were open, not merged; check their state first.**
-- **#1260** `feature/cl2-homes2` (frozen at `b10de601`): `shadow-card` on every `space-card` (`Spaces/Show.vue`, `SpaceAskPanel.vue`,
+assertion change. State on 28 Nov 2026: **#1260 merged (27 Nov, 22:08 UTC) and #1280 merged (27 Nov, 22:27 UTC); #1278 was still open, waiting in the Clean Look merge line (head `2c2ee748`, base `84d09da5`); check its state before relying on it.**
+- **#1260** (merged) `feature/cl2-homes2` (frozen at `b10de601`): `shadow-card` on every `space-card` (`Spaces/Show.vue`, `SpaceAskPanel.vue`,
   `MyRoutine.vue`); Insights cards get the soft shadow; Dashboard pink hover and Overview amber dots use tokens; the routine tick uses
   `--primary`; a greeting line ("Good morning, <first name>") on the department homes and My day; up to four count tiles under the greeting,
   built only from totals already in the props; and, from 1024 px, **balanced two-column CSS columns** (`column-count: 2`) with the header,
   tabs, greeting, tiles, as-of line, Me home and recent activity spanning both. Why columns and not a grid: a row grid with
   `align-items: start` left holes under short cards (Daniel's "right column ends early"). Cards use `break-inside: avoid`.
   The change also restyles the #1135 CA, supervisor and doctor homes; Daniel re-checked them.
-- **#1278** `fix/shell-locum-home`: the rail logo and phone-header logo link to `workspace.defaultUrl` (`/workspace`, which redirects via
+- **#1278** (open) `fix/shell-locum-home`: the rail logo and phone-header logo link to `workspace.defaultUrl` (`/workspace`, which redirects via
   `WorkspaceLandingService`) instead of `/dashboard`, which is 403 for a locum. `WorkspaceHeader.vue` still has `/dashboard` but nothing
   imports it and `r1c4-main-menu-navigation.test.mjs` pins it. Also hardens `NextThings.vue` (only a well-formed poll payload replaces the
   block). The console error `reading 'live'` was **not reproduced** on 11 of 12 roles; the hardening is not a proven root cause.
-- **#1280** `fix/greeting-timezone` (stacked on #1260; the coordinator retargets it to `main` after #1260 merges): the greeting follows the
+- **#1280** (merged) `fix/greeting-timezone` (was stacked on #1260; the coordinator retargeted it to `main` after #1260 merged): the greeting follows the
   branch clock, not the device clock (`resources/js/lib/greeting.ts`; My day uses `today.time.timezone`, department homes parse the
   server's `asOf` text, both fall back to the browser clock), with `tests/Frontend/cl2-greeting-timezone.test.mjs`. It changes behaviour,
   so it was taken to the owner separately from the look-only approval.
