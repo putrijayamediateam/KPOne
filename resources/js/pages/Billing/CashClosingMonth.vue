@@ -189,7 +189,7 @@ const goTo = (month: string | null) => {
 
 <template>
     <Head title="Monthly cash closing" />
-    <main class="mx-auto w-full max-w-6xl space-y-4 px-4 py-6 md:px-6">
+    <main class="mx-auto w-full max-w-6xl space-y-4 px-4 py-6 md:px-6 lg:px-8">
         <PageHeader
             title="Monthly cash closing"
             :description="`${view.branch} · One row per day. Open a day to count or approve.`"
@@ -261,7 +261,7 @@ const goTo = (month: string | null) => {
             <template #action>
                 <button
                     type="button"
-                    class="inline-flex min-h-11 items-center rounded-md border border-destructive/40 px-3 text-sm font-medium hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    class="inline-flex min-h-11 items-center rounded-full border border-destructive/40 px-4 text-sm font-medium hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     data-testid="month-retry"
                     @click="goTo(lastTried)"
                 >

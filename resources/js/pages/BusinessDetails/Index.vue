@@ -273,7 +273,7 @@ const reload = () =>
 <template>
     <Head title="Business details" />
     <main
-        class="mx-auto w-full max-w-4xl min-w-0 flex-1 p-4 pb-0 md:p-6 md:pb-0"
+        class="mx-auto w-full max-w-4xl min-w-0 flex-1 p-4 pb-0 md:p-6 md:pb-0 lg:px-8"
     >
         <PageHeader
             title="Business details"
@@ -750,19 +750,19 @@ const reload = () =>
             </fieldset>
             <footer
                 v-if="canEdit"
-                class="sticky bottom-0 z-10 flex justify-end gap-2 border-t bg-background/95 py-3"
+                class="sticky bottom-0 z-10 flex justify-end gap-2 border-t bg-background py-3"
             >
                 <Button
                     type="button"
                     variant="outline"
-                    class="h-8 text-xs"
+                    class="min-h-11 text-xs lg:h-8 lg:min-h-0"
                     :disabled="form.processing || blocked"
                     @click="adopt"
                     >Cancel</Button
                 >
                 <Button
                     type="submit"
-                    class="h-8 text-xs"
+                    class="min-h-11 text-xs lg:h-8 lg:min-h-0"
                     :disabled="form.processing || blocked"
                     >{{ form.processing ? 'Saving…' : 'Save' }}</Button
                 >
@@ -822,7 +822,7 @@ const reload = () =>
             <div class="mt-3 flex justify-end">
                 <Button
                     type="submit"
-                    class="h-8 text-xs"
+                    class="min-h-11 text-xs lg:h-8 lg:min-h-0"
                     :disabled="blocked || footerForm.processing"
                     >{{
                         footerForm.processing ? 'Saving…' : 'Save print footer'

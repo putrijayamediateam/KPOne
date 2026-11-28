@@ -225,7 +225,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
         <template v-else>
             <p
                 v-if="truncated"
-                class="rounded-xl bg-warning-wash p-3 text-sm text-warning"
+                class="rounded-lg border bg-warning-wash p-3 text-sm text-warning"
             >
                 Only the first {{ maxRows.toLocaleString() }} invoices are shown
                 and downloaded. Narrow the date range to see the rest.

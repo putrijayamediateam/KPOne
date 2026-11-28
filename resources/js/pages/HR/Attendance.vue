@@ -379,7 +379,7 @@ const {
                     </p>
                     <button
                         type="button"
-                        class="self-start text-xs font-medium text-brand-strong underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        class="self-start text-xs font-medium text-link underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                         data-test="clock-photo-about"
                         @click="aboutPhotos = true"
                     >

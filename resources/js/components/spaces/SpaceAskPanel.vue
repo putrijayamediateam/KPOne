@@ -105,7 +105,7 @@ const ask = async (question: Question) => {
 </script>
 
 <template>
-    <section class="space-card" aria-labelledby="space-ask">
+    <section class="space-card shadow-card" aria-labelledby="space-ask">
         <h2 id="space-ask">Quick questions</h2>
         <p class="space-muted">Fixed questions. Nothing is typed.</p>
         <div class="space-ask-list" role="group" aria-label="Questions">

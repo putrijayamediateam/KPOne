@@ -16,6 +16,7 @@ import {
 import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 import { Input } from '@/components/ui/input';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { hubLinkMatches, searchWords } from '@/lib/clinic-hub-search';
 
@@ -86,12 +87,10 @@ const clear = () => {
 
 <template>
     <Head title="Clinic management" />
-    <main
-        class="mx-auto w-full max-w-[1440px] flex-1 p-4 py-6 md:p-6 lg:px-8 lg:py-8"
-    >
-        <PageHeader title="Clinic management" class="mb-5" />
-        <div class="mb-3 max-w-md">
-            <label for="hub-find" class="mb-1.5 block text-sm font-medium"
+    <PageFrame>
+        <PageHeader title="Clinic management" />
+        <div class="max-w-md">
+            <label for="hub-find" class="mb-2 block text-[13px] font-medium"
                 >Find a page</label
             >
             <div class="relative">
@@ -116,18 +115,18 @@ const clear = () => {
                 </button>
             </div>
         </div>
-        <div role="status" class="mb-5 min-h-5 text-sm text-muted-foreground">
+        <div role="status" class="min-h-5 text-[13px] text-muted-foreground">
             <template v-if="resultLine">{{ resultLine }}</template>
             <p
                 v-if="noMatch"
-                class="rounded-lg border bg-card p-6 text-center"
+                class="rounded-[14px] border bg-card p-6 text-center shadow-card"
                 data-testid="hub-empty"
             >
                 No page matches “{{ query.trim() }}”.
             </p>
         </div>
         <div
-            class="grid gap-px overflow-hidden rounded-lg border bg-card md:grid-cols-2 xl:grid-cols-3"
+            class="grid gap-px overflow-hidden rounded-[14px] border bg-card shadow-card md:grid-cols-2 xl:grid-cols-3"
             data-testid="clinic-management-cards"
             v-show="!noMatch"
         >
@@ -136,16 +135,16 @@ const clear = () => {
                 v-show="hasMatch(group)"
                 :key="group.title"
                 :aria-labelledby="`clinic-card-${index}`"
-                class="min-w-0 bg-card p-5 ring-1 ring-border md:p-6"
+                class="min-w-0 bg-card p-4 ring-1 ring-border md:p-5"
             >
                 <component
                     :is="icons[group.icon]"
-                    class="mb-2 size-6"
+                    class="mb-2 size-6 text-accent-blue"
                     aria-hidden="true"
                 />
                 <h2
                     :id="`clinic-card-${index}`"
-                    class="mb-4 text-base font-semibold"
+                    class="mb-3 text-[15px] font-semibold"
                 >
                     {{ group.title }}
                 </h2>
@@ -157,14 +156,14 @@ const clear = () => {
                     >
                         <Link
                             :href="link.href"
-                            class="group flex min-h-16 items-center gap-4 rounded-sm px-2 py-3 transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                            class="group flex min-h-16 items-center gap-4 rounded-[10px] px-2 py-3 transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
                             <span class="min-w-0 flex-1">
-                                <span class="block text-[13px] font-medium">{{
+                                <span class="block text-sm font-medium">{{
                                     link.title
                                 }}</span>
                                 <span
-                                    class="mt-0.5 block text-xs leading-4 text-muted-foreground"
+                                    class="mt-0.5 block text-[12.5px] leading-4 text-muted-foreground"
                                     >{{ link.description }}</span
                                 >
                             </span>
@@ -177,5 +176,5 @@ const clear = () => {
                 </ul>
             </section>
         </div>
-    </main>
+    </PageFrame>
 </template>

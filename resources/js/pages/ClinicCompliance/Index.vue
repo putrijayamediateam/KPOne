@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import {
@@ -352,7 +353,7 @@ const unusedSuggestions = computed(() => {
 
 <template>
     <Head title="Clinic compliance" />
-    <div class="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 md:px-5">
+    <PageFrame>
         <PageHeader
             eyebrow="Clinic compliance"
             title="Clinic compliance"
@@ -437,7 +438,7 @@ const unusedSuggestions = computed(() => {
                         <p class="text-sm text-muted-foreground">{{ label }}</p>
                     </li>
                 </ul>
-                <div class="rounded-lg border bg-card p-4">
+                <div class="rounded-[14px] border bg-card p-4 shadow-card">
                     <h2 class="text-sm font-semibold">Needs attention</h2>
                     <p
                         v-if="!compliance.overview.attention.length"
@@ -484,7 +485,7 @@ const unusedSuggestions = computed(() => {
                 </div>
                 <div
                     v-if="compliance.overview.typesWithoutRecord.length"
-                    class="rounded-lg border bg-card p-4"
+                    class="rounded-[14px] border bg-card p-4 shadow-card"
                 >
                     <h2 class="text-sm font-semibold">Not recorded yet</h2>
                     <p class="mt-2 text-sm text-muted-foreground">
@@ -524,7 +525,7 @@ const unusedSuggestions = computed(() => {
                 <li
                     v-for="row in compliance.licences.rows"
                     :key="row.id"
-                    class="rounded-lg border bg-card p-4"
+                    class="rounded-[14px] border bg-card p-4 shadow-card"
                     data-test="licence-row"
                 >
                     <div
@@ -766,7 +767,7 @@ const unusedSuggestions = computed(() => {
                     <li
                         v-for="t in compliance.settings.types ?? []"
                         :key="t.id"
-                        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4"
+                        class="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border bg-card p-4 shadow-card"
                     >
                         <div class="min-w-0">
                             <p class="text-sm font-semibold break-words">
@@ -1090,5 +1091,5 @@ const unusedSuggestions = computed(() => {
                 </form>
             </SheetContent>
         </Sheet>
-    </div>
+    </PageFrame>
 </template>

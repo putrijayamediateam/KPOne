@@ -23,6 +23,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
+import { PageFrame } from '@/components/ui/page-frame';
+import { PageHeader } from '@/components/ui/page-header';
 import OperationalSelect from '@/components/ui/select/OperationalSelect.vue';
 import { formatDateTime } from '@/lib/presentation';
 
@@ -215,21 +217,13 @@ const printQr = (link: LinkRow) => {
 
 <template>
     <Head title="QR check-in links" />
-    <main class="flex flex-1 flex-col gap-6 p-4 md:p-7">
-        <header class="space-y-1">
-            <h1 class="text-2xl font-semibold tracking-tight">
-                QR check-in links
-            </h1>
-            <p class="text-sm text-muted-foreground">
-                Issue and revoke branch-bound public landing links. No Patient
-                information is staged until staff review and confirmation.
-            </p>
-        </header>
+    <PageFrame>
+        <PageHeader
+            title="QR check-in links"
+            description="Issue and revoke branch-bound public landing links. No Patient information is staged until staff review and confirmation."
+        />
 
-        <Card
-            v-if="issuedLink"
-            class="border-pink-200 bg-pink-50/50 dark:border-pink-900 dark:bg-pink-950/20"
-        >
+        <Card v-if="issuedLink" class="border-transparent bg-info-wash">
             <CardHeader
                 ><CardTitle class="text-base">Active QR ready</CardTitle
                 ><CardDescription
@@ -499,5 +493,5 @@ const printQr = (link: LinkRow) => {
             "
             @confirm="confirmAction"
         />
-    </main>
+    </PageFrame>
 </template>

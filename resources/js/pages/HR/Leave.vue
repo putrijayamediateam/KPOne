@@ -888,7 +888,7 @@ const {
                             </caption>
                             <thead>
                                 <tr
-                                    class="text-left text-xs text-muted-foreground"
+                                    class="text-left text-[13px] text-muted-foreground"
                                 >
                                     <th scope="col" class="py-1 pr-2">Role</th>
                                     <th
