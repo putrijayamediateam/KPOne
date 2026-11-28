@@ -14,6 +14,7 @@ use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\CashClosingService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
+use App\Domain\Visit\Billing\Services\FamilyBillPaymentService;
 use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
 use App\Domain\Visit\Billing\Services\IssuedBillingDocumentService;
@@ -65,6 +66,8 @@ try {
         'bill-adjust' => app(InvoiceAdjustmentService::class)->add($actor, $visit, $invoice, $a),
         'bill-adjust-reverse' => app(InvoiceAdjustmentService::class)->reverse($actor, $visit, $invoice, $a['adjustment'], $a),
         'bill-pay' => app(PaymentService::class)->add($actor, $visit, $invoice, $a),
+        // BIL-39: one family payment over the family bill of $visit.
+        'bill-family-pay' => app(FamilyBillPaymentService::class)->pay($actor, $visit, $a),
         'bill-payment-method-deactivate' => app(PaymentMethodAdministrationService::class)->deactivate($actor, PaymentMethod::query()->findOrFail($a['method'])),
         'bill-complete' => app(CompleteVisitationService::class)->complete($actor, $visit, $a),
         'bill-propose' => app(ResponsibilityService::class)->propose($actor, $visit, $invoice, $a['kind'], $a),

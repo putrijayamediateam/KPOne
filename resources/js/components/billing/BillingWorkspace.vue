@@ -380,6 +380,13 @@ const reverse = (receipt: Receipt) =>
                 data-testid="panel-claim-link"
                 >{{ billing.panelClaim.label }}</ActionLink
             >
+            <ActionLink
+                v-if="!manage && billing.familyBillUrl"
+                :href="billing.familyBillUrl"
+                variant="outline"
+                data-testid="family-bill-link"
+                >Family bill</ActionLink
+            >
             <span v-if="isCompleted" class="text-[13px] text-muted-foreground"
                 >Read-only Visit record</span
             >

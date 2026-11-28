@@ -75,6 +75,8 @@ class BillingDirectoryService
                 'activity' => app(InvoiceActivityService::class)->link($visit, $branch->id, $invoice, false),
                 'visit' => ['visitNumber' => $visit->visit_number, 'status' => $visit->status, 'lockVersion' => $visit->lock_version, 'coverage' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_name_snapshot : 'Self-pay', 'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A')],
                 'clinic' => $branch->organisation->name, 'branch' => $branch->name, 'outstanding' => $printing ? null : app(OutstandingBillService::class)->summary($actor, $visit),
+                // BIL-39: "Family bill" when another family member at this branch has an open, finalised invoice.
+                'familyBillUrl' => ! $printing && app(FamilyBillService::class)->hasOtherMembers($visit) ? route('billing.family', $visit, absolute: false) : null,
                 'payLaterCollectionsUrl' => ! $printing && $actor->can('outstanding.view.branch') ? route('billing.pay-later-collections', absolute: false) : null,
                 'invoice' => $invoice ? ['publicId' => $invoice->public_id, 'number' => $invoice->invoice_number, 'status' => $invoice->status, 'lockVersion' => $invoice->lock_version, 'currency' => $invoice->currency,
                     'finalizedAt' => $invoice->finalized_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'), 'correctionHold' => $invoice->correction_hold, 'state' => $state, 'adjustment' => InvoiceAdjustmentService::summary($invoice), 'refundCreditSen' => (int) FinancialLedger::approvedCredits([$invoice->id])->sum('amount_sen'), 'adjustmentControls' => $printing ? null : InvoiceAdjustmentService::controls($actor, $visit, $invoice),
