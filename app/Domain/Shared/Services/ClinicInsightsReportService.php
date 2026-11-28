@@ -38,9 +38,18 @@ class ClinicInsightsReportService
             ])->all());
     }
 
-    /** @return list<array{id: int, name: string, branch: string}> */
-    public function doctors(User $actor): array
+    /**
+     * The doctor filter's choices. With a branch (INS-BM-3, for a branch-only person) it lists only doctors with an
+     * assignment at that branch in effect today, or who were the assigned or attending doctor on a visit there in the
+     * last year, so a locum or covering doctor stays selectable.
+     *
+     * @return list<array{id: int, name: string, branch: string}>
+     */
+    public function doctors(User $actor, ?Branch $branch = null): array
     {
+        $today = $branch ? CarbonImmutable::now($branch->timezone)->toDateString() : null;
+        $since = CarbonImmutable::now('UTC')->subDays(self::MAX_RANGE_DAYS);
+
         return array_values(DB::table('users')
             ->join('model_has_roles', function ($join): void {
                 $join->on('model_has_roles.model_id', '=', 'users.id')
@@ -56,6 +65,22 @@ class ClinicInsightsReportService
             ->where('users.organisation_id', $actor->organisation_id)
             ->where('users.is_active', true)
             ->where('roles.name', 'resident_doctor')
+            ->when($branch !== null, fn ($query) => $query->where(function ($related) use ($branch, $today, $since): void {
+                $related->whereExists(fn ($assigned) => $assigned->selectRaw('1')->from('staff_branch_assignments as here')
+                    ->join('staff_profiles as profile', 'profile.id', '=', 'here.staff_profile_id')
+                    ->whereColumn('profile.user_id', 'users.id')
+                    ->where('here.branch_id', $branch->id)
+                    ->whereDate('here.valid_from', '<=', $today)
+                    ->where(fn ($open) => $open->whereNull('here.valid_until')->orWhereDate('here.valid_until', '>=', $today)))
+                    ->orWhereExists(fn ($visit) => $visit->selectRaw('1')->from('visits')
+                        ->whereColumn('visits.assigned_doctor_user_id', 'users.id')
+                        ->where('visits.branch_id', $branch->id)
+                        ->where('visits.registered_at', '>=', $since))
+                    ->orWhereExists(fn ($checkout) => $checkout->selectRaw('1')->from('consultation_checkouts')
+                        ->whereColumn('consultation_checkouts.attending_doctor_user_id', 'users.id')
+                        ->where('consultation_checkouts.branch_id', $branch->id)
+                        ->where('consultation_checkouts.created_at', '>=', $since));
+            }))
             ->selectRaw('users.id, users.name, branches.name as branch_name')
             ->distinct()
             ->orderBy('users.name')

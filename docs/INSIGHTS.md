@@ -17,9 +17,10 @@ option A):** branch roles without that permission (Branch Manager, CA, CA Superv
 Assistant) are kept to their active branch: the pages default to it, the selector offers only that branch and no
 All branches, and the server refuses any other branch or "all" with 403 (`InsightsBranchScope`, the same rule as
 the downloads' `BranchOnlyExportScope`); their download links default to that branch. Doctor filtering is
-available only on reports whose source data supports it. The doctor list still shows every active doctor in the
-organisation (names and primary branch only); with the branch fixed, the figures stay own-branch. Narrowing that
-list is a follow-up.
+available only on reports whose source data supports it. **INS-BM-3 (owner decisions 28 Nov 2026):** a branch role's
+doctor list shows only the doctors of its branch: those assigned there today, plus any doctor who was the assigned or
+attending doctor on a visit there in the last year (a locum or covering doctor). A doctor outside that list is
+refused with 403 on the pages and the downloads. Organisation accounts still see every active doctor.
 
 Reports return aggregates and catalogue/provider ranking labels, not patient names, patient numbers, identity
 documents, or individual financial records. Patient-level outstanding-balance rankings are intentionally not

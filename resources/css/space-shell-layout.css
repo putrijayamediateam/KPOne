@@ -1070,15 +1070,34 @@
     }
     .space-shell[data-classic-frame] .space-main > * {
         column-span: all;
+        margin-top: 16px;
         margin-bottom: 16px;
+    }
+    /* A full-width block brings its own gap above it, because the bottom margin of the last card in a column is cut
+       at the column end (or kept, depending on how the columns balance). Next to another full-width block the two
+       margins collapse to 16 px. */
+    .space-shell[data-classic-frame] .space-main > :first-child {
+        margin-top: 0;
+    }
+    /* The card just before a full-width block keeps no bottom margin, so the gap is the block's 16 px either way. */
+    .space-shell[data-classic-frame]
+        .space-main
+        > .space-card:has(+ .space-recent),
+    .space-shell[data-classic-frame] .space-main > .space-card:has(+ .me-home),
+    .space-shell[data-classic-frame]
+        .space-main
+        > .space-card:has(+ .space-asof) {
+        margin-bottom: 0;
     }
     .space-shell[data-classic-frame] .space-main .space-card {
         column-span: none;
         break-inside: avoid;
+        margin-top: 0;
         margin-bottom: 16px;
     }
     .space-shell[data-classic-frame] .space-main > .space-recent {
         column-span: all;
+        margin-top: 16px;
     }
 }
 /* The shared primary foreground also supplies the dark-theme accent label. */

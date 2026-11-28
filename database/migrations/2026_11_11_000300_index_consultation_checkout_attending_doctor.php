@@ -1,0 +1,29 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+/**
+ * INS-BM-4 (follow-up to INS-BM-3, PR #1297): the Insights doctor filter for a branch-only person asks whether a doctor
+ * attended a consultation at the branch in the last year (doctor, branch, then a date range: this column order). It
+ * also serves the reports' `attending_doctor_user_id = ?` subqueries as a prefix; lookups that join a checkout by its
+ * id keep using the primary key. `attending_doctor_user_id` had only a composite foreign key, which PostgreSQL does not
+ * index, so those lookups scanned the table. Additive and reversible: no column, constraint or data changes.
+ */
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('consultation_checkouts', function (Blueprint $table): void {
+            $table->index(['attending_doctor_user_id', 'branch_id', 'created_at'], 'consultation_checkouts_attending_branch_created_index');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('consultation_checkouts', function (Blueprint $table): void {
+            $table->dropIndex('consultation_checkouts_attending_branch_created_index');
+        });
+    }
+};
