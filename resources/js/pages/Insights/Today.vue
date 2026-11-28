@@ -31,6 +31,8 @@ const props = defineProps<{
     canOverview?: boolean;
     branch: string;
     branches: { code: string; name: string }[];
+    // INS-BM-1: false for a branch-only account (for example a Branch Manager or CA), which sees its own branch only.
+    canSeeAllBranches?: boolean;
     report: TodayInsightsReport;
 }>();
 
@@ -49,7 +51,9 @@ const sections = [
 
 const branchSelection = ref(props.branch);
 const branchOptions = computed(() => [
-    { value: 'all', label: 'All branches' },
+    ...(props.canSeeAllBranches === false
+        ? []
+        : [{ value: 'all', label: 'All branches' }]),
     ...props.branches.map((branch) => ({
         value: branch.code,
         label: branch.name,
@@ -217,13 +221,17 @@ onUnmounted(() => {
             class="grid gap-3 md:grid-cols-2"
             aria-label="New and returning sales"
         >
-            <div class="rounded-xl border border-border bg-card p-4 md:p-5">
+            <div
+                class="rounded-xl border border-border bg-card p-4 shadow-card md:p-5"
+            >
                 <p class="text-xs text-muted-foreground">New net sales</p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums">
                     {{ money(report.sales.newSen) }}
                 </p>
             </div>
-            <div class="rounded-xl border border-border bg-card p-4 md:p-5">
+            <div
+                class="rounded-xl border border-border bg-card p-4 shadow-card md:p-5"
+            >
                 <p class="text-xs text-muted-foreground">Returning net sales</p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums">
                     {{ money(report.sales.returningSen) }}
@@ -232,19 +240,25 @@ onUnmounted(() => {
         </section>
 
         <section class="grid gap-3 sm:grid-cols-3" aria-label="Today's totals">
-            <div class="rounded-xl border border-border bg-card p-4 md:p-5">
+            <div
+                class="rounded-xl border border-border bg-card p-4 shadow-card md:p-5"
+            >
                 <p class="text-xs text-muted-foreground">Net invoice sales</p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums">
                     {{ money(report.sales.totalSen) }}
                 </p>
             </div>
-            <div class="rounded-xl border border-border bg-card p-4 md:p-5">
+            <div
+                class="rounded-xl border border-border bg-card p-4 shadow-card md:p-5"
+            >
                 <p class="text-xs text-muted-foreground">Patients</p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums">
                     {{ report.sales.patientCount }}
                 </p>
             </div>
-            <div class="rounded-xl border border-border bg-card p-4 md:p-5">
+            <div
+                class="rounded-xl border border-border bg-card p-4 shadow-card md:p-5"
+            >
                 <p class="text-xs text-muted-foreground">
                     Net sales per patient
                 </p>

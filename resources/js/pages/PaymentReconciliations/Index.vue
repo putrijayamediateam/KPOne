@@ -142,7 +142,7 @@ const recordClose = () => {
 
 <template>
     <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-6 lg:px-8"
     >
         <PageHeader
             title="Terminal Reconciliation"
@@ -158,7 +158,7 @@ const recordClose = () => {
         <section class="rounded-xl border bg-card p-4">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <h2 class="font-semibold">{{ branch.name }}</h2>
+                    <h2 class="text-[15px] font-semibold">{{ branch.name }}</h2>
                     <p class="mt-1 text-sm text-muted-foreground">
                         Business day uses {{ branch.timezone }}. This records
                         the terminal report only; it does not create or alter
@@ -191,7 +191,9 @@ const recordClose = () => {
                 @submit.prevent="recordClose"
             >
                 <div>
-                    <h2 class="font-semibold">Record terminal close</h2>
+                    <h2 class="text-[15px] font-semibold">
+                        Record terminal close
+                    </h2>
                     <p class="mt-1 text-sm text-muted-foreground">
                         Enter the terminal's approved sales totals and
                         transaction counts for this branch, payment method, and
@@ -207,7 +209,7 @@ const recordClose = () => {
                     <select
                         id="payment-method"
                         v-model="form.payment_method_id"
-                        class="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        class="h-10 rounded-[10px] border border-input bg-field-fill px-3 text-sm"
                         required
                     >
                         <option value="" disabled>
@@ -269,7 +271,7 @@ const recordClose = () => {
                 </div>
 
                 <div
-                    class="grid gap-3 rounded-lg bg-muted/40 p-3 sm:grid-cols-2"
+                    class="grid gap-3 rounded-[10px] bg-card-quiet p-3 sm:grid-cols-2"
                 >
                     <label
                         class="grid gap-1 text-sm font-medium"
@@ -361,7 +363,7 @@ const recordClose = () => {
                     />
                 </label>
 
-                <div class="rounded-lg border p-3 text-sm">
+                <div class="rounded-[10px] bg-card-quiet p-3 text-sm">
                     <h3 class="font-medium">
                         KPOne receipts recorded for this method and day
                     </h3>
@@ -390,8 +392,8 @@ const recordClose = () => {
                         <span
                             :class="
                                 estimatedDifference === 0
-                                    ? 'text-emerald-700 dark:text-emerald-300'
-                                    : 'text-amber-700 dark:text-amber-300'
+                                    ? 'text-success'
+                                    : 'text-warning-strong'
                             "
                         >
                             {{ formatDifference(estimatedDifference) }}
@@ -401,7 +403,7 @@ const recordClose = () => {
                                 Number(form.terminal_sales_count) !==
                                 selectedTotals.postedCount
                             "
-                            class="block text-xs font-normal text-amber-700 dark:text-amber-300"
+                            class="block text-xs font-normal text-warning-strong"
                         >
                             Transaction count also differs.
                         </span>
@@ -419,7 +421,7 @@ const recordClose = () => {
                         v-model="form.variance_reason"
                         maxlength="1000"
                         rows="3"
-                        class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        class="rounded-[10px] border border-input bg-field-fill px-3 py-2 text-sm"
                         required
                     />
                 </label>
@@ -430,7 +432,7 @@ const recordClose = () => {
                         v-model="form.notes"
                         maxlength="1000"
                         rows="2"
-                        class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        class="rounded-[10px] border border-input bg-field-fill px-3 py-2 text-sm"
                     />
                     <InputError :message="form.errors.notes" />
                 </label>
@@ -451,7 +453,7 @@ const recordClose = () => {
                 class="grid content-start gap-4 rounded-xl border bg-card p-4"
             >
                 <div>
-                    <h2 class="font-semibold">Closing rules</h2>
+                    <h2 class="text-[15px] font-semibold">Closing rules</h2>
                     <ul
                         class="mt-3 list-disc space-y-2 pl-5 text-sm text-muted-foreground"
                     >
@@ -481,7 +483,7 @@ const recordClose = () => {
                     </ul>
                 </div>
                 <div
-                    class="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm"
+                    class="rounded-xl border border-warning/25 bg-warning-wash p-3 text-sm"
                 >
                     <h3 class="font-medium">Outside this manual close</h3>
                     <p class="mt-1 text-muted-foreground">
@@ -495,7 +497,7 @@ const recordClose = () => {
         </section>
 
         <section class="rounded-xl border bg-card p-4">
-            <h2 class="font-semibold">
+            <h2 class="text-[15px] font-semibold">
                 Close history —
                 <span class="whitespace-nowrap">{{
                     formatDate(businessDate)
@@ -509,7 +511,7 @@ const recordClose = () => {
                 <article
                     v-for="close in reconciliations"
                     :key="close.publicId"
-                    class="rounded-lg border p-3"
+                    class="rounded-[10px] bg-card-quiet p-3"
                 >
                     <div
                         class="flex flex-wrap items-baseline justify-between gap-2"

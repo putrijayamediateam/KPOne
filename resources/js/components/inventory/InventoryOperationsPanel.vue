@@ -860,7 +860,7 @@ const saveReorder = () =>
 
         <div
             v-if="operationError"
-            class="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+            class="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive"
             role="alert"
             aria-live="assertive"
         >
@@ -899,7 +899,7 @@ const saveReorder = () =>
                 <div
                     v-for="item in operations.suppliers"
                     :key="item.publicId"
-                    class="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border p-2 [&_[data-slot=status-badge]]:max-w-full [&_[data-slot=status-badge]]:wrap-anywhere [&_[data-slot=status-badge]]:whitespace-normal"
+                    class="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-xl border bg-card-quiet p-2 [&_[data-slot=status-badge]]:max-w-full [&_[data-slot=status-badge]]:wrap-anywhere [&_[data-slot=status-badge]]:whitespace-normal"
                 >
                     <StatusBadge
                         :status="item.isActive ? 'active' : 'inactive'"
@@ -907,7 +907,7 @@ const saveReorder = () =>
                     />
                     <Button
                         size="sm"
-                        variant="secondary"
+                        variant="outline"
                         :disabled="busy"
                         @click="
                             confirmSupplierStatus(item.publicId, !item.isActive)
@@ -944,7 +944,7 @@ const saveReorder = () =>
                     />
                     <p
                         id="po-estimate-help"
-                        class="text-xs text-muted-foreground sm:col-span-2"
+                        class="text-[12.5px] text-muted-foreground sm:col-span-2"
                     >
                         Estimated cost is for one stock unit (for example one
                         tablet), not one box.
@@ -952,9 +952,9 @@ const saveReorder = () =>
                     <fieldset
                         v-for="(line, index) in purchaseOrder.lines"
                         :key="line.key"
-                        class="grid gap-2 rounded-lg border p-2 sm:col-span-2 sm:grid-cols-[1fr_1fr_1fr_auto]"
+                        class="grid gap-2 rounded-[10px] bg-card-quiet p-3 sm:col-span-2 sm:grid-cols-[1fr_1fr_1fr_auto]"
                     >
-                        <legend class="px-1 text-xs font-medium">
+                        <legend class="px-1 text-[13px] font-semibold">
                             Order line {{ index + 1 }}
                         </legend>
                         <InventorySearchSelect
@@ -1005,7 +1005,7 @@ const saveReorder = () =>
                 <article
                     v-for="row in operations.purchaseOrders"
                     :key="row.publicId"
-                    class="space-y-2 rounded-lg border p-3"
+                    class="space-y-2 rounded-[10px] border p-3"
                 >
                     <div class="flex items-center justify-between gap-2">
                         <span class="font-mono text-sm">{{ row.number }}</span
@@ -1027,7 +1027,7 @@ const saveReorder = () =>
                     <p
                         v-for="line in row.lines"
                         :key="line.publicId"
-                        class="text-xs text-muted-foreground"
+                        class="text-[12.5px] text-muted-foreground"
                         data-testid="po-line-progress"
                     >
                         <span class="text-foreground">{{
@@ -1048,7 +1048,7 @@ const saveReorder = () =>
                                 · {{ row.shortCloseNote }}</template
                             >
                         </p>
-                        <p class="text-xs text-muted-foreground">
+                        <p class="text-[12.5px] text-muted-foreground">
                             Closed short by {{ row.closedBy }} on
                             {{ row.closedOn }}
                         </p>
@@ -1058,7 +1058,7 @@ const saveReorder = () =>
                             row.status === 'draft' &&
                             operations.permissions.createPurchaseOrders
                         "
-                        class="grid gap-2 rounded-lg bg-muted/40 p-2 sm:grid-cols-2"
+                        class="grid gap-2 rounded-[10px] bg-card-quiet p-3 sm:grid-cols-2"
                         @submit.prevent="updatePurchaseOrder(row)"
                     >
                         <InventorySearchSelect
@@ -1134,7 +1134,7 @@ const saveReorder = () =>
                                 operations.permissions.approvePurchaseOrders
                             "
                             :href="`/inventory/purchase-orders/${row.publicId}/print`"
-                            class="inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium lg:min-h-9"
+                            class="inline-flex min-h-11 items-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent lg:min-h-9"
                             :aria-label="`Print purchase order ${row.number}`"
                             >Print PO</a
                         >
@@ -1220,7 +1220,7 @@ const saveReorder = () =>
                             :key="line.publicId"
                             class="grid items-start gap-2 rounded-lg border p-2 sm:grid-cols-2"
                         >
-                            <legend class="px-1 text-xs font-medium">
+                            <legend class="px-1 text-[13px] font-semibold">
                                 {{ line.sku }} · {{ line.receivedQuantity }}/{{
                                     line.orderedQuantity
                                 }}
@@ -1264,7 +1264,7 @@ const saveReorder = () =>
                                 /></label>
                                 <p
                                     :id="`${line.publicId}-cost-help`"
-                                    class="text-xs text-muted-foreground"
+                                    class="text-[12.5px] text-muted-foreground"
                                 >
                                     From the supplier invoice. Leave blank to
                                     use the order's estimate.
@@ -1314,9 +1314,9 @@ const saveReorder = () =>
                     <fieldset
                         v-for="(line, index) in stockRequest.lines"
                         :key="line.key"
-                        class="grid gap-2 rounded-lg border p-2 sm:col-span-2 sm:grid-cols-[1fr_1fr_auto]"
+                        class="grid gap-2 rounded-[10px] bg-card-quiet p-3 sm:col-span-2 sm:grid-cols-[1fr_1fr_auto]"
                     >
-                        <legend class="px-1 text-xs font-medium">
+                        <legend class="px-1 text-[13px] font-semibold">
                             Request line {{ index + 1 }}
                         </legend>
                         <InventorySearchSelect
@@ -1356,7 +1356,7 @@ const saveReorder = () =>
                 <article
                     v-for="row in operations.stockRequests"
                     :key="row.publicId"
-                    class="space-y-2 rounded-lg border p-3"
+                    class="space-y-2 rounded-[10px] border p-3"
                 >
                     <div class="flex items-center justify-between gap-2">
                         <span class="font-mono text-sm">{{ row.number }}</span
@@ -1465,7 +1465,7 @@ const saveReorder = () =>
                 <article
                     v-for="row in operations.stocktakes"
                     :key="row.publicId"
-                    class="space-y-2 rounded-lg border p-3"
+                    class="space-y-2 rounded-xl border bg-card-quiet p-3"
                 >
                     <div class="flex justify-between">
                         <span class="font-mono text-xs">{{ row.number }}</span
@@ -1493,7 +1493,7 @@ const saveReorder = () =>
                 <article
                     v-for="row in operations.adjustments"
                     :key="row.publicId"
-                    class="space-y-1 rounded-lg border p-3 text-sm break-words"
+                    class="space-y-1 rounded-xl border bg-card-quiet p-3 text-sm break-words"
                 >
                     <p>{{ row.sku }} / {{ row.batch }} · {{ row.location }}</p>
                     <p>
@@ -1583,7 +1583,7 @@ const saveReorder = () =>
                 <div
                     v-for="row in operations.lowStock"
                     :key="`${row.location}-${row.sku}`"
-                    class="rounded-lg border border-amber-300 bg-amber-50 p-2 text-sm dark:bg-amber-950/20"
+                    class="rounded-xl border border-warning/25 bg-warning-wash p-2 text-sm text-warning"
                 >
                     <strong>{{ row.sku }}</strong> ·
                     {{ row.availableQuantity }} available /
@@ -1602,7 +1602,7 @@ const saveReorder = () =>
                 <div
                     v-for="row in operations.expiringBatches"
                     :key="`${row.sku}-${row.batch}-${row.location}`"
-                    class="space-y-1 rounded-lg border bg-muted/30 p-2 text-xs break-words whitespace-normal"
+                    class="space-y-1 rounded-xl border bg-card-quiet p-2 text-xs break-words whitespace-normal"
                 >
                     {{ row.sku }} · {{ row.batch }} · {{ row.expiryDate }}
                     <span class="block break-words whitespace-normal">

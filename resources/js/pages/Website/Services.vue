@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import ServiceDraftPreview from '@/components/website/ServiceDraftPreview.vue';
 import type {
     ServiceContent,
@@ -163,21 +164,23 @@ const stop = router.on('start', (event) => {
 });
 onUnmounted(stop);
 const inputClass =
-    'mt-1 w-full min-w-0 rounded-md border bg-background px-3 py-2 text-sm';
+    'mt-1 min-h-11 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9';
 </script>
 <template>
     <Head :title="title" />
     <main
-        class="mx-auto w-full max-w-7xl min-w-0 space-y-5 p-4 [overflow-wrap:anywhere] sm:p-6"
+        class="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-6 px-4 py-6 [overflow-wrap:anywhere] lg:px-8"
     >
-        <Link href="/clinic-management" class="text-sm underline"
+        <Link
+            href="/clinic-management"
+            class="text-sm text-link underline-offset-4 hover:underline"
             >Clinic management</Link
         >
-        <h1 class="text-2xl font-semibold">{{ title }}</h1>
+        <PageHeader :title="title" />
         <p
             v-if="page.sharedReferencesDiverge"
             role="alert"
-            class="rounded border border-amber-500 p-3 text-sm"
+            class="rounded-[14px] bg-warning-wash p-4 text-sm text-warning"
         >
             Legacy language references differ. The next save will append
             revisions that converge both languages onto the saved language’s
@@ -186,14 +189,12 @@ const inputClass =
         <p
             v-if="page.danglingServiceLink"
             role="alert"
-            class="rounded border border-amber-500 p-3 text-sm"
+            class="rounded-[14px] bg-warning-wash p-4 text-sm text-warning"
         >
             This FAQ links to an inactive or unavailable service. Clear or
             change its link and save; both languages will be updated together.
         </p>
-        <p
-            class="rounded-lg border border-amber-400/60 bg-amber-50 p-4 text-sm text-amber-950 dark:bg-amber-950/30 dark:text-amber-100"
-        >
+        <p class="rounded-[14px] bg-warning-wash p-4 text-sm text-warning">
             Nothing is public yet. Private drafts only; no publishing or public
             URL. Manual content only, independent of clinical and pricing
             catalogues. Do not include patient data, personal testimonials
@@ -207,18 +208,20 @@ const inputClass =
         <template v-else>
             <template v-if="!page.editing">
                 <form
-                    class="flex min-w-0 flex-wrap items-end gap-3 rounded-xl border p-4"
+                    class="flex min-w-0 flex-wrap items-end gap-3 rounded-[14px] border bg-card p-4"
                     @submit.prevent="
                         filters.get(base, { preserveState: false })
                     "
                 >
-                    <label class="min-w-0 flex-1 text-sm"
+                    <label class="w-full min-w-0 text-sm sm:w-auto sm:flex-1"
                         >Search<input
                             v-model="filters.search"
                             maxlength="150"
                             :class="inputClass"
                     /></label>
-                    <label v-if="!category" class="min-w-0 text-sm"
+                    <label
+                        v-if="!category"
+                        class="w-full min-w-0 text-sm sm:w-auto"
                         >Branch<select
                             v-model="filters.branch_id"
                             :class="inputClass"
@@ -233,7 +236,7 @@ const inputClass =
                             </option>
                         </select></label
                     >
-                    <label class="min-w-0 text-sm"
+                    <label class="w-full min-w-0 text-sm sm:w-auto"
                         >{{
                             category
                                 ? 'Parent category'
@@ -263,10 +266,13 @@ const inputClass =
                 <Link
                     v-if="page.canManage"
                     :href="`${base}/create`"
-                    class="inline-block rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+                    class="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground lg:min-h-9"
                     >Create {{ category ? 'category' : 'service' }}</Link
                 >
-                <p v-if="!page.items.length" class="rounded-xl border p-6">
+                <p
+                    v-if="!page.items.length"
+                    class="rounded-[14px] border bg-card p-6"
+                >
                     No drafts yet. Content is entered manually; no catalogue or
                     old website import.
                 </p>
@@ -274,11 +280,11 @@ const inputClass =
                     <li
                         v-for="item in page.items"
                         :key="item.publicId"
-                        class="rounded-xl border p-4"
+                        class="rounded-[14px] border bg-card p-4"
                     >
                         <Link
                             :href="`${base}/${item.publicId}`"
-                            class="font-semibold underline"
+                            class="font-semibold text-link underline-offset-4 hover:underline"
                             >{{ item.title || 'Incomplete draft' }}</Link
                         >
                         <p class="mt-1 text-sm text-muted-foreground">
@@ -303,11 +309,21 @@ const inputClass =
                 </nav>
             </template>
             <template v-else>
-                <Link :href="base" class="text-sm underline">Back to list</Link>
-                <p v-if="!page.canManage" class="rounded border p-3">
+                <Link
+                    :href="base"
+                    class="text-sm text-link underline-offset-4 hover:underline"
+                    >Back to list</Link
+                >
+                <p
+                    v-if="!page.canManage"
+                    class="rounded-[10px] border bg-card-quiet p-3"
+                >
                     View only. No save or archive controls.
                 </p>
-                <p v-if="page.item?.archived" class="rounded border p-3">
+                <p
+                    v-if="page.item?.archived"
+                    class="rounded-[10px] border bg-card-quiet p-3"
+                >
                     Archived. Revisions are retained. Unarchive before editing.
                 </p>
                 <div class="flex flex-wrap gap-2">
@@ -339,7 +355,7 @@ const inputClass =
                 <div
                     v-if="Object.keys(form.errors).length"
                     role="alert"
-                    class="rounded border border-destructive p-3 text-destructive"
+                    class="rounded-[14px] border border-destructive bg-card p-3 text-destructive"
                 >
                     <p v-for="(error, key) in form.errors" :key="key">
                         {{ error }}
@@ -347,7 +363,7 @@ const inputClass =
                 </div>
                 <div class="grid min-w-0 gap-6 xl:grid-cols-2">
                     <form
-                        class="min-w-0 space-y-4 rounded-xl border p-5"
+                        class="min-w-0 space-y-4 rounded-[14px] border bg-card p-5"
                         @submit.prevent="save"
                     >
                         <fieldset
@@ -432,7 +448,7 @@ const inputClass =
                                     <div
                                         v-for="(section, index) in sections"
                                         :key="index"
-                                        class="min-w-0 rounded border p-3"
+                                        class="min-w-0 rounded-[10px] border bg-card-quiet p-3"
                                     >
                                         <label class="block text-sm"
                                             >Heading {{ index + 1 }} (max
@@ -590,7 +606,7 @@ const inputClass =
                                     v-for="(id, index) in form.content
                                         .gallery_public_ids"
                                     :key="id"
-                                    class="min-w-0 space-y-2 rounded border p-2"
+                                    class="min-w-0 space-y-2 rounded-[10px] border bg-card-quiet p-2"
                                 >
                                     <p class="text-sm">
                                         {{ index + 1 }}. {{ assetName(id) }}
@@ -660,14 +676,18 @@ const inputClass =
                             :revision="preview"
                             :category="category"
                         />
-                        <section class="space-y-3 rounded-xl border p-5">
-                            <h2 class="font-semibold">
+                        <section
+                            class="space-y-3 rounded-[14px] border bg-card p-5"
+                        >
+                            <h2
+                                class="text-[17px] font-semibold tracking-[-0.01em]"
+                            >
                                 Revision history · read only
                             </h2>
                             <button
                                 v-for="revision in page.history"
                                 :key="revision.id ?? 0"
-                                class="block w-full rounded border p-3 text-left text-sm"
+                                class="block w-full rounded-[10px] border bg-card-quiet p-3 text-left text-sm"
                                 @click="selected = revision"
                             >
                                 {{ revision.language.toUpperCase() }} · revision
@@ -705,9 +725,13 @@ const inputClass =
                         </section>
                         <section
                             v-if="page.item"
-                            class="space-y-3 rounded-xl border p-5"
+                            class="space-y-3 rounded-[14px] border bg-card p-5"
                         >
-                            <h2 class="font-semibold">Retained draft</h2>
+                            <h2
+                                class="text-[17px] font-semibold tracking-[-0.01em]"
+                            >
+                                Retained draft
+                            </h2>
                             <p class="text-sm">
                                 Internal slug (not a public URL):
                                 {{ page.item.slug }}

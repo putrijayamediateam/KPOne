@@ -103,7 +103,9 @@ const requestThese = () => {
 
 <template>
     <Head title="Reorder suggestions" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 text-sm lg:px-8"
+    >
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -116,7 +118,7 @@ const requestThese = () => {
             :description="`${suggestions.branchName} · Stock at or below its reorder level, with a suggested order. Nothing is ordered from this page.`"
         />
         <p
-            class="rounded-lg border bg-muted/40 p-3 text-sm"
+            class="rounded-xl bg-card-quiet p-4 text-sm leading-relaxed"
             data-testid="reorder-method"
         >
             Suggested = reorder level − on hand − on order − incoming +
@@ -143,16 +145,16 @@ const requestThese = () => {
         </p>
 
         <form
-            class="flex flex-wrap items-end gap-2"
+            class="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
             role="search"
             @submit.prevent="visit()"
         >
             <label
-                class="grid min-w-0 basis-full gap-1 text-sm sm:flex-1 sm:basis-auto"
+                class="grid min-w-0 basis-full gap-2 text-[13px] font-medium sm:flex-1 sm:basis-auto"
                 >Search SKU, item or location
                 <Input v-model="q" maxlength="100" class="h-11 lg:h-9" />
             </label>
-            <label class="grid gap-1 text-sm"
+            <label class="grid gap-2 text-[13px] font-medium"
                 >Show
                 <select
                     v-model="need"
@@ -169,7 +171,7 @@ const requestThese = () => {
 
         <div
             v-if="suggestions.canRequest && suggestions.rows.some(needsOrder)"
-            class="flex flex-wrap items-center gap-3 rounded-lg border p-3"
+            class="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4 shadow-card"
             data-testid="reorder-request-bar"
         >
             <p class="min-w-0 flex-1 text-sm">
@@ -199,7 +201,7 @@ const requestThese = () => {
 
         <p
             v-if="suggestions.rows.length === 0"
-            class="text-sm text-muted-foreground"
+            class="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground shadow-card"
         >
             {{
                 suggestions.filters.need === 'order'
@@ -207,11 +209,15 @@ const requestThese = () => {
                     : 'No stock is at or below its reorder level at this branch.'
             }}
         </p>
-        <ul v-else class="space-y-3" aria-label="Reorder suggestions">
+        <ul
+            v-else
+            class="divide-y overflow-hidden rounded-xl border bg-card shadow-card"
+            aria-label="Reorder suggestions"
+        >
             <li
                 v-for="row in suggestions.rows"
                 :key="row.key"
-                class="space-y-3 rounded-lg border bg-card p-4"
+                class="space-y-3 p-4 sm:p-5"
             >
                 <div class="flex flex-wrap items-start justify-between gap-2">
                     <div class="flex min-w-0 items-start gap-3">
@@ -235,8 +241,12 @@ const requestThese = () => {
                                 {{ row.location }}
                                 <span
                                     v-if="row.onHand === '0.000'"
-                                    class="ml-1 rounded border px-1.5 py-0.5 text-xs text-foreground"
+                                    class="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive"
                                     data-testid="out-of-stock"
+                                    ><span
+                                        class="size-1.5 rounded-full bg-current"
+                                        aria-hidden="true"
+                                    ></span
                                     >Out of stock</span
                                 >
                             </p>
@@ -245,18 +255,18 @@ const requestThese = () => {
                     <div class="sm:text-right">
                         <p
                             v-if="row.coveredByOrders"
-                            class="rounded border px-2 py-0.5 text-sm"
+                            class="inline-flex rounded-lg bg-muted px-2 py-0.5 text-[12.5px] font-semibold"
                         >
                             Covered by orders
                         </p>
                         <p
                             v-else-if="row.suggestedQuantity === '0.000'"
-                            class="rounded border px-2 py-0.5 text-sm"
+                            class="inline-flex rounded-lg bg-muted px-2 py-0.5 text-[12.5px] font-semibold"
                         >
                             At reorder level, no order needed
                         </p>
                         <template v-else>
-                            <p class="text-xs text-muted-foreground">
+                            <p class="text-[12.5px] text-muted-foreground">
                                 Suggested order
                             </p>
                             <p class="font-semibold tabular-nums">
@@ -424,7 +434,7 @@ const requestThese = () => {
                     No preferred supplier: set one in
                     <a
                         href="/inventory/supplier-terms"
-                        class="underline underline-offset-4"
+                        class="text-link underline underline-offset-4"
                         >Supplier price list</a
                     >. The suggestion is in whole stock units with no lead time.
                 </p>

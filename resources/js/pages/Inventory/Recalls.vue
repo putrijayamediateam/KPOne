@@ -348,7 +348,9 @@ const tabs = computed(() => [
 
 <template>
     <Head title="Recalls" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto w-full max-w-6xl space-y-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
+    >
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -380,7 +382,7 @@ const tabs = computed(() => [
 
         <p
             v-if="!recalls.recalls.rows.length"
-            class="rounded-md border p-4 text-sm text-muted-foreground"
+            class="rounded-xl border bg-card p-4 text-sm text-muted-foreground"
         >
             {{
                 recalls.tab === 'active'
@@ -392,7 +394,7 @@ const tabs = computed(() => [
             <li
                 v-for="recall in recalls.recalls.rows"
                 :key="recall.publicId"
-                class="space-y-3 rounded-md border p-4"
+                class="space-y-3 rounded-xl border bg-card p-4 sm:p-5"
                 data-testid="recall-card"
             >
                 <div class="flex flex-wrap items-start justify-between gap-2">
@@ -419,7 +421,7 @@ const tabs = computed(() => [
                     <li
                         v-for="batch in recall.batches"
                         :key="batch.key"
-                        class="rounded-md border px-2 py-1 text-sm"
+                        class="rounded-[10px] border border-input bg-field-fill px-2 py-1 text-sm"
                     >
                         {{ batch.batchNumber
                         }}<span
@@ -674,7 +676,7 @@ const tabs = computed(() => [
                         <label
                             v-for="option in visibleOptions"
                             :key="option.publicId"
-                            class="flex min-h-11 items-start gap-3 rounded-md border p-2 text-sm"
+                            class="flex min-h-11 items-start gap-3 rounded-[10px] border border-input p-2 text-sm"
                             :class="option.recalled ? 'opacity-60' : ''"
                         >
                             <input
@@ -726,7 +728,7 @@ const tabs = computed(() => [
                     <select
                         id="recall-reason"
                         v-model="start.reason"
-                        class="min-h-11 w-full rounded-md border bg-background px-3 text-sm text-foreground"
+                        class="min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3 text-sm text-foreground"
                         :aria-invalid="startErrors.reason ? 'true' : undefined"
                         :aria-describedby="
                             startErrors.reason
@@ -791,7 +793,7 @@ const tabs = computed(() => [
                         v-model="start.note"
                         maxlength="300"
                         rows="3"
-                        class="w-full rounded-md border bg-background p-3 text-sm text-foreground"
+                        class="w-full rounded-[10px] border border-input bg-field-fill p-3 text-sm text-foreground"
                         :aria-describedby="
                             startErrors.note
                                 ? 'recall-note-hint recall-note-error'
@@ -805,7 +807,7 @@ const tabs = computed(() => [
                     />
                     <p
                         v-if="start.batches.length"
-                        class="rounded-md border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
+                        class="rounded-xl border border-warning/25 bg-warning-wash p-3 text-sm font-medium text-warning-strong"
                         data-testid="recall-confirm"
                     >
                         {{ startSummary }}
@@ -859,7 +861,7 @@ const tabs = computed(() => [
                     <select
                         id="lift-reason"
                         v-model="lift.reason"
-                        class="min-h-11 w-full rounded-md border bg-background px-3 text-sm text-foreground"
+                        class="min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3 text-sm text-foreground"
                         :aria-invalid="liftErrors.reason ? 'true' : undefined"
                         :aria-describedby="
                             liftErrors.reason ? 'lift-reason-error' : undefined
@@ -894,7 +896,7 @@ const tabs = computed(() => [
                         v-model="lift.note"
                         maxlength="300"
                         rows="3"
-                        class="w-full rounded-md border bg-background p-3 text-sm text-foreground"
+                        class="w-full rounded-[10px] border border-input bg-field-fill p-3 text-sm text-foreground"
                         :aria-describedby="
                             liftErrors.note
                                 ? 'lift-note-hint lift-note-error'

@@ -38,7 +38,7 @@ const stateLabels: Record<string, string> = {
 
 <template>
     <details
-        class="group rounded-lg border bg-card"
+        class="group rounded-xl border bg-card shadow-card"
         data-testid="my-difference-reports"
     >
         <summary
@@ -67,7 +67,7 @@ const stateLabels: Record<string, string> = {
                         <p class="font-medium break-words">
                             {{ report.item }}
                             <span
-                                class="font-mono text-xs text-muted-foreground"
+                                class="font-mono text-[12.5px] text-muted-foreground"
                                 >{{ report.skuCode }}</span
                             >
                         </p>
@@ -82,7 +82,7 @@ const stateLabels: Record<string, string> = {
                         </p>
                         <p
                             v-if="report.state === 'stale'"
-                            class="text-xs text-muted-foreground"
+                            class="text-[12.5px] text-muted-foreground"
                         >
                             Stock changed before the count. Report again if it
                             still looks wrong.
@@ -98,7 +98,7 @@ const stateLabels: Record<string, string> = {
             </ul>
             <p
                 v-if="reports.total > reports.rows.length"
-                class="mt-2 text-xs text-muted-foreground"
+                class="mt-2 text-[12.5px] text-muted-foreground"
             >
                 Showing your latest {{ reports.rows.length }} of
                 {{ reports.total }}.

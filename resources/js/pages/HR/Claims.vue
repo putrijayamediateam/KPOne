@@ -319,7 +319,9 @@ const {
                 class="overflow-x-auto rounded-xl border bg-card max-lg:hidden"
             >
                 <table class="w-full text-sm">
-                    <thead class="text-left text-muted-foreground">
+                    <thead
+                        class="bg-card-quiet text-left text-[13px] text-muted-foreground"
+                    >
                         <tr class="border-b">
                             <th scope="col" class="px-4 py-2 font-medium">
                                 Claim
@@ -509,7 +511,9 @@ const {
             />
             <div v-else class="overflow-x-auto rounded-xl border bg-card">
                 <table class="w-full min-w-[36rem] text-sm">
-                    <thead class="text-left text-muted-foreground">
+                    <thead
+                        class="bg-card-quiet text-left text-[13px] text-muted-foreground"
+                    >
                         <tr class="border-b">
                             <th scope="col" class="px-4 py-2 font-medium">
                                 Branch
@@ -614,7 +618,7 @@ const {
                             >Director approves claims above</Label
                         >
                         <div
-                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
+                            class="flex w-44 items-stretch overflow-hidden rounded-[10px] border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
                         >
                             <span
                                 class="flex items-center self-stretch rounded-l-md border-r bg-muted px-3 text-sm font-medium text-foreground"
@@ -1013,7 +1017,7 @@ const {
                             >Limit a claim (optional)</Label
                         >
                         <div
-                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
+                            class="flex w-44 items-stretch overflow-hidden rounded-[10px] border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
                         >
                             <span
                                 class="flex items-center self-stretch rounded-l-md border-r bg-muted px-3 text-sm font-medium text-foreground"
@@ -1034,7 +1038,7 @@ const {
                             >Limit a month for each person (optional)</Label
                         >
                         <div
-                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
+                            class="flex w-44 items-stretch overflow-hidden rounded-[10px] border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
                         >
                             <span
                                 class="flex items-center self-stretch rounded-l-md border-r bg-muted px-3 text-sm font-medium text-foreground"
