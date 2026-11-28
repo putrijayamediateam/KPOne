@@ -18,6 +18,8 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { PageFrame } from '@/components/ui/page-frame';
+import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/state';
 import { OperationalTable } from '@/components/ui/table';
@@ -183,49 +185,45 @@ const presetEmptyDescription = computed(() =>
 
 <template>
     <Head title="Consultation settings" />
-    <main
-        class="mx-auto grid w-full max-w-[1600px] gap-8 px-4 py-6 md:grid-cols-[220px_minmax(0,1fr)]"
-    >
+    <PageFrame>
         <nav
             aria-label="Clinic settings"
-            class="flex flex-wrap gap-2 md:flex-col"
+            class="inline-flex max-w-full flex-wrap items-center gap-0.5 self-start rounded-full bg-muted p-[3px]"
         >
             <span
                 aria-disabled="true"
-                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground"
+                class="flex min-h-11 items-center rounded-full px-4 text-[13px] font-medium text-muted-foreground lg:min-h-8"
                 >Registration settings</span
             >
             <span
                 aria-current="page"
-                class="rounded-md bg-muted px-4 py-3 text-sm font-semibold"
+                class="flex min-h-11 items-center rounded-full bg-card px-4 text-[13px] font-semibold text-foreground shadow-card lg:min-h-8"
                 >Consultation settings</span
             >
             <Link
                 href="/consultation-settings/phrases"
-                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"
+                class="flex min-h-11 items-center rounded-full px-4 text-[13px] font-medium text-foreground hover:bg-card/60 lg:min-h-8"
                 >Prescribing phrases</Link
             >
             <Link
                 v-if="canCheckoutSettings"
                 href="/checkout-settings"
-                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"
+                class="flex min-h-11 items-center rounded-full px-4 text-[13px] font-medium text-foreground hover:bg-card/60 lg:min-h-8"
                 >Checkout settings</Link
             >
             <span
                 v-else
                 aria-disabled="true"
-                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground"
+                class="flex min-h-11 items-center rounded-full px-4 text-[13px] font-medium text-muted-foreground lg:min-h-8"
                 >Checkout settings</span
             >
         </nav>
         <section class="min-w-0">
-            <p class="mb-3 text-sm text-muted-foreground">
+            <p class="mb-3 text-[13px] text-muted-foreground">
                 Clinic management <span class="mx-2">/</span> Consultation
                 settings
             </p>
-            <h1 class="border-b pb-3 text-2xl font-semibold">
-                Consultation settings
-            </h1>
+            <PageHeader title="Consultation settings" />
             <div class="mt-5">
                 <h2 class="text-lg font-medium">Clinical modules</h2>
                 <p class="text-sm text-muted-foreground">
@@ -569,7 +567,7 @@ const presetEmptyDescription = computed(() =>
                 @change="go"
             />
         </section>
-    </main>
+    </PageFrame>
     <Dialog v-model:open="adding"
         ><DialogContent class="sm:max-w-lg"
             ><DialogHeader class="border-b pb-4"

@@ -123,7 +123,7 @@ const restore = (id: string) =>
 
 <template>
     <section
-        class="space-card"
+        class="space-card shadow-card"
         aria-labelledby="my-routine-title"
         data-test="my-routine"
     >

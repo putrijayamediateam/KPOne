@@ -272,7 +272,7 @@ const toggleDescription = computed(() => {
 
 <template>
     <main
-        class="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-4 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-4 px-4 py-6 md:px-6 lg:px-8"
     >
         <PageHeader
             title="Clinical Service Catalogue"
@@ -624,7 +624,7 @@ const toggleDescription = computed(() => {
                                 </div>
                                 <div class="overflow-hidden rounded-lg border">
                                     <div
-                                        class="hidden grid-cols-[minmax(8rem,0.8fr)_minmax(12rem,1.5fr)_minmax(10rem,1fr)] gap-3 bg-muted/60 px-3 py-2 text-xs font-medium tracking-wide text-muted-foreground uppercase sm:grid"
+                                        class="hidden grid-cols-[minmax(8rem,0.8fr)_minmax(12rem,1.5fr)_minmax(10rem,1fr)] gap-3 bg-card-quiet px-3 py-2 text-[13px] font-semibold text-muted-foreground sm:grid"
                                     >
                                         <span>Price tier</span>
                                         <span>Coverage</span>

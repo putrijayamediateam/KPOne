@@ -18,6 +18,7 @@ import {
 } from 'vue';
 import InputError from '@/components/InputError.vue';
 import AdultConfirmation from '@/components/patient/AdultConfirmation.vue';
+import FamilyPanel from '@/components/patient/FamilyPanel.vue';
 import GuardianFields from '@/components/patient/GuardianFields.vue';
 import MergedFromNote from '@/components/patient/MergedFromNote.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
@@ -895,6 +896,12 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     ></label
                 >
             </div>
+            <FamilyPanel
+                v-if="selectedPatient"
+                :patient-number="selectedPatient.patientNumber"
+                :patient-name="selectedPatient.fullName"
+                :branch-id="options.branch.id"
+            />
         </section>
 
         <!-- Small screens reserve a row above the fields for the sticky action. -->
