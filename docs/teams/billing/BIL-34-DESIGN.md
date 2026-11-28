@@ -95,3 +95,41 @@ Puchong test, after the Billing restyle and BIL-33. Synthetic data only.
   `finance_officer`.
 - Kumar's review comes first (the owner chose to wait), and the exact changed-assertion list goes to the owner before
   the build.
+
+## 8. Kumar's review (28 Nov 2026)
+
+Reviewed at `ca57a7b6`. Verdict: OK to build after these changes; the coordinator holds the build until after the
+Monday 30 Nov test (it changes the refund money flow, adds permissions and changes existing tests). One point (P2) is
+for the owner.
+
+- **P1 Lock order.** The review step locks as `RefundService::decide` does today: `BillingContextService::lock`
+  (patient, then visit), the invoice and its ledger for an after-completion refund (BIL-10), the refunded receipt, then
+  the refund row. The decision keeps today's order and then reads the review row. A review changes no money, so it takes
+  no day gate (a review on a locked day is allowed, as section 2 says).
+- **P2 "Fallback" for Finance and the Director (owner).** Q1 = A keeps `payments.refunds.approve.branch` for
+  `finance_officer` and `director`. As written they could approve at any time, not only when the branch has no Branch
+  Manager. Choose: (a) unconditional, the simplest and what "nothing is revoked" gives today; or (b) only when the branch
+  has no active Branch Manager with a current assignment there, checked in the decide transaction (the BIL-33 K2 rule).
+  Recommendation: (a) for now, so Monday's counter keeps working, and (b) as a later slice if the owner wants it.
+- **P3 The threshold is a new per-branch setting.** Approval Limits today stores per-person limits
+  (`billing_approval_limits`: user, capability, amount), so a per-branch review threshold is a different shape. Follow
+  INV-05a's per-branch adjustment threshold (`invoice_adjustment_limits` with `InvoiceAdjustmentLimitService`):
+  one versioned row per branch, Director-managed on the Approval Limits page, audited, missing = RM 300.00. One additive
+  migration.
+- **P4 Snapshot the threshold on the refund.** Record the threshold in force (amount and version) on the refund when it
+  is recorded, and decide against that snapshot, so changing the setting never moves a refund that is already waiting.
+  Refunds recorded before this ships carry no snapshot and need no review (grandfathered). The refund row is immutable,
+  so the snapshot columns are written at insert (one additive migration on `payment_refunds`).
+- **P5 Three different people in PostgreSQL.** A CHECK constraint cannot read another table, so "recorder, reviewer and
+  approver all differ" is a trigger on `payment_refund_reviews` (reviewer ≠ recorder) and on `payment_refund_decisions`
+  (approver ≠ recorder and ≠ reviewer when a review exists; a decision above the snapshot needs a positive review).
+- **P6 Review idempotency.** A review sends the refund's `lock_version` and an idempotency key, with a payload hash like
+  the decision: the same review returns it, a different one is refused, and one review per refund (unique index).
+- **P7 Waiting counts.** BIL-31 has no code yet; Manage payments shows the two waiting states, and the Branch Manager and
+  Finance get "Refunds waiting" lists instead of BIL-31 kinds.
+- **Effect at a small branch:** above the threshold a refund needs three different people (recorder, Finance reviewer,
+  approver). With one Finance Officer, the approver must then be the Branch Manager or the Director.
+- **Existing tests that change** (the full run gives the exact list before any build): refunds above RM 300 in
+  `RefundTest`, `RefundAfterCompletionTest`, `DailyCloseLockTest`, `CashClosingTest`, `DirectorOverviewTest`,
+  `PostgresBillingRegressionTest` and its worker gain a review step; with P2 (a), no approver changes and no role pin test
+  changes beyond the two additive grants.
