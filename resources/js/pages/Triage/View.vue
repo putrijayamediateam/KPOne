@@ -63,7 +63,9 @@ const zoneTone = (zone: TriageZone) =>
 
 <template>
     <Head title="Triage" />
-    <div class="mx-auto flex w-full max-w-4xl flex-col gap-4 p-4">
+    <div
+        class="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-5 sm:px-6 lg:px-8 lg:py-6"
+    >
         <PageHeader
             title="Triage"
             :description="`${visit.patientName} · ${visit.patientNumber}${visit.queueNumber ? ` · ${visit.queueNumber}` : ''}`"
@@ -85,10 +87,10 @@ const zoneTone = (zone: TriageZone) =>
         </p>
 
         <section
-            class="rounded-xl border border-border bg-card p-4"
+            class="rounded-xl border border-border bg-card p-4 shadow-card sm:p-5"
             data-testid="triage-view-current"
         >
-            <h2 class="text-sm font-semibold">Zone now</h2>
+            <h2 class="text-[15px] font-semibold">Zone now</h2>
             <div class="mt-2">
                 <StatusBadge
                     v-if="currentZone"
@@ -106,14 +108,14 @@ const zoneTone = (zone: TriageZone) =>
         <section
             v-for="save in saves"
             :key="save.sequence"
-            class="rounded-xl border border-border bg-card p-4"
+            class="rounded-xl border border-border bg-card p-4 shadow-card sm:p-5"
             data-testid="triage-view-save"
         >
             <div class="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 class="text-sm font-semibold">
+                <h2 class="text-[15px] font-semibold">
                     Triage {{ save.sequence }}
                 </h2>
-                <p class="text-xs text-muted-foreground">
+                <p class="text-[12.5px] text-muted-foreground">
                     {{ save.recordedAt
                     }}<span v-if="save.recordedBy">
                         · {{ save.recordedBy }}</span
@@ -122,11 +124,11 @@ const zoneTone = (zone: TriageZone) =>
             </div>
 
             <dl
-                class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4"
+                class="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 rounded-lg bg-card-quiet p-3 text-sm sm:grid-cols-4"
             >
                 <div v-for="f in fields" :key="f.key">
                     <dt class="text-xs text-muted-foreground">{{ f.label }}</dt>
-                    <dd class="tabular-nums">
+                    <dd class="font-medium tabular-nums">
                         <template v-if="save.readings[f.key]"
                             >{{ trimReading(save.readings[f.key] as string)
                             }}{{ unitAfter(f.unit) }}</template
@@ -136,7 +138,7 @@ const zoneTone = (zone: TriageZone) =>
                 </div>
             </dl>
 
-            <div class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+            <div class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <div>
                     <p class="text-xs text-muted-foreground">Red flags</p>
                     <ul v-if="save.redFlags.length" class="list-disc pl-5">
@@ -158,7 +160,7 @@ const zoneTone = (zone: TriageZone) =>
             </div>
 
             <div
-                class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm"
+                class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t pt-3 text-sm"
             >
                 <span v-if="save.suggestedZone"
                     ><span class="text-muted-foreground"
@@ -181,7 +183,7 @@ const zoneTone = (zone: TriageZone) =>
                     {{ save.reason }}</span
                 >
             </div>
-            <p class="mt-2 text-xs text-muted-foreground">
+            <p class="mt-2 text-[12.5px] text-muted-foreground">
                 {{
                     save.guidelineVersion
                         ? `Triage guideline v${save.guidelineVersion}`

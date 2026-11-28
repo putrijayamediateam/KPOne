@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { Button } from '@/components/ui/button';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/state';
 
@@ -43,9 +45,7 @@ const total = computed(() =>
 
 <template>
     <Head title="Approvals & tasks" />
-    <main
-        class="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
-    >
+    <PageFrame>
         <PageHeader
             title="Approvals & tasks"
             :description="`Waiting for you${branch ? ` at ${branch.name}` : ''}. Open an item to decide it on its own page.`"
@@ -65,7 +65,7 @@ const total = computed(() =>
         >
             <h2
                 :id="`appr-${section.kind}`"
-                class="text-lg font-semibold text-foreground"
+                class="text-[17px] font-semibold text-foreground"
             >
                 {{ heading(section.kind) }}
             </h2>
@@ -74,16 +74,14 @@ const total = computed(() =>
                 :key="area.area"
                 class="space-y-2"
             >
-                <h3
-                    class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                >
+                <h3 class="text-[13px] font-semibold text-muted-foreground">
                     {{ area.area }}
                 </h3>
                 <ul class="space-y-2">
                     <li
                         v-for="row in area.sources"
                         :key="row.key"
-                        class="rounded-xl border bg-card p-4"
+                        class="rounded-[14px] border bg-card p-4 shadow-card sm:p-5"
                     >
                         <div
                             class="flex flex-wrap items-center justify-between gap-3"
@@ -92,19 +90,22 @@ const total = computed(() =>
                                 <p class="text-sm font-medium text-foreground">
                                     {{ row.label }}
                                 </p>
-                                <p class="text-xs text-muted-foreground">
-                                    {{ row.count }} waiting<template
-                                        v-if="row.oldest"
+                                <p class="text-[12.5px] text-muted-foreground">
+                                    <span
+                                        class="font-semibold text-foreground tabular-nums"
+                                        >{{ row.count }}</span
                                     >
+                                    waiting<template v-if="row.oldest">
                                         · {{ row.oldest }}</template
                                     >
                                 </p>
                             </div>
-                            <Link
-                                :href="row.href"
-                                :aria-label="`Open ${row.label}`"
-                                class="inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring lg:min-h-9"
-                                >Open</Link
+                            <Button variant="outline" as-child
+                                ><Link
+                                    :href="row.href"
+                                    :aria-label="`Open ${row.label}`"
+                                    >Open</Link
+                                ></Button
                             >
                         </div>
                         <ul
@@ -118,12 +119,13 @@ const total = computed(() =>
                             >
                                 <Link
                                     :href="item.href"
-                                    class="font-medium text-brand-strong underline underline-offset-2 hover:no-underline"
+                                    class="inline-flex min-h-11 items-center font-medium text-link underline underline-offset-2 hover:no-underline lg:min-h-9"
                                     >{{ item.reference }}</Link
                                 >
-                                <span class="text-xs text-muted-foreground">{{
-                                    item.age
-                                }}</span>
+                                <span
+                                    class="text-[12.5px] text-muted-foreground"
+                                    >{{ item.age }}</span
+                                >
                             </li>
                         </ul>
                     </li>
@@ -136,7 +138,10 @@ const total = computed(() =>
             aria-labelledby="appr-other"
             class="space-y-2"
         >
-            <h2 id="appr-other" class="text-sm font-semibold text-foreground">
+            <h2
+                id="appr-other"
+                class="text-[15px] font-semibold text-foreground"
+            >
                 Waiting at your other branches
             </h2>
             <ul class="space-y-1 text-sm text-muted-foreground">
@@ -151,5 +156,5 @@ const total = computed(() =>
         <p v-if="total > 0" class="sr-only" role="status">
             {{ total }} items waiting.
         </p>
-    </main>
+    </PageFrame>
 </template>

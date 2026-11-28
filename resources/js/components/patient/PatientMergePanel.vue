@@ -209,10 +209,10 @@ const rows = (summary: Summary) => [
 <template>
     <section
         v-if="merge.mergedFrom.length"
-        class="space-y-3 rounded-lg border border-border bg-muted/40 p-5"
+        class="space-y-3 rounded-[14px] border border-border bg-card p-4 shadow-card sm:p-5"
         data-testid="merged-records"
     >
-        <h2 class="font-semibold">Merged records</h2>
+        <h2 class="text-[15px] font-semibold">Merged records</h2>
         <p class="text-sm text-muted-foreground">
             These duplicate records were merged into this patient. Their visits,
             invoices and documents keep their own KP number and are listed with
@@ -221,7 +221,7 @@ const rows = (summary: Summary) => [
         <div
             v-for="record in merge.mergedFrom"
             :key="record.patientNumber"
-            class="flex flex-col gap-2 rounded-md border bg-card p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+            class="flex flex-col gap-2 rounded-[10px] border bg-card-quiet p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
         >
             <div class="min-w-0 break-words">
                 <span class="font-mono font-medium">{{
@@ -237,7 +237,7 @@ const rows = (summary: Summary) => [
                 <template v-if="unmergeTarget === record.patientNumber">
                     <select
                         v-model="unmergeReason"
-                        class="h-9 rounded-md border bg-background px-2 text-sm"
+                        class="h-11 rounded-[10px] border border-input bg-field-fill px-2 text-sm lg:h-9"
                         aria-label="Reason for unmerge"
                     >
                         <option value="" disabled>Choose a reason</option>
@@ -250,6 +250,7 @@ const rows = (summary: Summary) => [
                         </option>
                     </select>
                     <Button
+                        class="max-lg:min-h-11"
                         size="sm"
                         :disabled="!unmergeReason"
                         @click="
@@ -261,6 +262,7 @@ const rows = (summary: Summary) => [
                         >Send for approval</Button
                     >
                     <Button
+                        class="max-lg:min-h-11"
                         size="sm"
                         variant="ghost"
                         @click="unmergeTarget = null"
@@ -269,6 +271,7 @@ const rows = (summary: Summary) => [
                 </template>
                 <Button
                     v-else
+                    class="max-lg:min-h-11"
                     size="sm"
                     variant="outline"
                     @click="unmergeTarget = record.patientNumber"
@@ -280,14 +283,14 @@ const rows = (summary: Summary) => [
 
     <section
         v-if="merge.pending.length"
-        class="space-y-3 rounded-lg border border-warning/25 bg-warning/10 p-5"
+        class="space-y-3 rounded-[14px] border border-warning/25 bg-warning-wash p-4 sm:p-5"
         data-testid="pending-merges"
     >
-        <h2 class="font-semibold">Waiting for approval</h2>
+        <h2 class="text-[15px] font-semibold">Waiting for approval</h2>
         <div
             v-for="request in merge.pending"
             :key="request.publicId"
-            class="flex flex-col gap-2 rounded-md border bg-card p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+            class="flex flex-col gap-2 rounded-[10px] border bg-card-quiet p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
         >
             <div class="min-w-0 break-words">
                 <span class="font-medium">{{
@@ -299,17 +302,21 @@ const rows = (summary: Summary) => [
                 {{ request.kind === 'merge' ? 'into' : 'from' }}
                 <span class="font-mono">{{ request.keptPatientNumber }}</span>
                 · {{ request.reason }}
-                <div class="text-xs text-muted-foreground">
+                <div class="text-[12.5px] text-muted-foreground">
                     Proposed by {{ request.proposedBy }} ·
                     {{ formatTime(request.proposedAt) }}
                 </div>
             </div>
             <div class="flex flex-wrap gap-2">
                 <template v-if="request.canDecide">
-                    <Button size="sm" @click="decide(request, 'approve')"
+                    <Button
+                        class="max-lg:min-h-11"
+                        size="sm"
+                        @click="decide(request, 'approve')"
                         >Approve</Button
                     >
                     <Button
+                        class="max-lg:min-h-11"
                         size="sm"
                         variant="outline"
                         @click="decide(request, 'reject')"
@@ -318,6 +325,7 @@ const rows = (summary: Summary) => [
                 </template>
                 <Button
                     v-if="request.canWithdraw"
+                    class="max-lg:min-h-11"
                     size="sm"
                     variant="outline"
                     @click="decide(request, 'withdraw')"
@@ -325,7 +333,7 @@ const rows = (summary: Summary) => [
                 >
                 <span
                     v-if="!request.canDecide && !request.canWithdraw"
-                    class="text-xs text-muted-foreground"
+                    class="text-[12.5px] text-muted-foreground"
                     >A different CA Supervisor or Director must approve.</span
                 >
             </div>
@@ -334,7 +342,7 @@ const rows = (summary: Summary) => [
 
     <section
         v-if="merge.canPropose"
-        class="space-y-4 rounded-lg border bg-card p-5"
+        class="space-y-4 rounded-[14px] border bg-card p-4 shadow-card sm:p-5"
         data-testid="merge-duplicate"
     >
         <div>
@@ -352,7 +360,7 @@ const rows = (summary: Summary) => [
                 <span class="font-medium">KP number of the duplicate</span>
                 <input
                     v-model="otherNumber"
-                    class="h-10 w-full min-w-0 rounded-md border bg-background px-3 font-mono uppercase"
+                    class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 font-mono uppercase lg:h-9"
                     placeholder="KP-00000000"
                     maxlength="20"
                     autocomplete="off"
@@ -376,7 +384,7 @@ const rows = (summary: Summary) => [
                         ['Duplicate (will be hidden)', comparison.other],
                     ] as const"
                     :key="label"
-                    class="min-w-0 rounded-md border p-3"
+                    class="min-w-0 rounded-[10px] border bg-card-quiet p-3"
                 >
                     <h3 class="mb-2 text-sm font-semibold">{{ label }}</h3>
                     <dl class="grid gap-1 text-sm">
@@ -398,7 +406,7 @@ const rows = (summary: Summary) => [
             </div>
             <ul
                 v-if="comparison.blockers.length"
-                class="space-y-1 rounded-md border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive"
+                class="space-y-1 rounded-[10px] border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive"
                 data-testid="merge-blockers"
             >
                 <li v-for="blocker in comparison.blockers" :key="blocker">
@@ -414,7 +422,7 @@ const rows = (summary: Summary) => [
                     <span class="font-medium">Reason</span>
                     <select
                         v-model="proposal.reason_code"
-                        class="h-10 w-full min-w-0 rounded-md border bg-background px-2"
+                        class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-2 lg:h-9"
                     >
                         <option value="" disabled>Choose a reason</option>
                         <option

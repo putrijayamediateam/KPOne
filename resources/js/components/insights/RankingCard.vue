@@ -60,7 +60,7 @@ const money = (value: number) =>
 
 <template>
     <section
-        class="flex min-h-72 min-w-0 flex-col rounded-xl border border-border bg-card"
+        class="flex min-h-72 min-w-0 flex-col rounded-xl border border-border bg-card shadow-card"
     >
         <header class="border-b border-border px-4 py-3">
             <h2 class="text-sm font-semibold">{{ title }}</h2>

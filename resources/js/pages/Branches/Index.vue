@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Building2, Clock3, MapPin } from '@lucide/vue';
-import { Badge } from '@/components/ui/badge';
+import { Clock3, MapPin } from '@lucide/vue';
 import {
     Card,
     CardContent,
@@ -9,6 +8,8 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { PageFrame } from '@/components/ui/page-frame';
+import { StatusBadge } from '@/components/ui/status';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Branches', href: '/branches' }] },
@@ -28,59 +29,58 @@ defineProps<{
 
 <template>
     <Head title="Branches" />
-    <main class="flex flex-1 flex-col gap-6 p-4 md:p-7">
-        <div class="flex items-start gap-3">
-            <div class="rounded-xl bg-emerald-100 p-2.5 text-emerald-800">
-                <Building2 class="size-5" />
-            </div>
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight">Branches</h1>
-                <p class="text-sm text-muted-foreground">
-                    Locations available within your current permission scope.
-                </p>
-            </div>
-        </div>
+    <PageFrame>
+        <header class="min-w-0 space-y-1">
+            <h1
+                class="text-[26px] font-semibold tracking-[-0.02em] text-foreground lg:text-[30px]"
+            >
+                Branches
+            </h1>
+            <p class="text-[13px] text-muted-foreground">
+                Locations available within your current permission scope.
+            </p>
+        </header>
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Card
                 v-for="branch in branches"
                 :key="branch.id"
                 :class="
                     selectedBranchId === branch.id &&
-                    'border-emerald-400 ring-2 ring-emerald-500/10'
+                    'border-accent-blue ring-2 ring-accent-blue/20'
                 "
             >
                 <CardHeader
                     ><div class="flex items-start justify-between gap-3">
                         <div>
-                            <CardTitle>{{ branch.name }}</CardTitle
+                            <CardTitle class="text-[15px]">{{
+                                branch.name
+                            }}</CardTitle
                             ><CardDescription class="mt-1">{{
                                 branch.code
                             }}</CardDescription>
                         </div>
-                        <Badge
-                            :variant="
-                                branch.isActive ? 'secondary' : 'destructive'
-                            "
-                            >{{
-                                branch.isActive ? 'Active' : 'Inactive'
-                            }}</Badge
-                        >
-                    </div></CardHeader
-                >
+                        <StatusBadge
+                            :status="branch.isActive ? 'active' : 'inactive'"
+                            :tone="branch.isActive ? 'success' : 'danger'"
+                            :label="branch.isActive ? 'Active' : 'Inactive'"
+                        /></div
+                ></CardHeader>
                 <CardContent class="space-y-4 text-sm">
                     <div class="flex items-center gap-2 text-muted-foreground">
-                        <MapPin class="size-4" /> Klinik Putrijaya branch
+                        <MapPin class="size-4" aria-hidden="true" /> Klinik
+                        Putrijaya branch
                     </div>
                     <div class="flex items-center gap-2 text-muted-foreground">
-                        <Clock3 class="size-4" /> {{ branch.timezone }}
+                        <Clock3 class="size-4" aria-hidden="true" />
+                        {{ branch.timezone }}
                     </div>
                     <Link
                         :href="`/branches/${branch.id}`"
-                        class="inline-flex font-medium text-emerald-700 hover:text-emerald-900"
+                        class="inline-flex min-h-11 items-center font-medium text-link hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:min-h-9"
                         >View authorised branch →</Link
                     >
                 </CardContent>
             </Card>
         </div>
-    </main>
+    </PageFrame>
 </template>
