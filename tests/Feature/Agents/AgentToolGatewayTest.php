@@ -149,6 +149,8 @@ class AgentToolGatewayTest extends VisitTestCase
             'branch tool without a branch' => fn () => $this->gateway->call($scheduled, 'inventory.stock_review', $supervisor),
             'branch without assignment' => fn () => $this->gateway->call($scheduled, 'inventory.stock_review', $supervisor, $this->puchong()),
             'branch of another organisation' => fn () => $this->gateway->call($scheduled, 'insights.today', $supervisor, $foreignBranch),
+            // INS-BM-2 (owner, 27 Nov 2026, option A; assertion change approved 28 Nov): a branch-only person never reads the whole organisation.
+            'branch-only person with no branch' => fn () => $this->gateway->call($scheduled, 'clinic.day_summary', $supervisor),
         ];
         $inactive = $this->actor('ca_supervisor');
         DB::table('users')->where('id', $inactive->id)->update(['is_active' => false]);
@@ -162,7 +164,7 @@ class AgentToolGatewayTest extends VisitTestCase
             }
         }
         $this->assertSame('CHERAS', $this->gateway->call($scheduled, 'inventory.stock_review', $supervisor, $this->branch)['branch']);
-        $this->assertSame('all', $this->gateway->call($scheduled, 'clinic.day_summary', $supervisor)['scope']);
+        $this->assertSame('CHERAS', $this->gateway->call($scheduled, 'clinic.day_summary', $supervisor, $this->branch)['scope']);
     }
 
     public function test_input_is_validated_against_the_tool_schema(): void
