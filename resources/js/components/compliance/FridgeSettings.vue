@@ -122,7 +122,7 @@ const archive = (f: FridgeSetting) =>
             <li
                 v-for="f in fridges"
                 :key="f.id"
-                class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4"
+                class="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border bg-card p-4 shadow-card"
             >
                 <div class="min-w-0">
                     <p class="text-sm font-semibold break-words">

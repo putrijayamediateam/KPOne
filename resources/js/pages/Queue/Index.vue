@@ -734,9 +734,21 @@ onBeforeUnmount(() => {
 <template>
     <Head title="Consultation" />
     <main
-        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
+        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8"
     >
-        <h1 class="sr-only">Consultation queue</h1>
+        <!-- Clean Look: visible page header (PageHeader classes), the branch shows under the title. -->
+        <header class="flex flex-wrap items-start justify-between gap-4">
+            <div class="min-w-0 space-y-1">
+                <h1
+                    class="text-[26px] font-semibold tracking-[-0.02em] text-foreground lg:text-[30px]"
+                >
+                    Consultation queue
+                </h1>
+                <p class="text-[13px] text-muted-foreground">
+                    {{ live.branch.name }}
+                </p>
+            </div>
+        </header>
         <RedZoneAlertBanner
             v-if="
                 page.props.auth.permissions.includes('queue.call.own') ||
@@ -748,11 +760,11 @@ onBeforeUnmount(() => {
         />
         <div
             v-if="roomChoice"
-            class="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-[13px]"
+            class="flex flex-wrap items-center gap-2 rounded-xl border px-4 py-3 text-[13px] shadow-card"
             :class="
                 roomChoice.currentRoomId === null
                     ? 'border-warning/25 bg-warning/10 text-warning-strong'
-                    : 'bg-muted/30'
+                    : 'bg-card'
             "
             data-testid="doctor-room-choice"
         >
@@ -785,194 +797,212 @@ onBeforeUnmount(() => {
         </div>
         <!-- BIL-30 (Daniel): below the room picker, one calm line. -->
         <MySalesTarget v-if="mySalesTarget" :target="mySalesTarget" />
-        <!-- DD-30: on phones the live line sits under the tab strip, which keeps scrolling at full width. -->
+        <!-- Clean Look: tabs, filters and the board sit in one white card. -->
         <div
-            ref="tabStrip"
-            class="flex items-center gap-2 border-b max-sm:flex-col max-sm:items-stretch max-sm:gap-0 max-sm:border-b-0"
+            class="flex flex-col gap-3 overflow-hidden rounded-[14px] border bg-card pt-3 shadow-card"
         >
-            <OperationalTabs
-                :model-value="activeTab"
-                class="min-w-0 flex-1 max-sm:flex-none max-sm:[&>button]:h-11 max-sm:[&>button]:px-2.5"
-                :class="
-                    moreTabsRight
-                        ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
-                        : ''
-                "
-                label="Consultation Queue status"
-                :tabs="tabs"
-                @update:model-value="selectOperationalTab"
-            />
-            <span
-                class="shrink-0 text-[11px] text-muted-foreground max-sm:px-3 max-sm:py-1.5"
-                >{{
-                    isRefreshing ? 'Refreshing…' : 'Live · every 3 seconds'
-                }}</span
-            >
-        </div>
-
-        <form
-            class="grid gap-2 border-b pb-3 md:grid-cols-2 xl:grid-cols-[minmax(280px,1.6fr)_minmax(160px,0.8fr)_140px_auto_auto]"
-            @submit.prevent="applyFilters"
-        >
-            <label class="relative md:col-span-2 xl:col-span-1"
-                ><span class="sr-only">Search patients or queue numbers</span
-                ><Search
-                    class="absolute top-2.5 left-3 size-4 text-muted-foreground" /><input
-                    v-model="draftFilters.query"
-                    autocomplete="off"
-                    class="h-9 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
-                    placeholder="Patient or exact Queue number"
-            /></label>
-            <OperationalSelect
-                v-if="live.scope === 'branch'"
-                v-model="draftFilters.doctor_id"
-                label="Doctor"
-                :options="doctorOptions"
-            /><span v-else class="hidden xl:block" />
-            <OperationalSelect
-                v-model="draftFilters.priority"
-                label="Urgency"
-                :options="urgencyOptions"
-            />
-            <Button
-                type="submit"
-                size="sm"
-                :variant="live.callNext ? 'outline' : 'default'"
-                :disabled="isApplyingFilters"
-                ><LoaderCircle
-                    v-if="isApplyingFilters"
-                    class="size-4 animate-spin"
-                />{{ isApplyingFilters ? 'Applying…' : 'Apply' }}</Button
-            >
-            <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                @click="clearFilters"
-                >Reset</Button
-            >
-            <InputError class="md:col-span-2 xl:col-span-5" :message="error" />
-        </form>
-
-        <section class="overflow-hidden border-y bg-background">
-            <div
-                class="flex flex-col gap-2 px-3 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
-            >
-                <span class="flex gap-3"
-                    ><span>{{ boardRows.length }} visible entries</span
-                    ><span>{{
-                        live.scope === 'own'
-                            ? 'Clinician scope'
-                            : 'Branch scope'
-                    }}</span></span
+            <!-- DD-30: on phones the live line sits under the tab strip, which keeps scrolling at full width. -->
+            <div class="px-4">
+                <div
+                    ref="tabStrip"
+                    class="flex items-center gap-2 border-b max-sm:flex-col max-sm:items-stretch max-sm:gap-0 max-sm:border-b-0"
                 >
-                <CallNextControl
-                    v-if="live.callNext"
-                    :block="live.callNext"
-                    :branch-id="live.branch.id"
-                    :busy="busyKey !== null"
-                    :refresh="refreshBoard"
-                    @processing="busyKey = $event ? 'call-next' : null"
+                    <OperationalTabs
+                        :model-value="activeTab"
+                        class="min-w-0 flex-1 max-sm:flex-none max-sm:[&>button]:h-11 max-sm:[&>button]:px-2.5"
+                        :class="
+                            moreTabsRight
+                                ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
+                                : ''
+                        "
+                        label="Consultation Queue status"
+                        :tabs="tabs"
+                        @update:model-value="selectOperationalTab"
+                    />
+                    <span
+                        class="shrink-0 text-[11px] text-muted-foreground max-sm:px-3 max-sm:py-1.5"
+                        >{{
+                            isRefreshing
+                                ? 'Refreshing…'
+                                : 'Live · every 3 seconds'
+                        }}</span
+                    >
+                </div>
+            </div>
+
+            <form
+                class="grid gap-2 border-b px-4 pb-3 md:grid-cols-2 xl:grid-cols-[minmax(280px,1.6fr)_minmax(160px,0.8fr)_140px_auto_auto]"
+                @submit.prevent="applyFilters"
+            >
+                <label class="relative md:col-span-2 xl:col-span-1"
+                    ><span class="sr-only"
+                        >Search patients or queue numbers</span
+                    ><Search
+                        class="absolute top-2.5 left-3 size-4 text-muted-foreground" /><input
+                        v-model="draftFilters.query"
+                        autocomplete="off"
+                        class="h-9 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
+                        placeholder="Patient or exact Queue number"
+                /></label>
+                <OperationalSelect
+                    v-if="live.scope === 'branch'"
+                    v-model="draftFilters.doctor_id"
+                    label="Doctor"
+                    :options="doctorOptions"
+                /><span v-else class="hidden xl:block" />
+                <OperationalSelect
+                    v-model="draftFilters.priority"
+                    label="Urgency"
+                    :options="urgencyOptions"
                 />
-            </div>
-            <Button
-                type="button"
-                variant="outline"
-                class="mb-3 min-h-11"
-                :aria-pressed="readyAlerts.chimeEnabled.value"
-                @click="readyAlerts.toggleChime"
-                >Notification sound:
-                {{ readyAlerts.chimeEnabled.value ? 'On' : 'Off' }}</Button
-            >
-            <PatientBoard
-                :branch-id="live.branch.id"
-                from="queue"
-                :rows="boardRows"
-                :busy-key="busyKey"
-                @call="requestCall"
-                @recall="recall"
-                @show-details="detailsVisit = $event.visitNumber"
-                @call-treatment="openTreatmentCall"
-                @open-consultation="openConsultation"
-                @cancel="requestCancellation"
-            />
-            <p
-                v-if="completedLine"
-                class="border-t px-3 py-2 text-xs text-muted-foreground"
-                data-testid="completed-shown-count"
-            >
-                {{ completedLine }}
-            </p>
-            <p
-                v-if="servingLine"
-                class="border-t px-3 py-2 text-xs text-muted-foreground"
-                data-testid="serving-shown-count"
-            >
-                {{ servingLine }}
-            </p>
-            <div
-                v-if="
-                    (activeTab === 'all' || activeTab === 'waiting') &&
-                    (live.waiting.lastPage > 1 || live.carryOver.lastPage > 1)
-                "
-                class="flex flex-wrap justify-end gap-2 border-t p-3"
-            >
                 <Button
+                    type="submit"
                     size="sm"
-                    variant="outline"
-                    :disabled="live.waiting.currentPage === 1 || isRefreshing"
-                    @click="
-                        refresh(
-                            live.waiting.currentPage - 1,
-                            live.carryOver.currentPage,
-                        )
-                    "
-                    >Previous today</Button
+                    :variant="live.callNext ? 'outline' : 'default'"
+                    :disabled="isApplyingFilters"
+                    ><LoaderCircle
+                        v-if="isApplyingFilters"
+                        class="size-4 animate-spin"
+                    />{{ isApplyingFilters ? 'Applying…' : 'Apply' }}</Button
                 >
                 <Button
+                    type="button"
                     size="sm"
-                    variant="outline"
-                    :disabled="
-                        live.waiting.currentPage === live.waiting.lastPage ||
-                        isRefreshing
-                    "
-                    @click="
-                        refresh(
-                            live.waiting.currentPage + 1,
-                            live.carryOver.currentPage,
-                        )
-                    "
-                    >Next today</Button
+                    variant="ghost"
+                    @click="clearFilters"
+                    >Reset</Button
                 >
+                <InputError
+                    class="md:col-span-2 xl:col-span-5"
+                    :message="error"
+                />
+            </form>
+
+            <section class="overflow-hidden bg-card">
+                <div
+                    class="flex flex-col gap-2 px-3 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
+                >
+                    <span class="flex gap-3"
+                        ><span>{{ boardRows.length }} visible entries</span
+                        ><span>{{
+                            live.scope === 'own'
+                                ? 'Clinician scope'
+                                : 'Branch scope'
+                        }}</span></span
+                    >
+                    <CallNextControl
+                        v-if="live.callNext"
+                        :block="live.callNext"
+                        :branch-id="live.branch.id"
+                        :busy="busyKey !== null"
+                        :refresh="refreshBoard"
+                        @processing="busyKey = $event ? 'call-next' : null"
+                    />
+                </div>
                 <Button
-                    size="sm"
+                    type="button"
                     variant="outline"
-                    :disabled="live.carryOver.currentPage === 1 || isRefreshing"
-                    @click="
-                        refresh(
-                            live.waiting.currentPage,
-                            live.carryOver.currentPage - 1,
-                        )
-                    "
-                    >Previous carry-over</Button
+                    class="mx-3 mb-3 min-h-11"
+                    :aria-pressed="readyAlerts.chimeEnabled.value"
+                    @click="readyAlerts.toggleChime"
+                    >Notification sound:
+                    {{ readyAlerts.chimeEnabled.value ? 'On' : 'Off' }}</Button
                 >
-                <Button
-                    size="sm"
-                    variant="outline"
-                    :disabled="
-                        live.carryOver.currentPage ===
-                            live.carryOver.lastPage || isRefreshing
-                    "
-                    @click="
-                        refresh(
-                            live.waiting.currentPage,
-                            live.carryOver.currentPage + 1,
-                        )
-                    "
-                    >Next carry-over</Button
+                <PatientBoard
+                    :branch-id="live.branch.id"
+                    from="queue"
+                    :rows="boardRows"
+                    :busy-key="busyKey"
+                    @call="requestCall"
+                    @recall="recall"
+                    @show-details="detailsVisit = $event.visitNumber"
+                    @call-treatment="openTreatmentCall"
+                    @open-consultation="openConsultation"
+                    @cancel="requestCancellation"
+                />
+                <p
+                    v-if="completedLine"
+                    class="border-t px-3 py-2 text-xs text-muted-foreground"
+                    data-testid="completed-shown-count"
                 >
-            </div>
-        </section>
+                    {{ completedLine }}
+                </p>
+                <p
+                    v-if="servingLine"
+                    class="border-t px-3 py-2 text-xs text-muted-foreground"
+                    data-testid="serving-shown-count"
+                >
+                    {{ servingLine }}
+                </p>
+                <div
+                    v-if="
+                        (activeTab === 'all' || activeTab === 'waiting') &&
+                        (live.waiting.lastPage > 1 ||
+                            live.carryOver.lastPage > 1)
+                    "
+                    class="flex flex-wrap justify-end gap-2 border-t p-3"
+                >
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        :disabled="
+                            live.waiting.currentPage === 1 || isRefreshing
+                        "
+                        @click="
+                            refresh(
+                                live.waiting.currentPage - 1,
+                                live.carryOver.currentPage,
+                            )
+                        "
+                        >Previous today</Button
+                    >
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        :disabled="
+                            live.waiting.currentPage ===
+                                live.waiting.lastPage || isRefreshing
+                        "
+                        @click="
+                            refresh(
+                                live.waiting.currentPage + 1,
+                                live.carryOver.currentPage,
+                            )
+                        "
+                        >Next today</Button
+                    >
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        :disabled="
+                            live.carryOver.currentPage === 1 || isRefreshing
+                        "
+                        @click="
+                            refresh(
+                                live.waiting.currentPage,
+                                live.carryOver.currentPage - 1,
+                            )
+                        "
+                        >Previous carry-over</Button
+                    >
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        :disabled="
+                            live.carryOver.currentPage ===
+                                live.carryOver.lastPage || isRefreshing
+                        "
+                        @click="
+                            refresh(
+                                live.waiting.currentPage,
+                                live.carryOver.currentPage + 1,
+                            )
+                        "
+                        >Next carry-over</Button
+                    >
+                </div>
+            </section>
+        </div>
 
         <QueueCallDialog
             v-model:open="callOpen"

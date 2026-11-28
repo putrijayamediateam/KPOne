@@ -190,7 +190,7 @@ const withdraw = () =>
         <p
             v-if="!block.waiting && check.errors.checked_base_per_pack"
             role="alert"
-            class="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+            class="rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive"
             data-testid="pack-conversion-refused"
         >
             {{ check.errors.checked_base_per_pack }}
@@ -281,7 +281,7 @@ const withdraw = () =>
         <!-- A change waiting for a check. -->
         <div
             v-if="block.waiting"
-            class="space-y-3 rounded-md border border-warning bg-warning/10 p-3 text-sm"
+            class="space-y-3 rounded-xl border border-warning/25 bg-warning-wash p-3 text-sm"
             data-testid="pack-conversion-waiting"
         >
             <p v-if="block.waiting.canCheck" class="font-medium">
@@ -374,7 +374,7 @@ const withdraw = () =>
             class="grid gap-3 sm:grid-cols-2"
             @submit.prevent="propose"
         >
-            <label class="grid min-w-0 gap-1 text-sm"
+            <label class="grid min-w-0 gap-2 text-[13px] font-medium"
                 >Pack unit
                 <Input
                     v-model="proposal.pack_unit"
@@ -384,7 +384,7 @@ const withdraw = () =>
                 />
                 <InputError :message="proposal.errors.pack_unit" />
             </label>
-            <label class="grid min-w-0 gap-1 text-sm"
+            <label class="grid min-w-0 gap-2 text-[13px] font-medium"
                 >How many {{ unit }} in one {{ packWord }}?
                 <Input
                     v-model="proposal.base_per_pack"
@@ -484,11 +484,11 @@ const withdraw = () =>
             @update:open="(open: boolean) => (refusing = open)"
             @confirm="submitRefusal"
         >
-            <label class="grid gap-1 text-sm"
+            <label class="grid gap-2 text-[13px] font-medium"
                 >Reason
                 <select
                     v-model="refusal.reason"
-                    class="h-11 rounded-md border bg-background px-3"
+                    class="h-11 rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                     data-testid="pack-conversion-refuse-reason"
                 >
                     <option value="" disabled>Pick a reason</option>

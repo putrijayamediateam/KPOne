@@ -27,7 +27,7 @@ const display = (value: number | string | null, suffix = '') =>
                     {{ historical.navigation.backLabel }}
                 </ActionLink>
                 <div class="flex items-center gap-3">
-                    <div class="rounded-lg bg-emerald-100 p-2 text-emerald-800">
+                    <div class="rounded-lg bg-success-wash p-2 text-success">
                         <Stethoscope class="size-5" />
                     </div>
                     <div>
@@ -62,11 +62,9 @@ const display = (value: number | string | null, suffix = '') =>
             </div>
         </header>
 
-        <section class="grid gap-3 rounded-lg bg-muted/25 p-4 md:grid-cols-2">
+        <section class="grid gap-3 rounded-lg bg-card-quiet p-4 md:grid-cols-2">
             <div>
-                <div
-                    class="text-[11px] font-semibold text-muted-foreground uppercase"
-                >
+                <div class="text-[13px] font-medium text-muted-foreground">
                     Patient
                 </div>
                 <div class="font-medium">{{ historical.patient.name }}</div>
@@ -77,9 +75,7 @@ const display = (value: number | string | null, suffix = '') =>
                 </div>
             </div>
             <div>
-                <div
-                    class="text-[11px] font-semibold text-muted-foreground uppercase"
-                >
+                <div class="text-[13px] font-medium text-muted-foreground">
                     Encounter
                 </div>
                 <div class="font-mono text-sm">
@@ -93,11 +89,11 @@ const display = (value: number | string | null, suffix = '') =>
 
         <section class="space-y-3">
             <div class="flex items-center gap-2">
-                <ClipboardList class="size-4 text-emerald-800" />
+                <ClipboardList class="size-4 text-success" />
                 <h2 class="font-semibold">Vitals</h2>
             </div>
             <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <div class="rounded-md bg-muted/25 p-3 text-sm">
+                <div class="rounded-md bg-card-quiet p-3 text-sm">
                     <div class="text-xs text-muted-foreground">
                         Blood pressure
                     </div>
@@ -114,13 +110,13 @@ const display = (value: number | string | null, suffix = '') =>
                         <template v-else>Not recorded</template>
                     </div>
                 </div>
-                <div class="rounded-md bg-muted/25 p-3 text-sm">
+                <div class="rounded-md bg-card-quiet p-3 text-sm">
                     <div class="text-xs text-muted-foreground">Pulse</div>
                     <div class="mt-1 font-medium">
                         {{ display(historical.vitals.pulseBpm, ' bpm') }}
                     </div>
                 </div>
-                <div class="rounded-md bg-muted/25 p-3 text-sm">
+                <div class="rounded-md bg-card-quiet p-3 text-sm">
                     <div class="text-xs text-muted-foreground">Temperature</div>
                     <div class="mt-1 font-medium">
                         {{
@@ -128,31 +124,31 @@ const display = (value: number | string | null, suffix = '') =>
                         }}
                     </div>
                 </div>
-                <div class="rounded-md bg-muted/25 p-3 text-sm">
+                <div class="rounded-md bg-card-quiet p-3 text-sm">
                     <div class="text-xs text-muted-foreground">SpO2</div>
                     <div class="mt-1 font-medium">
                         {{ display(historical.vitals.spo2Percent, '%') }}
                     </div>
                 </div>
-                <div class="rounded-md bg-muted/25 p-3 text-sm">
+                <div class="rounded-md bg-card-quiet p-3 text-sm">
                     <div class="text-xs text-muted-foreground">Weight</div>
                     <div class="mt-1 font-medium">
                         {{ display(historical.vitals.weightKg, ' kg') }}
                     </div>
                 </div>
-                <div class="rounded-md bg-muted/25 p-3 text-sm">
+                <div class="rounded-md bg-card-quiet p-3 text-sm">
                     <div class="text-xs text-muted-foreground">Height</div>
                     <div class="mt-1 font-medium">
                         {{ display(historical.vitals.heightCm, ' cm') }}
                     </div>
                 </div>
-                <div class="rounded-md bg-muted/25 p-3 text-sm">
+                <div class="rounded-md bg-card-quiet p-3 text-sm">
                     <div class="text-xs text-muted-foreground">Derived BMI</div>
                     <div class="mt-1 font-medium">
                         {{ display(historical.vitals.bmi) }}
                     </div>
                 </div>
-                <div class="rounded-md bg-muted/25 p-3 text-sm">
+                <div class="rounded-md bg-card-quiet p-3 text-sm">
                     <div class="text-xs text-muted-foreground">Observed</div>
                     <div class="mt-1 font-medium">
                         {{
@@ -171,7 +167,7 @@ const display = (value: number | string | null, suffix = '') =>
         <section class="space-y-2">
             <h2 class="font-semibold">Clinical Note</h2>
             <div
-                class="min-h-28 rounded-lg bg-muted/20 p-4 text-sm leading-relaxed whitespace-pre-wrap"
+                class="min-h-28 rounded-lg bg-card-quiet p-4 text-sm leading-relaxed whitespace-pre-wrap"
             >
                 {{
                     historical.encounter.clinicalNote ??
@@ -186,14 +182,14 @@ const display = (value: number | string | null, suffix = '') =>
                 <li
                     v-for="(diagnosis, index) in historical.diagnoses"
                     :key="`${index}-${diagnosis.diagnosisText}`"
-                    class="flex flex-wrap items-start justify-between gap-3 rounded-lg bg-muted/20 p-3 text-sm"
+                    class="flex flex-wrap items-start justify-between gap-3 rounded-lg bg-card-quiet p-3 text-sm"
                 >
                     <div>
                         <div class="font-medium">
                             {{ index + 1 }}. {{ diagnosis.diagnosisText }}
                             <span
                                 v-if="diagnosis.isPrimary"
-                                class="ml-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800"
+                                class="ml-1 rounded-full bg-success-wash px-2 py-0.5 text-xs font-semibold text-success"
                             >
                                 Primary
                             </span>
@@ -212,7 +208,7 @@ const display = (value: number | string | null, suffix = '') =>
             </ol>
             <p
                 v-else
-                class="rounded-lg bg-muted/20 px-4 py-5 text-sm text-muted-foreground"
+                class="rounded-lg bg-card-quiet px-4 py-5 text-sm text-muted-foreground"
             >
                 No diagnosis recorded for this Encounter.
             </p>

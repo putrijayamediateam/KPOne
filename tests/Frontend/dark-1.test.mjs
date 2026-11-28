@@ -41,7 +41,6 @@ const includes = (actual, expected) =>
                 `Missing appearance token: ${token}`,
             ),
         );
-const green = 'dark:border-emerald-900 dark:bg-emerald-950/30';
 
 test('DARK-1 S1-001: selected patient uses Clean Look blue washes in both themes without changing unselected styling', () => {
     const option = elements(template('Registration/Create.vue')).find(
@@ -73,7 +72,7 @@ test('DARK-1 S1-006: both selected sign-in cards adapt to dark mode and retain t
     for (const [index, strategy] of ['google_only', 'password'].entries()) {
         includes(
             classes(labels[index], { form: { credential_strategy: strategy } }),
-            `border-emerald-400 bg-emerald-50/60 ${green}`,
+            'border-primary bg-primary/10',
         );
         const unselected = classes(labels[index], {
             form: {
@@ -81,7 +80,7 @@ test('DARK-1 S1-006: both selected sign-in cards adapt to dark mode and retain t
                     strategy === 'password' ? 'google_only' : 'password',
             },
         });
-        assert.ok(!unselected.includes('bg-emerald-50/60'));
+        assert.ok(!unselected.includes('bg-primary/10'));
     }
 });
 

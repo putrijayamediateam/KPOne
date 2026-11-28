@@ -53,6 +53,8 @@ export type ClinicalAllergySafety = {
     } | null;
     canUpdate: boolean;
     canReview: boolean;
+    // DSP-30: set while the doctor's check of prepared medicine is waiting; the list is then read only.
+    readOnlyReason?: 'doctor_check';
 };
 
 export type ClinicalProblemRecord = {
@@ -177,6 +179,8 @@ export type DoctorDispensaryCheck = {
             expiryDate: string | null;
             quantity: string;
         }>;
+        // DSP-29: allergen names this line may match (the CA warning's rule); empty for none or a removed line.
+        allergyMatches?: string[];
     }>;
     reasons: string[];
     verifyUrl: string;
@@ -195,7 +199,20 @@ export type DispensarySupervisorCheck = {
     overrideNote: string | null;
 };
 
+/** FAM-1 part 1: relatives waiting today; never their conditions. */
+export type FamilyWaiting = {
+    rows: Array<{
+        roleLabel: string;
+        name: string;
+        patientNumber: string;
+        queueLabel: string;
+        url: string;
+    }>;
+    recordUrl: string;
+};
+
 export type ClinicalEncounterPage = {
+    familyWaiting?: FamilyWaiting | null;
     branch: { id: number; code: string; name: string; timezone: string };
     patient: {
         patientNumber: string;

@@ -20,7 +20,9 @@ const height = (value: number, max: number) =>
 </script>
 
 <template>
-    <section class="rounded-xl border border-border bg-card p-4 md:p-5">
+    <section
+        class="rounded-xl border border-border bg-card p-4 shadow-card md:p-5"
+    >
         <div class="mb-4">
             <h2 class="text-sm font-semibold text-foreground">{{ title }}</h2>
             <p class="mt-1 text-xs text-muted-foreground">{{ summary }}</p>

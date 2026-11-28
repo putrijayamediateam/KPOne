@@ -11,6 +11,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { DateField } from '@/components/ui/date-field';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { formatRoleLabel } from '@/lib/displayLabels';
 import type { StaffOptions } from '@/types';
@@ -78,7 +79,7 @@ const submit = () => form.post('/staff');
 
 <template>
     <Head title="Create staff" />
-    <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
+    <PageFrame>
         <PageHeader
             title="Create staff account"
             description="Provision identity, employment and initial access in one controlled transaction."
@@ -133,7 +134,7 @@ const submit = () => form.post('/staff');
                                     :class="
                                         form.credential_strategy ===
                                             'google_only' &&
-                                        'border-emerald-400 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/30'
+                                        'border-primary bg-primary/10'
                                     "
                                     ><input
                                         v-model="form.credential_strategy"
@@ -141,7 +142,7 @@ const submit = () => form.post('/staff');
                                         value="google_only"
                                         class="mr-2 accent-success"
                                     />Google-only pre-provisioning<span
-                                        class="mt-1 block text-xs text-muted-foreground"
+                                        class="mt-1 block text-[12.5px] text-muted-foreground"
                                         >No OAuth token is stored. First link
                                         still requires a verified matching
                                         Google email.</span
@@ -151,7 +152,7 @@ const submit = () => form.post('/staff');
                                     :class="
                                         form.credential_strategy ===
                                             'password' &&
-                                        'border-emerald-400 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/30'
+                                        'border-primary bg-primary/10'
                                     "
                                     ><input
                                         v-model="form.credential_strategy"
@@ -159,7 +160,7 @@ const submit = () => form.post('/staff');
                                         value="password"
                                         class="mr-2 accent-success"
                                     />Bootstrap password<span
-                                        class="mt-1 block text-xs text-muted-foreground"
+                                        class="mt-1 block text-[12.5px] text-muted-foreground"
                                         >Enter it once. KPOne hashes it
                                         immediately and never returns or audits
                                         it.</span
@@ -284,7 +285,7 @@ const submit = () => form.post('/staff');
                                     Assignment {{ index + 1
                                     }}<span
                                         v-if="assignment.is_primary"
-                                        class="ml-2 text-xs text-success"
+                                        class="ml-2 text-[12.5px] text-success"
                                         >Primary</span
                                     >
                                 </div>
@@ -303,7 +304,7 @@ const submit = () => form.post('/staff');
                                 <div class="grid gap-2 xl:col-span-2">
                                     <label
                                         :for="`staff-assignment-${index}-branch`"
-                                        class="text-xs font-medium"
+                                        class="text-[12.5px] font-medium"
                                         >Branch</label
                                     ><select
                                         :id="`staff-assignment-${index}-branch`"
@@ -331,7 +332,7 @@ const submit = () => form.post('/staff');
                                 <div class="grid gap-2">
                                     <label
                                         :for="`staff-assignment-${index}-type`"
-                                        class="text-xs font-medium"
+                                        class="text-[12.5px] font-medium"
                                         >Type</label
                                     ><select
                                         :id="`staff-assignment-${index}-type`"
@@ -360,7 +361,7 @@ const submit = () => form.post('/staff');
                                 <div class="grid gap-2">
                                     <label
                                         :for="`staff-assignment-${index}-from`"
-                                        class="text-xs font-medium"
+                                        class="text-[12.5px] font-medium"
                                         >Valid from</label
                                     ><DateField
                                         :id="`staff-assignment-${index}-from`"
@@ -376,7 +377,7 @@ const submit = () => form.post('/staff');
                                 <div class="grid gap-2">
                                     <label
                                         :for="`staff-assignment-${index}-until`"
-                                        class="text-xs font-medium"
+                                        class="text-[12.5px] font-medium"
                                         >Valid through (inclusive)</label
                                     ><DateField
                                         :id="`staff-assignment-${index}-until`"
@@ -444,7 +445,7 @@ const submit = () => form.post('/staff');
                                 ><span class="font-medium"
                                     >Create as active</span
                                 ><span
-                                    class="mt-1 block text-xs text-muted-foreground"
+                                    class="mt-1 block text-[12.5px] text-muted-foreground"
                                     >Active accounts require a currently
                                     effective primary branch. Inactive accounts
                                     cannot authenticate.</span
@@ -467,5 +468,5 @@ const submit = () => form.post('/staff');
                 </div>
             </aside>
         </form>
-    </main>
+    </PageFrame>
 </template>

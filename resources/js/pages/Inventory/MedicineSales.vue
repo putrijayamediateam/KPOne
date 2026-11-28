@@ -137,7 +137,9 @@ const countCards = computed(() => [
 
 <template>
     <Head title="Medicine sales" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto w-full max-w-6xl space-y-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
+    >
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -161,7 +163,7 @@ const countCards = computed(() => [
                     >Month
                     <select
                         v-model="month"
-                        class="h-11 rounded-md border bg-background px-3 lg:h-9"
+                        class="h-11 rounded-[10px] border border-input bg-field-fill px-3 lg:h-9"
                         data-testid="sales-month"
                     >
                         <option
@@ -177,7 +179,7 @@ const countCards = computed(() => [
                     >Branch
                     <select
                         v-model="branch"
-                        class="h-11 rounded-md border bg-background px-3 lg:h-9"
+                        class="h-11 rounded-[10px] border border-input bg-field-fill px-3 lg:h-9"
                         data-testid="sales-branch"
                     >
                         <option
@@ -193,7 +195,7 @@ const countCards = computed(() => [
                     >Rank by
                     <select
                         v-model="rank"
-                        class="h-11 rounded-md border bg-background px-3 lg:h-9"
+                        class="h-11 rounded-[10px] border border-input bg-field-fill px-3 lg:h-9"
                         data-testid="sales-rank"
                     >
                         <option value="sales">Sales</option>
@@ -229,14 +231,14 @@ const countCards = computed(() => [
         <p
             v-if="refused.length"
             role="alert"
-            class="rounded-lg border border-destructive bg-destructive/10 p-3 text-sm font-medium text-destructive"
+            class="rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-sm font-medium text-destructive"
             data-testid="sales-refused"
         >
             {{ refused.join(' ') }} Showing the default view instead.
         </p>
 
         <p
-            class="flex items-start gap-2 rounded-lg border bg-muted/40 p-3 text-sm font-medium text-foreground"
+            class="flex items-start gap-2 rounded-xl border bg-card-quiet p-3 text-sm font-medium text-foreground"
             data-testid="sales-banner"
         >
             <Info
@@ -304,7 +306,7 @@ const countCards = computed(() => [
                 <li
                     v-for="card in countCards"
                     :key="card.label"
-                    class="min-w-0 rounded-lg border bg-card px-3 py-2"
+                    class="min-w-0 rounded-xl border bg-card px-3 py-2"
                 >
                     <p class="text-xs text-muted-foreground">
                         {{ card.label }}
@@ -644,7 +646,7 @@ const countCards = computed(() => [
             data-testid="sales-how"
         >
             <summary
-                class="flex min-h-11 cursor-pointer list-none items-center px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+                class="flex min-h-11 cursor-pointer list-none items-center px-3 text-sm font-medium focus-visible:rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
             >
                 How this page counts
             </summary>

@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import ReleaseStructuredValue from '@/components/website/ReleaseStructuredValue.vue';
 import WebsiteBuilds from '@/components/website/WebsiteBuilds.vue';
 import type { WebsiteBuildPage } from '@/types/website-builds';
@@ -80,25 +81,30 @@ onUnmounted(remove);
     <Head title="Website releases"
         ><meta name="robots" content="noindex,nofollow"
     /></Head>
-    <main class="mx-auto w-full max-w-7xl min-w-0 space-y-6 p-4 md:p-6">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h1 class="text-2xl font-semibold">Website releases</h1>
-            <Button
-                v-if="page"
-                :disabled="blocked || form.processing"
-                @click="prepare"
-                >Prepare release</Button
-            >
-        </div>
-        <div class="rounded-lg border bg-muted/30 p-4 text-sm">
+    <main
+        class="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-6 px-4 py-6 [overflow-wrap:anywhere] lg:px-8"
+    >
+        <PageHeader title="Website releases">
+            <template #actions>
+                <Button
+                    v-if="page"
+                    :disabled="blocked || form.processing"
+                    @click="prepare"
+                    >Prepare release</Button
+                >
+            </template>
+        </PageHeader>
+        <div class="rounded-[14px] bg-card-quiet p-4 text-sm">
             Private evidence and structured preview only. Nothing is public.
             Approval covers these exact frozen contents, not future edits. KPOne
             does not verify medical wording, consent, rights or display-approval
             references.
         </div>
-        <div v-if="blocked" class="rounded-lg border p-4">
+        <div v-if="blocked" class="rounded-[14px] border bg-card p-4">
             Branch changed. Loaded content and confirmations were cleared.
-            <Link href="/website/releases" class="underline"
+            <Link
+                href="/website/releases"
+                class="text-link underline-offset-4 hover:underline"
                 >Reload releases</Link
             >
         </div>
@@ -107,7 +113,9 @@ onUnmounted(remove);
             aria-live="polite"
             class="rounded-lg border border-destructive p-4"
         >
-            <h2 class="font-semibold">Preparation or action blocked</h2>
+            <h2 class="text-[17px] font-semibold tracking-[-0.01em]">
+                Preparation or action blocked
+            </h2>
             <ul class="list-inside list-disc">
                 <li
                     v-for="(message, key) in form.errors"
@@ -120,15 +128,19 @@ onUnmounted(remove);
         </section>
         <template v-if="page">
             <section class="space-y-3">
-                <h2 class="font-semibold">Saved releases</h2>
-                <Link href="/website/releases/output-plans" class="underline"
+                <h2 class="text-[17px] font-semibold tracking-[-0.01em]">
+                    Saved releases
+                </h2>
+                <Link
+                    href="/website/releases/output-plans"
+                    class="text-link underline-offset-4 hover:underline"
                     >Website output plans</Link
                 >
                 <ul>
                     <li v-for="plan in props.outputPlans ?? []" :key="plan.id">
                         <Link
                             :href="`/website/releases/output-plans/${plan.id}`"
-                            class="underline"
+                            class="text-link underline-offset-4 hover:underline"
                             >{{ plan.number }} · {{ plan.state }} ·
                             {{ plan.release_number }}</Link
                         >
@@ -143,7 +155,7 @@ onUnmounted(remove);
                         v-for="release in page.releases"
                         :key="release.id"
                         :href="`/website/releases/${release.id}`"
-                        class="min-w-0 rounded-lg border p-4"
+                        class="min-w-0 rounded-[14px] border bg-card p-4"
                         ><strong>{{ release.number }}</strong> ·
                         {{ release.state }}
                         <p class="text-sm">
@@ -164,7 +176,9 @@ onUnmounted(remove);
                     class="inline-block underline"
                     >Prepare output plan</Link
                 >
-                <section class="min-w-0 space-y-2 rounded-lg border p-4">
+                <section
+                    class="min-w-0 space-y-2 rounded-[14px] border bg-card p-4"
+                >
                     <h2 class="text-xl font-semibold">
                         {{ page.detail.number }} · {{ page.detail.state }}
                     </h2>
@@ -195,15 +209,17 @@ onUnmounted(remove);
                 </section>
                 <section
                     v-if="page.canApprove"
-                    class="space-y-3 rounded-lg border p-4"
+                    class="space-y-3 rounded-[14px] border bg-card p-4"
                 >
-                    <h2 class="font-semibold">Director decision</h2>
+                    <h2 class="text-[17px] font-semibold tracking-[-0.01em]">
+                        Director decision
+                    </h2>
                     <template v-if="page.detail.state === 'prepared'"
                         ><label class="block text-sm"
                             >Type {{ page.detail.number }} to approve<input
                                 v-model="form.confirmation"
                                 maxlength="30"
-                                class="mt-1 block w-full rounded border bg-background p-2" /></label
+                                class="mt-1 block w-full rounded-[10px] border bg-background bg-card-quiet p-2" /></label
                         ><Button
                             :disabled="
                                 form.processing ||
@@ -221,7 +237,7 @@ onUnmounted(remove);
                             300 characters)<textarea
                                 v-model="form.reason"
                                 maxlength="300"
-                                class="mt-1 block w-full rounded border bg-background p-2"
+                                class="mt-1 block w-full rounded-[10px] border bg-background bg-card-quiet p-2"
                             /></label
                         ><Button
                             variant="outline"
@@ -246,8 +262,8 @@ onUnmounted(remove);
                     </p>
                 </section>
                 <WebsiteBuilds v-if="props.builds" :builds="props.builds" />
-                <section class="space-y-3 rounded-lg border p-4">
-                    <h2 class="font-semibold">
+                <section class="space-y-3 rounded-[14px] border bg-card p-4">
+                    <h2 class="text-[17px] font-semibold tracking-[-0.01em]">
                         Change list · {{ page.detail.comparedTo }}
                     </h2>
                     <div
@@ -260,14 +276,14 @@ onUnmounted(remove);
                     </div>
                 </section>
                 <section class="space-y-3">
-                    <h2 class="font-semibold">
+                    <h2 class="text-[17px] font-semibold tracking-[-0.01em]">
                         Frozen structured content · EN and BM
                     </h2>
                     <div class="grid min-w-0 gap-4 lg:grid-cols-2">
                         <article
                             v-for="item in page.detail.items"
                             :key="`${item.key}-${item.language}`"
-                            class="min-w-0 space-y-3 rounded-lg border p-4 wrap-anywhere"
+                            class="min-w-0 space-y-3 rounded-[14px] border bg-card p-4 wrap-anywhere"
                         >
                             <h3 class="font-semibold">
                                 {{ item.type.replaceAll('_', ' ') }} ·
@@ -279,7 +295,9 @@ onUnmounted(remove);
                     </div>
                 </section>
                 <section class="space-y-3">
-                    <h2 class="font-semibold">Retained media</h2>
+                    <h2 class="text-[17px] font-semibold tracking-[-0.01em]">
+                        Retained media
+                    </h2>
                     <p
                         v-if="!page.detail.media.length"
                         class="text-sm text-muted-foreground"
@@ -292,7 +310,7 @@ onUnmounted(remove);
                         <figure
                             v-for="asset in page.detail.media"
                             :key="asset.filename"
-                            class="min-w-0 rounded-lg border p-3"
+                            class="min-w-0 rounded-[14px] border bg-card p-3"
                         >
                             <img
                                 :src="`/website/releases/${page.detail.id}/media/${asset.filename}`"
@@ -306,8 +324,10 @@ onUnmounted(remove);
                         </figure>
                     </div>
                 </section>
-                <section class="rounded-lg border p-4">
-                    <h2 class="font-semibold">Omissions</h2>
+                <section class="rounded-[14px] border bg-card p-4">
+                    <h2 class="text-[17px] font-semibold tracking-[-0.01em]">
+                        Omissions
+                    </h2>
                     <p v-if="!page.detail.omissions.length" class="text-sm">
                         None
                     </p>
@@ -321,8 +341,10 @@ onUnmounted(remove);
                         </li>
                     </ul>
                 </section>
-                <section class="rounded-lg border p-4">
-                    <h2 class="font-semibold">Decision history</h2>
+                <section class="rounded-[14px] border bg-card p-4">
+                    <h2 class="text-[17px] font-semibold tracking-[-0.01em]">
+                        Decision history
+                    </h2>
                     <ul class="space-y-2">
                         <li
                             v-for="(action, index) in page.detail.actions"

@@ -200,7 +200,9 @@ const generalError = computed(
 
 <template>
     <Head title="Stock other branches need" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 text-sm lg:px-8"
+    >
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -213,7 +215,7 @@ const generalError = computed(
             :description="`${suggestions.branchName} · Other branches at or below their reorder level, and stock this branch can spare. Nothing is sent from this page.`"
         />
         <p
-            class="rounded-lg border bg-muted/40 p-3 text-sm"
+            class="rounded-xl bg-card-quiet p-4 text-sm"
             data-testid="replenishment-method"
         >
             Their need is what brings them up to their maximum (or reorder
@@ -223,12 +225,12 @@ const generalError = computed(
         </p>
 
         <form
-            class="flex flex-wrap items-end gap-2"
+            class="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
             role="search"
             @submit.prevent="visit()"
         >
             <label
-                class="grid min-w-0 basis-full gap-1 text-sm sm:flex-1 sm:basis-auto"
+                class="grid min-w-0 basis-full gap-2 text-[13px] font-medium sm:flex-1 sm:basis-auto"
                 >Search SKU, item, branch or location
                 <Input v-model="q" maxlength="100" class="h-11 lg:h-9" />
             </label>
@@ -239,7 +241,7 @@ const generalError = computed(
 
         <div
             v-if="suggestions.canRequest && suggestions.rows.length"
-            class="flex flex-wrap items-center gap-3 rounded-lg border p-3"
+            class="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4 shadow-card"
             data-testid="replenishment-request-bar"
         >
             <p class="min-w-0 flex-1 text-sm">
@@ -271,15 +273,19 @@ const generalError = computed(
 
         <p
             v-if="suggestions.rows.length === 0"
-            class="text-sm text-muted-foreground"
+            class="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground shadow-card"
         >
             No other branch needs stock this branch can spare.
         </p>
-        <ul v-else class="space-y-3" aria-label="Stock other branches need">
+        <ul
+            v-else
+            class="divide-y overflow-hidden rounded-xl border bg-card shadow-card"
+            aria-label="Stock other branches need"
+        >
             <li
                 v-for="row in suggestions.rows"
                 :key="row.key"
-                class="space-y-3 rounded-lg border bg-card p-4"
+                class="space-y-3 p-4 sm:p-5"
             >
                 <div class="flex flex-wrap items-start justify-between gap-2">
                     <component
@@ -306,7 +312,7 @@ const generalError = computed(
                         </span>
                     </component>
                     <div class="sm:text-right">
-                        <p class="text-xs text-muted-foreground">
+                        <p class="text-[12.5px] text-muted-foreground">
                             Suggested to send
                         </p>
                         <p class="font-semibold tabular-nums">
@@ -316,7 +322,7 @@ const generalError = computed(
                 </div>
                 <div class="grid gap-3 text-sm md:grid-cols-2">
                     <section
-                        class="min-w-0 rounded-md border p-3"
+                        class="min-w-0 rounded-[10px] bg-card-quiet p-3"
                         :aria-label="`${row.to.branch} needs`"
                     >
                         <h3 class="font-medium">{{ row.to.branch }} needs</h3>
@@ -324,13 +330,15 @@ const generalError = computed(
                             class="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 min-[480px]:grid-cols-3"
                         >
                             <div>
-                                <dt class="text-muted-foreground">On hand</dt>
+                                <dt class="text-[12.5px] text-muted-foreground">
+                                    On hand
+                                </dt>
                                 <dd class="tabular-nums">
                                     {{ quantity(row.to.onHand, row.stockUnit) }}
                                 </dd>
                             </div>
                             <div>
-                                <dt class="text-muted-foreground">
+                                <dt class="text-[12.5px] text-muted-foreground">
                                     Reorder level
                                 </dt>
                                 <dd class="tabular-nums">
@@ -343,7 +351,9 @@ const generalError = computed(
                                 </dd>
                             </div>
                             <div>
-                                <dt class="text-muted-foreground">Maximum</dt>
+                                <dt class="text-[12.5px] text-muted-foreground">
+                                    Maximum
+                                </dt>
                                 <dd
                                     v-if="row.to.maxLevel !== null"
                                     class="tabular-nums"
@@ -357,7 +367,9 @@ const generalError = computed(
                                 </dd>
                             </div>
                             <div>
-                                <dt class="text-muted-foreground">On order</dt>
+                                <dt class="text-[12.5px] text-muted-foreground">
+                                    On order
+                                </dt>
                                 <dd class="tabular-nums">
                                     {{
                                         quantity(row.to.onOrder, row.stockUnit)
@@ -365,7 +377,9 @@ const generalError = computed(
                                 </dd>
                             </div>
                             <div>
-                                <dt class="text-muted-foreground">Incoming</dt>
+                                <dt class="text-[12.5px] text-muted-foreground">
+                                    Incoming
+                                </dt>
                                 <dd class="tabular-nums">
                                     {{
                                         quantity(row.to.incoming, row.stockUnit)
@@ -373,7 +387,9 @@ const generalError = computed(
                                 </dd>
                             </div>
                             <div>
-                                <dt class="text-muted-foreground">Need</dt>
+                                <dt class="text-[12.5px] text-muted-foreground">
+                                    Need
+                                </dt>
                                 <dd class="font-medium tabular-nums">
                                     {{ quantity(row.to.need, row.stockUnit) }}
                                 </dd>
@@ -381,7 +397,7 @@ const generalError = computed(
                         </dl>
                     </section>
                     <section
-                        class="min-w-0 rounded-md border p-3"
+                        class="min-w-0 rounded-[10px] bg-card-quiet p-3"
                         :aria-label="`${row.from.location} can spare`"
                     >
                         <h3 class="font-medium">
@@ -391,7 +407,9 @@ const generalError = computed(
                             class="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 min-[480px]:grid-cols-3"
                         >
                             <div>
-                                <dt class="text-muted-foreground">Usable</dt>
+                                <dt class="text-[12.5px] text-muted-foreground">
+                                    Usable
+                                </dt>
                                 <dd class="tabular-nums">
                                     {{
                                         quantity(row.from.usable, row.stockUnit)
@@ -399,7 +417,7 @@ const generalError = computed(
                                 </dd>
                             </div>
                             <div>
-                                <dt class="text-muted-foreground">
+                                <dt class="text-[12.5px] text-muted-foreground">
                                     Our own level
                                 </dt>
                                 <dd class="tabular-nums">
@@ -409,7 +427,7 @@ const generalError = computed(
                                 </dd>
                             </div>
                             <div>
-                                <dt class="text-muted-foreground">
+                                <dt class="text-[12.5px] text-muted-foreground">
                                     Waiting to be sent
                                 </dt>
                                 <dd class="tabular-nums">
@@ -422,7 +440,7 @@ const generalError = computed(
                                 </dd>
                             </div>
                             <div v-if="row.from.alreadySuggested !== '0.000'">
-                                <dt class="text-muted-foreground">
+                                <dt class="text-[12.5px] text-muted-foreground">
                                     Already suggested
                                 </dt>
                                 <dd class="tabular-nums">
@@ -471,7 +489,7 @@ const generalError = computed(
                             :key="line.sku"
                             class="min-w-0"
                         >
-                            <label class="grid gap-1 text-sm"
+                            <label class="grid gap-2 text-[13px] font-medium"
                                 >{{ line.label }} ({{ line.unit }})
                                 <Input
                                     v-model="line.quantity"
@@ -485,7 +503,7 @@ const generalError = computed(
                             </label>
                             <p
                                 :id="`line-${index}-cap`"
-                                class="mt-1 text-xs text-muted-foreground"
+                                class="mt-1 text-[12.5px] text-muted-foreground"
                             >
                                 Suggested {{ line.suggested }} {{ line.unit }}.
                                 This branch can spare {{ line.spare }}.
