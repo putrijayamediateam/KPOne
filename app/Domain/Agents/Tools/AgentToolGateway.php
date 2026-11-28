@@ -19,7 +19,9 @@ use Illuminate\Support\Facades\Validator;
  * is the person who asked for the run (when the run has one) and holds the tool's permission; the branch
  * is the run's branch (when the run has one), active and in the organisation, and a `.branch` tool needs a
  * branch where the requester has an effective assignment, and so does every tool for a branch-only requester
- * (INS-BM-2, below); the input matches the tool's schema. The result
+ * (INS-BM-2, below: the requested branch must be the requester's; a tool's own output rules, such as the
+ * inventory balances tool listing other branches' stock for transfer suggestions, are unchanged); the input
+ * matches the tool's schema. The result
  * is scanned for personal data. Nothing here writes clinic data.
  */
 final class AgentToolGateway
